@@ -15,9 +15,11 @@ FASTQParser::FASTQParser (char* filename) {
 
 	max_line_size = MAXLINESIZE;
 	current_record = new Record;
+	set_comp();
 
 	current_record->rname = (char*) malloc(max_line_size);
 	current_record->seq = (char*) malloc(max_line_size);
+	current_record->rcseq = (char*) malloc(max_line_size);
 	current_record->comment = (char*) malloc(max_line_size);
 	current_record->qual = (char*) malloc(max_line_size);
 }
@@ -51,10 +53,42 @@ bool FASTQParser::read_next (void) {
 	if ((len = getline(&current_record->qual, &max_line_size, input)) == -1)
 		return false;
 	
-	current_record->seq_len = strlen(current_record->seq) - 1;	// skipping newline at the end
-
 	assert(current_record->rname[0] == '@');
 	assert(current_record->comment[0] == '+');
 	
+	current_record->seq_len = strlen(current_record->seq) - 1;	// skipping newline at the end
+	//current_record->seq[current_record->seq_len] = '\0';
+
+	set_reverse_comp();
+
 	return true;
+}
+
+void FASTQParser::set_comp (void) {
+	comp['A'-'A'] = 'T' - 'A';
+	comp['C'-'A'] = 'G' - 'C';
+	comp['G'-'A'] = 'C' - 'G';
+	comp['T'-'A'] = 'A' - 'T';
+	comp['N'-'A'] = 'N' - 'N';
+}
+
+char FASTQParser::get_comp (char nt) {
+	if (nt > 'a')
+		return nt + comp[nt - 'a'];
+	return nt + comp[nt - 'A'];
+}
+
+void FASTQParser::set_reverse_comp (void) {
+	if (current_record == NULL) {
+		fprintf(stderr, "No read loaded\n");
+		return;
+	}
+
+	int len = current_record->seq_len;
+	char nt;
+	for (int i = len-1; i >= 0; --i) {
+		nt = get_comp(current_record->seq[i]);
+		current_record->rcseq[len-i-1] = nt;
+	}
+	current_record->rcseq[len] = '\0';
 }

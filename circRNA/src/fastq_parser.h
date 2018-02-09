@@ -9,6 +9,7 @@
 typedef struct {
 	char *rname;
 	char *seq;
+	char *rcseq;
 	char *comment;
 	char *qual;
 
@@ -25,6 +26,8 @@ private:
 	size_t max_line_size;
 	int size;
 
+	short comp[30];
+
 public:
 	FASTQParser (char* filename);
 	~FASTQParser (void);
@@ -32,6 +35,11 @@ public:
 	Record* get_next (void);
 	bool has_next (void);
 	bool read_next (void);
+
+	void set_reverse_comp (void);
+
+	void set_comp (void);
+	char get_comp (char nt);
 };
 
 #endif

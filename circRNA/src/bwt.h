@@ -23,6 +23,10 @@ void        bwt_str_pac2char(uint32_t beg, uint32_t len, char *seq);
 int get_exact_locs(const char *str, int len, bwtint_t *sa_begin, bwtint_t *sa_end);
 void locate_match(bwtint_t *sp, bwtint_t *ep, int match_len);
 
+int get_expanded_locs(const char *str, int len, bwtint_t *sa_begin, bwtint_t *sa_end);
+bwtint_t get_pos(const bwtint_t* p, const int& match_len, int& dir);
+bool check_cosistent_match(bwtint_t *sp_orig, bwtint_t *ep_orig, const int& len_orig, bwtint_t *sp_rc, bwtint_t *ep_rc, const int& len_rc);
+
 typedef struct
 {
     uint64_t beg;

@@ -32,6 +32,83 @@ int get_exact_locs(const char *str, int len, bwtint_t *sa_begin, bwtint_t *sa_en
 	return bwt_count_exact(_fmd_index->bwt, str, len, sa_begin, sa_end);
 }
 
+int get_expanded_locs(const char *str, int len, bwtint_t *sa_begin, bwtint_t *sa_end) {
+	bwt_t* bwt = _fmd_index->bwt;
+    bwtint_t k, l, ok, ol;
+
+	bwtint_t pre_k, pre_l;
+
+    ubyte_t c;
+    int i;
+    k = 0;
+    l = bwt->seq_len;
+    for (i = len - 1; i >= 0; --i)
+    {
+        c = nst_nt4_table[ str[i] ];
+        if (c > 3) break; // no match
+        bwt_2occ(bwt, k - 1, l, c, &ok, &ol);
+        k = bwt->L2[c] + ok + 1;
+        l = bwt->L2[c] + ol;
+        if (k > l) break; // no match
+		pre_k = k;
+		pre_l = l;
+    }
+    //*sa_begin = k;
+    //*sa_end = l;
+    //return l - k + 1;
+	
+    *sa_begin = pre_k;
+    *sa_end = pre_l;
+	return len - i - 1;
+}
+
+bwtint_t get_pos(const bwtint_t* p, const int& match_len, int& dir) {
+	bwtint_t sapos;
+    
+	// locate
+    sapos = bwt_sa(_fmd_index->bwt, *p);
+    if (sapos >= _fmd_index->bns->l_pac) // reverse strand
+    {
+		dir = -1;
+        sapos = (_fmd_index->bns->l_pac << 1) - sapos - match_len;
+
+        // print sequences
+        //fprintf(stderr, "Reverse: ml:%u sa:%llu ts:%llu\n", match_len, *p, sapos);
+        //int64_t k;
+        //for (k = sapos; k < sapos + match_len; ++k)
+        //	fprintf(stderr, "%c", "ACGTN"[_get_pac(_fmd_index->pac, k)]);
+        //fprintf(stderr, "\n");
+        //for (k = sapos + match_len - 1; k >= sapos; --k)
+        //	fprintf(stderr, "%c", "ACGTN"[3 - _get_pac(_fmd_index->pac, k)]);
+        //fprintf(stderr, "\n");
+    }
+    else // forward strand
+    {
+		dir = 1;
+        // print sequences
+        //fprintf(stderr, "Forward: ml:%u sa:%llu ts:%llu\n", match_len, *p, sapos);
+        //int64_t k;
+        //for (k = sapos; k < sapos + match_len; ++k)
+        //	fprintf(stderr, "%c", "ACGTN"[_get_pac(_fmd_index->pac, k)]);
+        //fprintf(stderr, "\n");
+    }
+
+	return sapos;
+}
+
+bool check_cosistent_match(bwtint_t *sp_orig, bwtint_t *ep_orig, const int& len_orig, bwtint_t *sp_rc, bwtint_t *ep_rc, const int& len_rc) {
+	if ((*ep_orig - *sp_orig > 0) or (*ep_rc - *sp_rc > 0))
+		return false;
+
+    //sapos = bwt_sa(_fmd_index->bwt, *sp_f);
+	
+	int dir_orig, dir_rc;
+	int rpos_orig = get_pos(sp_orig, len_orig, dir_orig);
+	int rpos_rc = get_pos(sp_rc, len_rc, dir_rc);
+
+	return rpos_rc <= rpos_orig;
+}
+
 void locate_match(bwtint_t *sp, bwtint_t *ep, int match_len) {
 	bwtint_t sapos, j;
 	int rpos;
