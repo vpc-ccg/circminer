@@ -10,8 +10,8 @@ BWADIR      := $(SRCDIR)/bwa
 INCS        := -I$(BWADIR)
 LIBS        := -lz
 #LIBS        := -lz -lm -lpthread
-CFLAGS      := -w -O4
-CXXFLAGS    := -w -O4 $(INCS)
+CFLAGS      := -w -O3
+CXXFLAGS    := -w -O3 $(INCS)
 LDFLAGS     := 
 
 MYOBJ        = $(SRCDIR)/circRNA.o \

@@ -1,5 +1,5 @@
-#ifndef __FASTQParser_H__
-#define __FASTQParser_H__
+#ifndef __FASTQPARSER_H__
+#define __FASTQPARSER_H__
 
 #include <cstdlib>
 #include <cstdio>
@@ -19,7 +19,7 @@ typedef struct {
 
 class FASTQParser {
 private:
-	FILE *input;
+	FILE* input;
 	size_t file_size;
 
 	Record* current_record;
@@ -29,9 +29,11 @@ private:
 	short comp[30];
 
 public:
+	FASTQParser ();
 	FASTQParser (char* filename);
 	~FASTQParser (void);
 
+	void init (char* filename);
 	Record* get_next (void);
 	bool has_next (void);
 	bool read_next (void);
@@ -42,4 +44,4 @@ public:
 	char get_comp (char nt);
 };
 
-#endif
+#endif	//__FASTQPARSER_H__

@@ -2,7 +2,20 @@
 
 #define MAXLINESIZE 10000
 
+FASTQParser::FASTQParser () { 
+	input = NULL; 
+}
+
 FASTQParser::FASTQParser (char* filename) {
+	init(filename);
+}
+
+FASTQParser::~FASTQParser (void) {
+	if (input != NULL)
+		fclose(input);
+}
+
+void FASTQParser::init (char* filename) {
 	input = fopen(filename, "r");
 	if (input == NULL) {
 		fprintf(stderr, "Could not open %s\n", filename);
@@ -22,10 +35,6 @@ FASTQParser::FASTQParser (char* filename) {
 	current_record->rcseq = (char*) malloc(max_line_size);
 	current_record->comment = (char*) malloc(max_line_size);
 	current_record->qual = (char*) malloc(max_line_size);
-}
-
-FASTQParser::~FASTQParser (void) {
-	fclose(input);
 }
 
 Record* FASTQParser::get_next (void) {
