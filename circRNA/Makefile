@@ -16,6 +16,7 @@ LDFLAGS     :=
 
 MYOBJ        = $(SRCDIR)/circRNA.o \
                $(SRCDIR)/bwt.o \
+               $(SRCDIR)/filter.o \
                $(SRCDIR)/fastq_parser.o \
 
 BWAOBJ       = $(BWADIR)/*.o

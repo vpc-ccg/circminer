@@ -1,23 +1,11 @@
-#define __STDC_FORMAT_MACROS
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cassert>
-#include <inttypes.h>
-
-#include <string>
-#include <vector>
-#include <algorithm>
 
 #include "fastq_parser.h"
 #include "filter.h"
-#include "filter.cpp"
 
 using namespace std;
-
-#define GENETHRESH 100000
-#define RANGELIM 1000
-#define REGIONSIZELIM 2e7
 
 int main(int argc, char **argv)
 {
@@ -61,7 +49,7 @@ int main(int argc, char **argv)
 
 	FilterRead filter_read(argv[3], is_pe);
 
-	fprintf(stderr, "Started reading FASTQ file\n");
+	fprintf(stderr, "Started reading FASTQ file...\n");
 	int line = 0;
 
 	while ( fq_parser1.has_next() ) { // go line by line on fastq file
@@ -80,14 +68,14 @@ int main(int argc, char **argv)
 		//int occ = find_exact_positions(current_record->seq, current_record->seq_len, find_len);
 
 		int is_chimeric;
-		if (!is_pe) {
+		if (is_pe) {
 			//int is_chimeric2 = find_expanded_positions(current_record2->seq, current_record2->rcseq, current_record2->seq_len);
 			is_chimeric = check_concordant_mates(current_record1, current_record2);
-			filter_read.write_read(current_record1, is_chimeric);
+			filter_read.write_read(current_record1, current_record2, is_chimeric);
 		}
 		else {
 			is_chimeric = find_expanded_positions(current_record1->seq, current_record1->rcseq, current_record1->seq_len);
-			filter_read.write_read(current_record1, current_record2, is_chimeric);
+			filter_read.write_read(current_record1, is_chimeric);
 		}
 	}
 

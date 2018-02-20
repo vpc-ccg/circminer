@@ -104,7 +104,8 @@ bwtint_t binary_search(vector<bwtint_t>& list, bwtint_t beg, bwtint_t end, bwtin
 }
 
 bool is_concordant_sorted(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, const int& noise_thresh) {
-	if ((ep_f - sp_f >= REGIONSIZELIM) or (ep_b - sp_b >= REGIONSIZELIM))
+	//if ((ep_f - sp_f >= REGIONSIZELIM) or (ep_b - sp_b >= REGIONSIZELIM))
+	if ((ep_b - sp_b + 1) * (ep_f - sp_f + 1) >= RANGELIM)
 		return false;
 
 	//fprintf(stderr, "back size: %llu\nfront size: %llu\n", ep_b - sp_b + 1, ep_f - sp_f + 1);
@@ -213,7 +214,8 @@ bool is_concordant_sorted(const bwtint_t& sp_f, const bwtint_t& ep_f, const int&
 }
 
 bool is_concordant_sorted2(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, const int& noise_thresh, MatchedRead& mr) {
-	if ((ep_f - sp_f >= REGIONSIZELIM) or (ep_b - sp_b >= REGIONSIZELIM))
+	//if ((ep_f - sp_f >= REGIONSIZELIM) or (ep_b - sp_b >= REGIONSIZELIM))
+	if ((ep_b - sp_b + 1) * (ep_f - sp_f + 1) >= RANGELIM)
 		return false;
 
 	//fprintf(stderr, "back size: %llu\nfront size: %llu\n", ep_b - sp_b + 1, ep_f - sp_f + 1);
@@ -437,7 +439,7 @@ int find_expanded_positions2(const char* rseq, const char* rcseq, const int& rse
 
 	exp_len_front = get_expanded_locs(rcseq, rseq_len, &sp_f, &ep_f);
 	if (exp_len_front >= rseq_len - noise_thresh) {	// concordant
-		fprintf(stderr, "[Concordant-e]\tfront matched: %d\n", exp_len_front);
+		//fprintf(stderr, "[Concordant-e]\tfront matched: %d\n", exp_len_front);
 		mr.is_concord = true;
 		mr.start_pos = get_pos(&sp_f, exp_len_front, mr.dir);
 		mr.dir *= -1;
@@ -446,10 +448,11 @@ int find_expanded_positions2(const char* rseq, const char* rcseq, const int& rse
 	}
 
 	exp_len_back = get_expanded_locs(rseq + exp_len_front, rseq_len - exp_len_front, &sp_b, &ep_b);
-	fprintf(stderr, "%s\tlen front: %d,\tlen back: %d\n", rseq, exp_len_front, exp_len_back);
+	//fprintf(stderr, "%s\tlen front: %d,\tlen back: %d\n", rseq, exp_len_front, exp_len_back);
 	
-	if (exp_len_front < 18 or  exp_len_back < 18) {
-		fprintf(stderr, "[Chimerici-e]\tfront matched: %d, back matched: %d\n", exp_len_front, exp_len_back);
+	//if (exp_len_front < 23 or  exp_len_back < 23) {
+	if (exp_len_front + exp_len_back <= 0.6 * rseq_len) {
+		//fprintf(stderr, "[Chimerici-e]\tfront matched: %d, back matched: %d\n", exp_len_front, exp_len_back);
 		return 1;
 	}
 	
@@ -457,8 +460,8 @@ int find_expanded_positions2(const char* rseq, const char* rcseq, const int& rse
 	//bool consis = is_concordant(sp_f, ep_f, exp_len_front, sp_b, ep_b, exp_len_back, noise_thresh);
 	bool consis = is_concordant_sorted2(sp_f, ep_f, exp_len_front, sp_b, ep_b, exp_len_back, noise_thresh, mr);
 
-	std::string res = (consis) ? "Concordant" : "Chimeric";
-	fprintf(stderr, "[%s]\tfront matched: %d, back matched: %d\n", res.c_str(), exp_len_front, exp_len_back);
+	//std::string res = (consis) ? "Concordant" : "Chimeric";
+	//fprintf(stderr, "[%s]\tfront matched: %d, back matched: %d\n", res.c_str(), exp_len_front, exp_len_back);
 
 	if (consis)
 		return 0;
@@ -504,6 +507,48 @@ int find_exact_positions(const char* rseq, int rseq_len, int window_size) {
 	}
 
 	return occ;
+}
+
+int find_exact_positions2(const char* rseq, int rseq_len, const int& window_size, const int& shift_step) {
+	bwtint_t sp, ep;
+	int occ = 0;
+
+	for (int i = 0; i <= rseq_len - 2*window_size; i += shift_step) {
+		occ = get_exact_locs(rseq + i, window_size, &sp, &ep);
+		//fprintf(stderr, "Start pos: %d\n", i);
+		//fprintf(stderr, "Number of matches: %d\n", occ);
+
+		if (occ > 0) {
+			locate_match(&sp, &ep, window_size);
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+int check_concordant_mates_noexpand(const Record* m1, const Record* m2) {
+	MatchedRead mr1, mr2;
+	int chimeric1 = find_expanded_positions2(m1->seq, m1->rcseq, m1->seq_len, mr1);
+	int chimeric2 = find_expanded_positions2(m2->seq, m2->rcseq, m2->seq_len, mr2);
+
+	if (chimeric1 == 1 and chimeric2 == 1)
+		return 1;
+
+	if (chimeric1 == 1 or chimeric2 == 1) {
+		//fprintf(stderr, "Half concordant: %s", m1->rname);
+		return 2;
+	}
+
+	//fprintf(stderr, "%s", m1->rname);
+	//fprintf(stderr, "M1: dir:%d,\tstart:%llu,\tend:%llu\n", mr1.dir, mr1.start_pos, mr1.start_pos + mr1.matched_len);
+	//fprintf(stderr, "M2: dir:%d,\tstart:%llu,\tend:%llu\n", mr2.dir, mr2.start_pos, mr2.start_pos + mr2.matched_len);
+
+	if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos <= mr2.start_pos))
+		return 0;
+	if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos <= mr1.start_pos))
+		return 0;
+	return 3;
 }
 
 void get_mate_name(char* fq1, char* fq2) {
