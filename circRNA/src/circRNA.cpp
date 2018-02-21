@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 			break;
 
 		line++;
-		if (line % 1000000 == 0)
+		if (line % 100000 == 0)
 			fprintf(stderr, "[P] %d lines\n", line);
 
 		//fprintf(stderr, "Seq: %s, len: %d\n", current_record1->seq, current_record1->seq_len);
@@ -69,8 +69,8 @@ int main(int argc, char **argv)
 
 		int is_chimeric;
 		if (is_pe) {
-			//int is_chimeric2 = find_expanded_positions(current_record2->seq, current_record2->rcseq, current_record2->seq_len);
-			is_chimeric = check_concordant_mates(current_record1, current_record2);
+			//is_chimeric = check_concordant_mates(current_record1, current_record2);
+			is_chimeric = check_concordant_mates_noexpand(current_record1, current_record2);
 			filter_read.write_read(current_record1, current_record2, is_chimeric);
 		}
 		else {

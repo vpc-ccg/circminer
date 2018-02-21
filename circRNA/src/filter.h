@@ -58,4 +58,7 @@ int check_concordant_mates(const Record* m1, const Record* m2);
 int find_exact_positions(const char* rseq, int rseq_len, int window_size);
 void get_mate_name(char* fq1, char* fq2);
 
+int check_concordant_mates_noexpand(const Record* m1, const Record* m2);
+int find_exact_positions_slide(const char* rseq, int rseq_len, const int& window_size, const int& shift_step, MatchedRead& mr);
+
 #endif //__READFILTER_H__
