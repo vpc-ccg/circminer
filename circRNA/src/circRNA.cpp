@@ -7,12 +7,12 @@
 
 using namespace std;
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 	if (argc < 4) {
 		fprintf(stderr, "Usage: %s <FASTA> <FASTQ> <OUT> [--pe]\n", argv[0]);
 		return 1;
 	}
+
 	char* ref_file = argv[1];
 	char* fq_file1 = argv[2];
 	char fq_file2[1000];
@@ -32,11 +32,11 @@ int main(int argc, char **argv)
 	*/
 
 	if (bwt_load(ref_file)) {
-		fprintf(stderr, "Index not loaded!\n");
+		fprintf(stdout, "Index not loaded!\n");
 		return 1;
 	}
 	else
-		fprintf(stderr, "Index file successfully loaded!\n");
+		fprintf(stdout, "Index file successfully loaded!\n");
 
 	FASTQParser fq_parser1(fq_file1);
 	Record* current_record1;
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 
 	FilterRead filter_read(argv[3], is_pe);
 
-	fprintf(stderr, "Started reading FASTQ file...\n");
+	fprintf(stdout, "Started reading FASTQ file...\n");
 	int line = 0;
 
 	while ( fq_parser1.has_next() ) { // go line by line on fastq file
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
 		line++;
 		if (line % 100000 == 0)
-			fprintf(stderr, "[P] %d lines\n", line);
+			fprintf(stdout, "[P] %d lines\n", line);
 
 		//fprintf(stderr, "Seq: %s, len: %d\n", current_record1->seq, current_record1->seq_len);
 		//fprintf(stderr, "RC Seq: %s, len: %d\n", current_record->rcseq, current_record->seq_len);
@@ -70,11 +70,11 @@ int main(int argc, char **argv)
 		int is_chimeric;
 		if (is_pe) {
 			//is_chimeric = check_concordant_mates(current_record1, current_record2);
-			is_chimeric = check_concordant_mates_noexpand(current_record1, current_record2);
-			filter_read.write_read(current_record1, current_record2, is_chimeric);
+			is_chimeric = filter_read.process_read(current_record1, current_record2);
+			filter_read.write_read3(current_record1, current_record2, is_chimeric);
 		}
 		else {
-			is_chimeric = find_expanded_positions(current_record1->seq, current_record1->rcseq, current_record1->seq_len);
+			is_chimeric = filter_read.process_read(current_record1);
 			filter_read.write_read(current_record1, is_chimeric);
 		}
 	}
