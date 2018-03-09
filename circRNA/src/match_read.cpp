@@ -827,7 +827,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 // 3: discordant
 int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, MatchedRead& mr) {
 	//if ((ep_f - sp_f >= REGIONSIZELIM) or (ep_b - sp_b >= REGIONSIZELIM))
-	if ((ep_b - sp_b + 1) >= REGIONSIZELIM or (ep_f - sp_f + 1) >= REGIONSIZELIM) {
+	if ((ep_b - sp_b) >= REGIONSIZELIM or (ep_f - sp_f) >= REGIONSIZELIM) {
 		return 3;
 	}
 
@@ -985,6 +985,9 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 			continue;
 		if (i < junction_detect_size_lim and rseq_len - exp_len_front - i < junction_detect_size_lim) {	// concordant (exon)
 			//fprintf(stderr, "[Concordant-e]\tfront matched: %d\n", exp_len_front);
+			
+			//print_location_list(sp_f, ep_f, exp_len_front);
+			
 			mr.is_concord = true;
 			mr.start_pos = get_pos(&sp_f, exp_len_front, mr.dir);
 			mr.dir *= -1;
@@ -994,6 +997,8 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 		break;
 	}
 
+	//print_location_list(sp_f, ep_f, exp_len_front);
+
 	if (exp_len_front < window_size) {	// un-mappable
 		mr.is_concord = false;
 		mr.start_pos = -1;
@@ -1001,9 +1006,14 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 		return 5;
 	}
 
-	const char* remain_rseq = rseq + i + exp_len_front;
-	int remain_len = rseq_len - i - exp_len_front;
+	const char* remain_rseq = rseq + i + exp_len_front + 1;	// skipping one bp for noise/mismatch
+	int remain_len = rseq_len - i - exp_len_front - 1;
+	//fprintf(stderr, "Remaining len: %d\n", remain_len);
+	
 	if (remain_len < junction_detect_size_lim) {	// won't be able to find an event from the remaining of the read (potentially mappable)
+		
+		//print_location_list(sp_f, ep_f, exp_len_front);
+		
 		mr.is_concord = false;
 		mr.start_pos = get_pos(&sp_f, exp_len_front, mr.dir);
 		mr.dir *= -1;
@@ -1014,22 +1024,17 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	int j = 0;
 	bwtint_t longest_sp_b, longest_ep_b;
 	int max_len_back = 0;
-	for (j = 0; j < remain_len - exp_len_back; j += step) {
+	for (j = 0; j < remain_len - max_len_back; j += step) {
 		exp_len_back = get_expanded_locs(remain_rseq, remain_len - j, &sp_b, &ep_b);
 		//fprintf(stderr, "%s\tlen front: %d,\tlen back: %d\n", rseq, exp_len_front, exp_len_back);
 	
-		if (exp_len_back >= window_size)
-			break;
 		if (exp_len_back > max_len_back) {
 			max_len_back = exp_len_back;
 			longest_sp_b = sp_b;
 			longest_ep_b = ep_b;
 		}
-
-		//if (exp_len_front + exp_len_back <= 0.6 * rseq_len) {
-		//	fprintf(stderr, "[Chimeric-e]\tfront matched: %d, back matched: %d\n", exp_len_front, exp_len_back);
-		//	return 1;
-		//}
+		//if (exp_len_back >= window_size)
+		//	break;
 	}
 	
 	if (max_len_back <= junction_detect_size_lim) {	// not long enough for detecting junction
@@ -1042,12 +1047,12 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	//bool consis = check_cosistent_match(&sp_b, &ep_b, exp_len_backward, &sp_f, &ep_f, exp_len_forward);
 	//bool consis = is_concordant(sp_f, ep_f, exp_len_front, sp_b, ep_b, exp_len_back, noise_thresh);
 	//bool consis = is_concordant_sorted2(sp_f, ep_f, exp_len_front, longest_sp_b, longest_ep_b, exp_len_back, 10, mr);
-	
+	//
+	//fprintf(stderr, "Intersecting:\n");
+	//print_location_list(sp_f, ep_f, exp_len_front);
+	//print_location_list(longest_sp_b, longest_ep_b, exp_len_back);
 	int intersect_ret = intersect(sp_f, ep_f, exp_len_front, longest_sp_b, longest_ep_b, exp_len_back, mr);
 
-	//std::string res = (consis) ? "Concordant" : "Chimeric";
-	//fprintf(stderr, "[%s]\tfront matched: %d, back matched: %d\n", res.c_str(), exp_len_front, exp_len_back);
-	
 	return intersect_ret;
 }
 
@@ -1062,11 +1067,12 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 	int junction_detect_size_lim = 9;
 	MatchedRead mr1, mr2;
 
-	//fprintf(stderr, "Read name: %s", m1->rname);
+	//fprintf(stderr, "Read name: %s1st mate:\n", m1->rname);
 	int mate1_state = find_expanded_sliding_positions(m1->seq, m1->rcseq, m1->seq_len, mr1, 23, 3, junction_detect_size_lim);
+	//fprintf(stderr, "2nd mate:\n");
 	int mate2_state = find_expanded_sliding_positions(m2->seq, m2->rcseq, m2->seq_len, mr2, 23, 3, junction_detect_size_lim);
 
-	//fprintf(stderr, "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	//fprintf(stderr, "%d\n%d\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", mate1_state, mate2_state);
 
 	if (mate1_state == 2 or mate2_state == 2)
 		return 2;
@@ -1079,51 +1085,56 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 	if (mate1_state == 3 or mate2_state == 3)
 		return 3;
 
-	//fprintf(stderr, "%s", m1->rname);
+	if (mate1_state == 4 or mate2_state == 4)
+		return 3;
+
 	//fprintf(stderr, "M1: dir:%d,\tstart:%llu,\tend:%llu\n", mr1.dir, mr1.start_pos, mr1.start_pos + mr1.matched_len);
 	//fprintf(stderr, "M2: dir:%d,\tstart:%llu,\tend:%llu\n", mr2.dir, mr2.start_pos, mr2.start_pos + mr2.matched_len);
 
-	if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos <= mr2.start_pos))
+	//fprintf(stderr, "%s", m1->rname);
+	//fprintf(stderr, "M1: dir: %d\t%llu\n", mr1.dir, mr1.start_pos);
+	//fprintf(stderr, "M2: dir: %d\t%llu\n", mr2.dir, mr2.start_pos);
+
+	//char *chr_name;
+	//int32_t chr_len;
+	//uint32_t chr_beg;
+	//uint32_t chr_end;
+	//bwt_get_intv_info(mr1.start_pos, mr1.start_pos + 20, &chr_name, &chr_len, &chr_beg, &chr_end);
+	//fprintf(stderr, "Chr: %s\t", chr_name);
+	//fprintf(stderr, "%"PRIu64"\n", chr_beg);
+	//bwt_get_intv_info(mr2.start_pos, mr2.start_pos + 20, &chr_name, &chr_len, &chr_beg, &chr_end);
+	//fprintf(stderr, "Chr: %s\t", chr_name);
+	//fprintf(stderr, "%"PRIu64"\n", chr_beg);
+
+	if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos <= mr2.start_pos))	// fusion might be ignored here
 		return 0;
-	if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos <= mr1.start_pos))
+	if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos <= mr1.start_pos))	// fusion might be ignored here
 		return 0;
 
-	if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos > mr2.start_pos + 8) and (mr1.start_pos <= mr2.start_pos + GENETHRESH)) {
-		//fprintf(stderr, "%s", m1->rname);
-		//fprintf(stderr, "M1: dir: %d\t%llu\n", mr1.dir, mr1.start_pos);
-		//fprintf(stderr, "M2: dir: %d\t%llu\n", mr2.dir, mr2.start_pos);
-
-		//char *chr_name;
-		//int32_t chr_len;
-		//uint32_t chr_beg;
-		//uint32_t chr_end;
-		//bwt_get_intv_info(mr1.start_pos, mr1.start_pos + 20, &chr_name, &chr_len, &chr_beg, &chr_end);
-		//fprintf(stderr, "Chr: %s\t", chr_name);
-		//fprintf(stderr, "%"PRIu64"\n", chr_beg);
-		//bwt_get_intv_info(mr2.start_pos, mr2.start_pos + 20, &chr_name, &chr_len, &chr_beg, &chr_end);
-		//fprintf(stderr, "Chr: %s\t", chr_name);
-		//fprintf(stderr, "%"PRIu64"\n", chr_beg);
-
+	// non-overlapping chimeric mates in the gene range
+	if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos > mr2.start_pos + mr2.matched_len) and (mr1.start_pos <= mr2.start_pos + GENETHRESH))
 		return 2;
-	}
-	if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos > mr1.start_pos + 8) and (mr2.start_pos <= mr1.start_pos + GENETHRESH)) {
-		//fprintf(stderr, "%s", m1->rname);
-		//fprintf(stderr, "M1: dir: %d\t%llu\n", mr1.dir, mr1.start_pos);
-		//fprintf(stderr, "M2: dir: %d\t%llu\n", mr2.dir, mr2.start_pos);
-
-		//char *chr_name;
-		//int32_t chr_len;
-		//uint32_t chr_beg;
-		//uint32_t chr_end;
-		//bwt_get_intv_info(mr1.start_pos, mr1.start_pos + 20, &chr_name, &chr_len, &chr_beg, &chr_end);
-		//fprintf(stderr, "Chr: %s\t", chr_name);
-		//fprintf(stderr, "%"PRIu64"\n", chr_beg);
-		//bwt_get_intv_info(mr2.start_pos, mr2.start_pos + 20, &chr_name, &chr_len, &chr_beg, &chr_end);
-		//fprintf(stderr, "Chr: %s\t", chr_name);
-		//fprintf(stderr, "%"PRIu64"\n", chr_beg);
-
+	if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos > mr1.start_pos + mr1.matched_len) and (mr2.start_pos <= mr1.start_pos + GENETHRESH))
 		return 2;
-	}
-	return 3;
+
+	return 0;	// fusion might be ignored here
 }
 
+void print_location_list(const bwtint_t& sp, const bwtint_t& ep, const int& len) {
+	bwtint_t tmp;
+	int dir;
+	fprintf(stderr, "===\nLength of match: %d\n", len);
+	for (bwtint_t i = sp; i <= ep; i++) {
+		tmp = get_pos(&i, len, dir);
+		fprintf(stderr, "strand: %d\t", dir);
+		char *chr_name;
+		int32_t chr_len;
+		uint32_t chr_beg;
+		uint32_t chr_end;
+		bwt_get_intv_info(tmp, tmp + len - 1, &chr_name, &chr_len, &chr_beg, &chr_end);
+		fprintf(stderr, "chr%s: ", chr_name);
+		fprintf(stderr, "%"PRIu64"-", chr_beg);
+		fprintf(stderr, "%"PRIu64"\t", chr_end);
+	}
+	fprintf(stderr, "\n===\n");
+}

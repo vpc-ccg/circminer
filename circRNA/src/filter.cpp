@@ -17,8 +17,8 @@ FilterRead::FilterRead (char* save_fname, bool pe) {
 	strcat (ignore_file1, ".ignore_R1.fastq");
 	strcat (keep_file1, ".keep_R1.fastq");
 	strcat (chimeric_file1, ".chimeric_R1.fastq");
-	strcat (p_unmap_file1, ".partly_unmappable_R1.fastq");
-	strcat (unmap_file1, ".unmappable_R1.fastq");
+	strcat (p_unmap_file1, ".OEA_R1.fastq");
+	strcat (unmap_file1, ".orphan_R1.fastq");
 
 	ignore_r1 = fopen(ignore_file1, "w");
 	keep_r1   = fopen(keep_file1, "w");
@@ -41,8 +41,8 @@ FilterRead::FilterRead (char* save_fname, bool pe) {
 		strcat (ignore_file2, ".ignore_R2.fastq");
 		strcat (keep_file2, ".keep_R2.fastq");
 		strcat (chimeric_file2, ".chimeric_R2.fastq");
-		strcat (p_unmap_file2, ".partly_unmappable_R2.fastq");
-		strcat (unmap_file2, ".unmappable_R2.fastq");
+		strcat (p_unmap_file2, ".OEA_R2.fastq");
+		strcat (unmap_file2, ".orphan_R2.fastq");
 
 		ignore_r2 = fopen(ignore_file2, "w");
 		keep_r2   = fopen(keep_file2, "w");

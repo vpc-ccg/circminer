@@ -19,7 +19,8 @@ using namespace std;
 
 #define GENETHRESH 100000
 #define RANGELIM 1000
-#define REGIONSIZELIM 2e5
+//#define REGIONSIZELIM 2e5
+#define REGIONSIZELIM 10000
 
 typedef struct {
 	bool is_concord;
@@ -47,5 +48,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, MatchedRead& mr);
 int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const int& rseq_len, MatchedRead& mr, const int& window_size, const int& step, const int& junction_detect_size_lim);
 int check_concordant_mates_expand(const Record* m1, const Record* m2);
+
+void print_location_list(const bwtint_t& sp, const bwtint_t& ep, const int& len);
 
 #endif // __MATCHREAD_H__
