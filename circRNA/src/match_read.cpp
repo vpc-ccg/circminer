@@ -825,15 +825,20 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 // 1: concordant juinction
 // 2: chimeric
 // 3: discordant
-int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, MatchedRead& mr) {
+int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, vector <MatchedRead>& mrl, int& mrl_size) {
 	//if ((ep_f - sp_f >= REGIONSIZELIM) or (ep_b - sp_b >= REGIONSIZELIM))
 	if ((ep_b - sp_b) >= REGIONSIZELIM or (ep_f - sp_f) >= REGIONSIZELIM) {
+		mrl_size = 0;
 		return 3;
 	}
 
+	char *chr_name_f, *chr_name_b;
+	int32_t chr_len_f, chr_len_b;
+	uint32_t chr_beg_f, chr_beg_b;
+	uint32_t chr_end_f, chr_end_b;
+
 	//fprintf(stderr, "back size: %llu\nfront size: %llu\n", ep_b - sp_b + 1, ep_f - sp_f + 1);
 
-	mr.is_concord = false;
 	int dir_front=0, dir_back=0;
 	bwtint_t flist_size_f, blist_size_f;
 	bwtint_t flist_size_b, blist_size_b;
@@ -863,6 +868,8 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 	//	fprintf(stderr, "%llu\t", backwardlist_b[k]);
 	//fprintf(stderr, "\n");
 
+	mrl_size = 0;
+
 	bwtint_t i, j, target;
 	if (flist_size_f > 0 and blist_size_b > 0) {
 		if (flist_size_f <= blist_size_b) {
@@ -876,13 +883,18 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 				spos_back = backwardlist_b[j-1];
 				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
 				
-				//fprintf(stderr, "HEYYYYY %d\n%llu\n", len_f, spos_front);
-				if (spos_front <= spos_back + len_b + GENETHRESH) {
-					mr.is_concord = true;
-					mr.start_pos = spos_back;
-					mr.matched_len = spos_front + len_f - spos_back + 1;
-					mr.dir = -1;
-					return 1;
+				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
+				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
+			
+				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_f <= chr_beg_b + len_b + GENETHRESH) {
+					mrl[mrl_size].is_concord = true;
+					mrl[mrl_size].chr = chr_name_f;
+					mrl[mrl_size].start_pos = chr_beg_b;
+					mrl[mrl_size].end_pos = chr_end_f;
+					mrl[mrl_size].matched_len = spos_front + len_f - spos_back + 1;
+					mrl[mrl_size].dir = -1;
+					if (++mrl_size >= MRLSIZELIM)
+						return 1;
 				}
 			}
 		}
@@ -900,12 +912,18 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 				spos_back = backwardlist_b[j];
 				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
 				
-				if (spos_front <= spos_back + len_b + GENETHRESH) {
-					mr.is_concord = true;
-					mr.start_pos = spos_back;
-					mr.matched_len = spos_front + len_f - spos_back + 1;
-					mr.dir = -1;
-					return 1;
+				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
+				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
+			
+				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_f <= chr_beg_b + len_b + GENETHRESH) {
+					mrl[mrl_size].is_concord = true;
+					mrl[mrl_size].chr = chr_name_f;
+					mrl[mrl_size].start_pos = chr_beg_b;
+					mrl[mrl_size].end_pos = chr_end_f;
+					mrl[mrl_size].matched_len = spos_front + len_f - spos_back + 1;
+					mrl[mrl_size].dir = -1;
+					if (++mrl_size >= MRLSIZELIM)
+						return 1;
 				}
 			}
 		}
@@ -926,12 +944,18 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 				spos_back = forwardlist_b[j];
 				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
 				
-				if (spos_back <= spos_front + len_f + GENETHRESH) {
-					mr.is_concord = true;
-					mr.start_pos = spos_front;
-					mr.matched_len = spos_back + len_b - spos_front + 1;
-					mr.dir = 1;
-					return 1;
+				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
+				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
+			
+				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_b <= chr_beg_f + len_f + GENETHRESH) {
+					mrl[mrl_size].is_concord = true;
+					mrl[mrl_size].chr = chr_name_f;
+					mrl[mrl_size].start_pos = chr_beg_f;
+					mrl[mrl_size].end_pos = chr_end_b;
+					mrl[mrl_size].matched_len = spos_back + len_b - spos_front + 1;
+					mrl[mrl_size].dir = 1;
+					if (++mrl_size >= MRLSIZELIM)
+						return 1;
 				}
 			}
 		}
@@ -946,19 +970,28 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 				spos_back = forwardlist_b[j];
 				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
 				
-				if (spos_back <= spos_front + len_f + GENETHRESH) {
-					mr.is_concord = true;
-					mr.start_pos = spos_front;
-					mr.matched_len = spos_back + len_b - spos_front + 1;
-					mr.dir = 1;
-					return 1;
+				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
+				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
+			
+				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_b <= chr_beg_f + len_f + GENETHRESH) {
+					mrl[mrl_size].is_concord = true;
+					mrl[mrl_size].chr = chr_name_f;
+					mrl[mrl_size].start_pos = chr_beg_f;
+					mrl[mrl_size].end_pos = chr_end_b;
+					mrl[mrl_size].matched_len = spos_back + len_b - spos_front + 1;
+					mrl[mrl_size].dir = 1;
+					if (++mrl_size >= MRLSIZELIM)
+						return 1;
 				}
 			}
 		}
 	}
 
+	if (mrl_size > 0)	// at least one concordant explanation found
+		return 1;
+
 	bool is_chimeric = is_chimeric_intersect(forwardlist_f, flist_size_f, backwardlist_f, blist_size_f, len_f, forwardlist_b, flist_size_b, backwardlist_b, blist_size_b, len_b);
-	if (is_chimeric)
+	if (is_chimeric)	// does not keep chimeric match record
 		return 2;
 	return 3;
 }
@@ -970,39 +1003,53 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 // 3 : discordant
 // 4 : potentially mappable
 // 5 : un-mappable
-int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const int& rseq_len, MatchedRead& mr, const int& window_size, const int& step, const int& junction_detect_size_lim) {
+int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const int& rseq_len, const int& window_size, const int& step, const int& junction_detect_size_lim, vector <MatchedRead>& mrl, int& mrl_size) {
 	bwtint_t sp_b, ep_b;
 	bwtint_t sp_f, ep_f;
+	bwtint_t sapos, tmp_pos;
 	int exp_len_back = 0;
 	int exp_len_front = 0;
-
-	mr.is_concord = false;
-
+	int dir;
 	int i;
+
+	char *chr_name;
+	int32_t chr_len;
+	uint32_t chr_beg;
+	uint32_t chr_end;
+
+	//mr.is_concord = false;
 	for (i = 0; i < rseq_len - window_size; i += step) {
 		exp_len_front = get_expanded_locs(rcseq, rseq_len - i, &sp_f, &ep_f);
 		if (exp_len_front < window_size)
 			continue;
+
+		//print_location_list(sp_f, ep_f, exp_len_front);
+
 		if (i < junction_detect_size_lim and rseq_len - exp_len_front - i < junction_detect_size_lim) {	// concordant (exon)
 			//fprintf(stderr, "[Concordant-e]\tfront matched: %d\n", exp_len_front);
 			
-			//print_location_list(sp_f, ep_f, exp_len_front);
-			
-			mr.is_concord = true;
-			mr.start_pos = get_pos(&sp_f, exp_len_front, mr.dir);
-			mr.dir *= -1;
-			mr.matched_len = exp_len_front;
+			mrl_size = 0;
+			for (sapos = sp_f; sapos <= ep_f; ++sapos) {
+				mrl[mrl_size].is_concord = true;
+				
+				tmp_pos = get_pos(&sapos, exp_len_front, dir);
+				bwt_get_intv_info(tmp_pos, tmp_pos + exp_len_front - 1, &chr_name, &chr_len, &chr_beg, &chr_end);
+				
+				mrl[mrl_size].chr = chr_name;
+				mrl[mrl_size].start_pos = chr_beg;
+				mrl[mrl_size].end_pos = chr_end;
+				mrl[mrl_size].dir = -1 * dir;
+				mrl[mrl_size].matched_len = exp_len_front;
+				if (++mrl_size >= MRLSIZELIM)
+					break;
+			}
 			return 0;
 		}
 		break;
 	}
 
-	//print_location_list(sp_f, ep_f, exp_len_front);
-
 	if (exp_len_front < window_size) {	// un-mappable
-		mr.is_concord = false;
-		mr.start_pos = -1;
-		mr.matched_len = -1;
+		mrl_size = 0;
 		return 5;
 	}
 
@@ -1010,14 +1057,26 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	int remain_len = rseq_len - i - exp_len_front - 1;
 	//fprintf(stderr, "Remaining len: %d\n", remain_len);
 	
+	// TO DO: try to intersect with longest match of previous part
 	if (remain_len < junction_detect_size_lim) {	// won't be able to find an event from the remaining of the read (potentially mappable)
 		
 		//print_location_list(sp_f, ep_f, exp_len_front);
 		
-		mr.is_concord = false;
-		mr.start_pos = get_pos(&sp_f, exp_len_front, mr.dir);
-		mr.dir *= -1;
-		mr.matched_len = exp_len_front;
+		mrl_size = 0;
+		for (sapos = sp_f; sapos <= ep_f; ++sapos) {
+			mrl[mrl_size].is_concord = false;
+			
+			tmp_pos = get_pos(&sapos, exp_len_front, dir);
+			bwt_get_intv_info(tmp_pos, tmp_pos + exp_len_front - 1, &chr_name, &chr_len, &chr_beg, &chr_end);
+			
+			mrl[mrl_size].chr = chr_name;
+			mrl[mrl_size].start_pos = chr_beg;
+			mrl[mrl_size].end_pos = chr_end;
+			mrl[mrl_size].dir = -1 * dir;
+			mrl[mrl_size].matched_len = exp_len_front;
+			if (++mrl_size >= MRLSIZELIM)
+				break;
+		}
 		return 4;
 	}
 
@@ -1038,10 +1097,20 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	}
 	
 	if (max_len_back <= junction_detect_size_lim) {	// not long enough for detecting junction
-		mr.is_concord = false;
-		mr.start_pos = get_pos(&sp_f, exp_len_front, mr.dir);
-		mr.dir *= -1;
-		mr.matched_len = exp_len_front;
+		mrl_size = 0;
+		for (sapos = sp_f; sapos <= ep_f; ++sapos) {
+			mrl[mrl_size].is_concord = false;
+			tmp_pos = get_pos(&sapos, exp_len_front, dir);
+			bwt_get_intv_info(tmp_pos, tmp_pos + exp_len_front - 1, &chr_name, &chr_len, &chr_beg, &chr_end);
+			
+			mrl[mrl_size].chr = chr_name;
+			mrl[mrl_size].start_pos = chr_beg;
+			mrl[mrl_size].end_pos = chr_end;
+			mrl[mrl_size].dir = -1 * dir;
+			mrl[mrl_size].matched_len = exp_len_front;
+			if (++mrl_size >= MRLSIZELIM)
+				break;
+		}
 		return 4;
 	}
 	//bool consis = check_cosistent_match(&sp_b, &ep_b, exp_len_backward, &sp_f, &ep_f, exp_len_forward);
@@ -1049,9 +1118,8 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	//bool consis = is_concordant_sorted2(sp_f, ep_f, exp_len_front, longest_sp_b, longest_ep_b, exp_len_back, 10, mr);
 	//
 	//fprintf(stderr, "Intersecting:\n");
-	//print_location_list(sp_f, ep_f, exp_len_front);
 	//print_location_list(longest_sp_b, longest_ep_b, exp_len_back);
-	int intersect_ret = intersect(sp_f, ep_f, exp_len_front, longest_sp_b, longest_ep_b, exp_len_back, mr);
+	int intersect_ret = intersect(sp_f, ep_f, exp_len_front, longest_sp_b, longest_ep_b, exp_len_back, mrl, mrl_size);
 
 	return intersect_ret;
 }
@@ -1066,11 +1134,15 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 	int junction_detect_size_lim = 9;
 	MatchedRead mr1, mr2;
+	//MatchedReadList mrl1, mrl2;
+	vector <MatchedRead> mrl1(MRLSIZELIM);
+	vector <MatchedRead> mrl2(MRLSIZELIM);
+	int mrl1_size, mrl2_size;
 
 	//fprintf(stderr, "Read name: %s1st mate:\n", m1->rname);
-	int mate1_state = find_expanded_sliding_positions(m1->seq, m1->rcseq, m1->seq_len, mr1, 23, 3, junction_detect_size_lim);
+	int mate1_state = find_expanded_sliding_positions(m1->seq, m1->rcseq, m1->seq_len, 23, 3, junction_detect_size_lim, mrl1, mrl1_size);
 	//fprintf(stderr, "2nd mate:\n");
-	int mate2_state = find_expanded_sliding_positions(m2->seq, m2->rcseq, m2->seq_len, mr2, 23, 3, junction_detect_size_lim);
+	int mate2_state = find_expanded_sliding_positions(m2->seq, m2->rcseq, m2->seq_len, 23, 3, junction_detect_size_lim, mrl2, mrl2_size);
 
 	//fprintf(stderr, "%d\n%d\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", mate1_state, mate2_state);
 
@@ -1088,36 +1160,33 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 	if (mate1_state == 4 or mate2_state == 4)
 		return 3;
 
-	//fprintf(stderr, "M1: dir:%d,\tstart:%llu,\tend:%llu\n", mr1.dir, mr1.start_pos, mr1.start_pos + mr1.matched_len);
-	//fprintf(stderr, "M2: dir:%d,\tstart:%llu,\tend:%llu\n", mr2.dir, mr2.start_pos, mr2.start_pos + mr2.matched_len);
-
-	//fprintf(stderr, "%s", m1->rname);
-	//fprintf(stderr, "M1: dir: %d\t%llu\n", mr1.dir, mr1.start_pos);
-	//fprintf(stderr, "M2: dir: %d\t%llu\n", mr2.dir, mr2.start_pos);
-
-	//char *chr_name;
-	//int32_t chr_len;
-	//uint32_t chr_beg;
-	//uint32_t chr_end;
-	//bwt_get_intv_info(mr1.start_pos, mr1.start_pos + 20, &chr_name, &chr_len, &chr_beg, &chr_end);
-	//fprintf(stderr, "Chr: %s\t", chr_name);
-	//fprintf(stderr, "%"PRIu64"\n", chr_beg);
-	//bwt_get_intv_info(mr2.start_pos, mr2.start_pos + 20, &chr_name, &chr_len, &chr_beg, &chr_end);
-	//fprintf(stderr, "Chr: %s\t", chr_name);
-	//fprintf(stderr, "%"PRIu64"\n", chr_beg);
-
-	if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos <= mr2.start_pos))	// fusion might be ignored here
-		return 0;
-	if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos <= mr1.start_pos))	// fusion might be ignored here
-		return 0;
+	// check for any concordancy evidence/explanation
+	for (int i = 0; i < mrl1_size; i++)
+		for (int j = 0; j < mrl2_size; j++) {
+			mr1 = mrl1[i];
+			mr2 = mrl2[j];
+			if (strcmp(mr1.chr, mr2.chr) != 0)
+				continue;
+			if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos <= mr2.start_pos))
+				return 0;
+			if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos <= mr1.start_pos))
+				return 0;
+		}
 
 	// non-overlapping chimeric mates in the gene range
-	if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos > mr2.start_pos + mr2.matched_len) and (mr1.start_pos <= mr2.start_pos + GENETHRESH))
-		return 2;
-	if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos > mr1.start_pos + mr1.matched_len) and (mr2.start_pos <= mr1.start_pos + GENETHRESH))
-		return 2;
+	for (int i = 0; i < mrl1_size; i++)
+		for (int j = 0; j < mrl2_size; j++) {
+			mr1 = mrl1[i];
+			mr2 = mrl2[j];
+			if (strcmp(mr1.chr, mr2.chr) != 0)	// report fusions as chimeric
+				return 2;
+			if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos > mr2.start_pos + mr2.matched_len) and (mr1.start_pos <= mr2.start_pos + GENETHRESH))
+				return 2;
+			if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos > mr1.start_pos + mr1.matched_len) and (mr2.start_pos <= mr1.start_pos + GENETHRESH))
+				return 2;
+		}
 
-	return 0;	// fusion might be ignored here
+	return 0;
 }
 
 void print_location_list(const bwtint_t& sp, const bwtint_t& ep, const int& len) {

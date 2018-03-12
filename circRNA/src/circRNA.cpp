@@ -23,17 +23,16 @@ int main(int argc, char **argv) {
 	}
 	
 	/*
-	if (bwt_index(ref_file)) {
-		fprintf(stderr, "Nope! Index failed!\n");
-		return 1;
-	}
-	else
-		fprintf(stderr, "Indexed successfully!\n");
 	*/
 
 	if (bwt_load(ref_file)) {
-		fprintf(stdout, "Index not loaded!\n");
-		return 1;
+		fprintf(stdout, "Index not found!\n");
+		//if (bwt_index(ref_file)) {
+		//	fprintf(stderr, "Indexing failed!\n");
+		//	return 1;
+		//}
+		//else
+		//	fprintf(stderr, "Indexed successfully!\n");
 	}
 	else
 		fprintf(stdout, "Index file successfully loaded!\n");

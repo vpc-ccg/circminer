@@ -17,17 +17,26 @@
 
 using namespace std;
 
+//#define GENETHRESH 160000
 #define GENETHRESH 100000
 #define RANGELIM 1000
 //#define REGIONSIZELIM 2e5
 #define REGIONSIZELIM 10000
+#define MRLSIZELIM 20
 
 typedef struct {
 	bool is_concord;
+	char* chr;
 	bwtint_t start_pos;
+	bwtint_t end_pos;
 	int matched_len;
 	int dir;
 } MatchedRead;
+
+//typedef struct {
+//	MatchedRead* match_list;
+//	int size;
+//} MatchedReadList;
 
 void sort_positions(const bwtint_t& sp, const bwtint_t& ep, const int& len, vector<bwtint_t>& forward_list, bwtint_t& flist_size, vector<bwtint_t>& backward_list, bwtint_t& blist_size);
 bwtint_t binary_search(const vector<bwtint_t>& list, bwtint_t beg, bwtint_t end, const bwtint_t& target);
@@ -45,8 +54,8 @@ int find_exact_positions_slide(const char* rseq, int rseq_len, const int& window
 
 bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t& flist_size_f, const vector<bwtint_t>& backwardlist_f, const bwtint_t& blist_size_f, const int& len_f,
 							const vector<bwtint_t>& forwardlist_b, const bwtint_t& flist_size_b, const vector<bwtint_t>& backwardlist_b, const bwtint_t& blist_size_b, const int& len_b);
-int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, MatchedRead& mr);
-int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const int& rseq_len, MatchedRead& mr, const int& window_size, const int& step, const int& junction_detect_size_lim);
+int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, vector <MatchedRead>& mrl, int& mrl_size);
+int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const int& rseq_len, const int& window_size, const int& step, const int& junction_detect_size_lim, vector <MatchedRead>& mrl, int& mrl_size);
 int check_concordant_mates_expand(const Record* m1, const Record* m2);
 
 void print_location_list(const bwtint_t& sp, const bwtint_t& ep, const int& len);
