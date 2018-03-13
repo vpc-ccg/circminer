@@ -46,8 +46,12 @@ void sort_positions(const bwtint_t& sp, const bwtint_t& ep, const int& len, vect
 		sort(backward_list.begin(), backward_list.end() + b_ind);
 }
 
+// assumption: target is not less than list[0]
 // input interval: [, )
 // return: i if target in [i-1, i)
+// => 
+// closest Greater than: returned index
+// closest Less than or Equal: returned index - 1
 bwtint_t binary_search(const vector<bwtint_t>& list, bwtint_t beg, bwtint_t end, const bwtint_t& target) {
 	if (end - beg <= 1)
 		return end;
@@ -720,7 +724,10 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 		return false;
 	}
 
-	//fprintf(stderr, "back size: %llu\nfront size: %llu\n", ep_b - sp_b + 1, ep_f - sp_f + 1);
+	char *chr_name_f, *chr_name_b;
+	int32_t chr_len_f, chr_len_b;
+	uint32_t chr_beg_f, chr_beg_b;
+	uint32_t chr_end_f, chr_end_b;
 
 	int dir_front=0, dir_back=0;
 	bwtint_t spos_front, spos_back;
@@ -742,13 +749,15 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 	//fprintf(stderr, "\n");
 
 	bwtint_t i, j, target;
+
+	// on reverse strand
 	if (flist_size_f > 0 and blist_size_b > 0) {
 		if (flist_size_f <= blist_size_b) {
 			for (i = 0; i < flist_size_f; i++) {
-				if (forwardlist_f[i] + len_f < backwardlist_b[0])
+				target = forwardlist_f[i] + len_f - 1;
+				if (target < backwardlist_b[0])
 					j = 0;
 				else {
-					target = forwardlist_f[i] + len_f;
 					j = binary_search(backwardlist_b, 0, blist_size_b, target);
 					if (j >= blist_size_b)
 						continue;
@@ -756,54 +765,65 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				spos_front = forwardlist_f[i];
 				spos_back = backwardlist_b[j];
 				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
+			
+				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
+				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 				
-				//fprintf(stderr, "HEYYYYY %d\n%llu\n", len_f, spos_front);
-				if (spos_back <= spos_front + GENETHRESH) {
+				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_back + len_b <= spos_front + GENETHRESH) {
 					return true;
 				}
 			}
 		}
 		else {
 			for (j = 0; j < blist_size_b; j++) {
-				if (backwardlist_b[j] < forwardlist_f[0])
+				target = backwardlist_b[j] - len_f;
+				if (target < forwardlist_f[0])
 					continue;
 				else {
-					i = binary_search(forwardlist_f, 0, flist_size_f, backwardlist_b[j]);
+					i = binary_search(forwardlist_f, 0, flist_size_f, target);
 				}
 				spos_front = forwardlist_f[i-1];
 				spos_back = backwardlist_b[j];
 				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
+
+				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
+				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 				
-				if (spos_back <= spos_front + GENETHRESH) {
+				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_back + len_b <= spos_front + GENETHRESH) {
 					return true;
 				}
 			}
 		}
 	}
 
+	// on forward strand
 	if (blist_size_f > 0 and flist_size_b > 0) {
 		if (blist_size_f <= flist_size_b) {
 			for (i = 0; i < blist_size_f; i++) {
-				if (backwardlist_f[i] < forwardlist_b[0])
+				target = backwardlist_f[i] - len_b;
+				if (target < forwardlist_b[0])
 					continue;
 				else {
-					j = binary_search(forwardlist_b, 0, flist_size_b, backwardlist_f[i]);
+					j = binary_search(forwardlist_b, 0, flist_size_b, target);
 				}
 				spos_front = backwardlist_f[i];
 				spos_back = forwardlist_b[j-1];
 				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
 				
-				if (spos_front <= spos_back + GENETHRESH) {
+				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
+				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
+				
+				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_front + len_f <= spos_back + GENETHRESH) {
 					return true;
 				}
 			}
 		}
 		else {
 			for (j = 0; j < flist_size_b; j++) {
-				if (forwardlist_b[j] + len_b < backwardlist_f[0])	// no position less than forwardlist_b[j] available on backwardlist_f
+				target = forwardlist_b[j] + len_b - 1;
+				if (target < backwardlist_f[0])	// no position less than forwardlist_b[j] available on backwardlist_f
 					i = 0;
 				else {
-					target = forwardlist_b[j] + len_b;
 					i = binary_search(backwardlist_f, 0, blist_size_f, target);
 					if (i >= blist_size_f)
 						continue;
@@ -812,7 +832,10 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				spos_back = forwardlist_b[j];
 				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
 				
-				if (spos_front <= spos_back + GENETHRESH) {
+				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
+				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
+				
+				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_front + len_f <= spos_back + GENETHRESH) {
 					return true;
 				}
 			}
@@ -868,16 +891,18 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 	//	fprintf(stderr, "%llu\t", backwardlist_b[k]);
 	//fprintf(stderr, "\n");
 
-	mrl_size = 0;
-
 	bwtint_t i, j, target;
+	mrl_size = 0;
+	
+	// on reverse strand
 	if (flist_size_f > 0 and blist_size_b > 0) {
 		if (flist_size_f <= blist_size_b) {
 			for (i = 0; i < flist_size_f; i++) {
-				if (forwardlist_f[i] < backwardlist_b[0])	// no position less than forwardlist_f[i] available on backwardlist_b
+				target = forwardlist_f[i] - len_b;
+				if (target < backwardlist_b[0])	// no position less than or equal to target available on backwardlist_b
 					continue;
 				else {
-					j = binary_search(backwardlist_b, 0, blist_size_b, forwardlist_f[i]);
+					j = binary_search(backwardlist_b, 0, blist_size_b, target);
 				}
 				spos_front = forwardlist_f[i];
 				spos_back = backwardlist_b[j-1];
@@ -886,12 +911,12 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 			
-				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_f <= chr_beg_b + len_b + GENETHRESH) {
+				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_f + len_f <= chr_beg_b + GENETHRESH) {
 					mrl[mrl_size].is_concord = true;
 					mrl[mrl_size].chr = chr_name_f;
 					mrl[mrl_size].start_pos = chr_beg_b;
 					mrl[mrl_size].end_pos = chr_end_f;
-					mrl[mrl_size].matched_len = spos_front + len_f - spos_back + 1;
+					mrl[mrl_size].matched_len = spos_front + len_f - spos_back;
 					mrl[mrl_size].dir = -1;
 					if (++mrl_size >= MRLSIZELIM)
 						return 1;
@@ -900,10 +925,10 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 		}
 		else {
 			for (j = 0; j < blist_size_b; j++) {
-				if (backwardlist_b[j] + len_b < forwardlist_f[0])
+				target = backwardlist_b[j] + len_b - 1;
+				if (target < forwardlist_f[0])
 					i = 0;
 				else {
-					target = backwardlist_b[j] + len_b;
 					i = binary_search(forwardlist_f, 0, flist_size_f, target);
 					if (i >= flist_size_f)	// no position greater than backwardlist_b[j] available on forwardlist_f
 						continue;
@@ -915,7 +940,7 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 			
-				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_f <= chr_beg_b + len_b + GENETHRESH) {
+				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_f + len_f <= chr_beg_b + GENETHRESH) {
 					mrl[mrl_size].is_concord = true;
 					mrl[mrl_size].chr = chr_name_f;
 					mrl[mrl_size].start_pos = chr_beg_b;
@@ -929,13 +954,14 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 		}
 	}
 
+	// on forward strand
 	if (blist_size_f > 0 and flist_size_b > 0) {
 		if (blist_size_f <= flist_size_b) {
 			for (i = 0; i < blist_size_f; i++) {
-				if (backwardlist_f[i] + len_f < forwardlist_b[0])
+				target = backwardlist_f[i] + len_f - 1;
+				if (target < forwardlist_b[0])
 					j = 0;
 				else {
-					target = backwardlist_f[i] + len_f;
 					j = binary_search(forwardlist_b, 0, flist_size_b, target);
 					if (j >= flist_size_b)	// no position greater than backwardlist_f[i] available on backwardlist_f
 						continue;
@@ -947,7 +973,7 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 			
-				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_b <= chr_beg_f + len_f + GENETHRESH) {
+				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_b + len_b <= chr_beg_f + GENETHRESH) {
 					mrl[mrl_size].is_concord = true;
 					mrl[mrl_size].chr = chr_name_f;
 					mrl[mrl_size].start_pos = chr_beg_f;
@@ -961,10 +987,11 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 		}
 		else {
 			for (j = 0; j < flist_size_b; j++) {
-				if (forwardlist_b[j] < backwardlist_f[0])	// no position less than forwardlist_b[j] available on backwardlist_f
+				target = forwardlist_b[j] - len_f;
+				if (target < backwardlist_f[0])	// no position less than forwardlist_b[j] available on backwardlist_f
 					continue;
 				else {
-					i = binary_search(backwardlist_f, 0, blist_size_f, forwardlist_b[j]);
+					i = binary_search(backwardlist_f, 0, blist_size_f, target);
 				}
 				spos_front = backwardlist_f[i-1];
 				spos_back = forwardlist_b[j];
@@ -973,7 +1000,7 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 			
-				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_b <= chr_beg_f + len_f + GENETHRESH) {
+				if (strcmp(chr_name_f, chr_name_b) == 0 and chr_beg_b + len_b <= chr_beg_f + GENETHRESH) {
 					mrl[mrl_size].is_concord = true;
 					mrl[mrl_size].chr = chr_name_f;
 					mrl[mrl_size].start_pos = chr_beg_f;
@@ -1017,7 +1044,6 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	uint32_t chr_beg;
 	uint32_t chr_end;
 
-	//mr.is_concord = false;
 	for (i = 0; i < rseq_len - window_size; i += step) {
 		exp_len_front = get_expanded_locs(rcseq, rseq_len - i, &sp_f, &ep_f);
 		if (exp_len_front < window_size)
@@ -1173,19 +1199,25 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 				return 0;
 		}
 
+	bool same_chr_exists = false;
 	// non-overlapping chimeric mates in the gene range
 	for (int i = 0; i < mrl1_size; i++)
 		for (int j = 0; j < mrl2_size; j++) {
 			mr1 = mrl1[i];
 			mr2 = mrl2[j];
-			if (strcmp(mr1.chr, mr2.chr) != 0)	// report fusions as chimeric
-				return 2;
+			if (strcmp(mr1.chr, mr2.chr) != 0)
+				continue;
+			else
+				same_chr_exists = true;
+
+			// non-overlapping back scplice junction
 			if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos > mr2.start_pos + mr2.matched_len) and (mr1.start_pos <= mr2.start_pos + GENETHRESH))
 				return 2;
 			if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos > mr1.start_pos + mr1.matched_len) and (mr2.start_pos <= mr1.start_pos + GENETHRESH))
 				return 2;
 		}
 
+	//return (same_chr_exists) ? 0 : 2;	// fusion if no occurance on same chr exists
 	return 0;
 }
 
