@@ -22,13 +22,15 @@ class FilterRead {
 private:
 	FILE* ignore_r1;
 	FILE* keep_r1;
-	FILE* chimeric_r1;
+	FILE* chimeric_bsj_r1;
+	FILE* chimeric_fusion_r1;
 	FILE* partly_unmappable_r1;
 	FILE* unmappable_r1;
 
 	FILE* ignore_r2;
 	FILE* keep_r2;
-	FILE* chimeric_r2;
+	FILE* chimeric_bsj_r2;
+	FILE* chimeric_fusion_r2;
 	FILE* partly_unmappable_r2;
 	FILE* unmappable_r2;
 

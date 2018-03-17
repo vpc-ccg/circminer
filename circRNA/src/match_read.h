@@ -18,10 +18,11 @@
 using namespace std;
 
 //#define GENETHRESH 160000
-#define GENETHRESH 100000
+#define GENETHRESH 500000
 #define RANGELIM 1000
 //#define REGIONSIZELIM 2e5
-#define REGIONSIZELIM 10000
+//#define REGIONSIZELIM 10000
+#define REGIONSIZELIM 1000
 #define MRLSIZELIM 20
 
 typedef struct {
@@ -32,6 +33,13 @@ typedef struct {
 	int matched_len;
 	int dir;
 } MatchedRead;
+
+typedef struct {
+	bwtint_t sp;
+	bwtint_t ep;
+	int matched_len;
+	int end_ind;
+} ExtendMatch;
 
 //typedef struct {
 //	MatchedRead* match_list;
@@ -54,7 +62,7 @@ int find_exact_positions_slide(const char* rseq, int rseq_len, const int& window
 
 bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t& flist_size_f, const vector<bwtint_t>& backwardlist_f, const bwtint_t& blist_size_f, const int& len_f,
 							const vector<bwtint_t>& forwardlist_b, const bwtint_t& flist_size_b, const vector<bwtint_t>& backwardlist_b, const bwtint_t& blist_size_b, const int& len_b);
-int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, vector <MatchedRead>& mrl, int& mrl_size);
+int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, vector <MatchedRead>& mrl, int& mrl_size, bool same_strand);
 int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const int& rseq_len, const int& window_size, const int& step, const int& junction_detect_size_lim, vector <MatchedRead>& mrl, int& mrl_size);
 int check_concordant_mates_expand(const Record* m1, const Record* m2);
 

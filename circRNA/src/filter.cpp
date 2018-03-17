@@ -5,48 +5,56 @@ FilterRead::FilterRead (char* save_fname, bool pe) {
 
 	char ignore_file1[1000];
 	char keep_file1[1000];
-	char chimeric_file1[1000];
+	char chimeric_bsj_file1[1000];
+	char chimeric_fusion_file1[1000];
 	char p_unmap_file1[1000];
 	char unmap_file1[1000];
 	strcpy (ignore_file1, save_fname);
 	strcpy (keep_file1 , save_fname);
-	strcpy (chimeric_file1 , save_fname);
+	strcpy (chimeric_bsj_file1 , save_fname);
+	strcpy (chimeric_fusion_file1 , save_fname);
 	strcpy (p_unmap_file1 , save_fname);
 	strcpy (unmap_file1 , save_fname);
 
 	strcat (ignore_file1, ".ignore_R1.fastq");
 	strcat (keep_file1, ".keep_R1.fastq");
-	strcat (chimeric_file1, ".chimeric_R1.fastq");
+	strcat (chimeric_bsj_file1, ".chimeric.bsj_R1.fastq");
+	strcat (chimeric_fusion_file1, ".chimeric.fusion_R1.fastq");
 	strcat (p_unmap_file1, ".OEA_R1.fastq");
 	strcat (unmap_file1, ".orphan_R1.fastq");
 
 	ignore_r1 = fopen(ignore_file1, "w");
 	keep_r1   = fopen(keep_file1, "w");
-	chimeric_r1   = fopen(chimeric_file1, "w");
+	chimeric_bsj_r1   = fopen(chimeric_bsj_file1, "w");
+	chimeric_fusion_r1   = fopen(chimeric_fusion_file1, "w");
 	partly_unmappable_r1   = fopen(p_unmap_file1, "w");
 	unmappable_r1   = fopen(unmap_file1, "w");
 
 	if (is_pe) {
 		char ignore_file2[1000];
 		char keep_file2[1000];
-		char chimeric_file2[1000];
+		char chimeric_bsj_file2[1000];
+		char chimeric_fusion_file2[1000];
 		char p_unmap_file2[1000];
 		char unmap_file2[1000];
 		strcpy (ignore_file2, save_fname);
 		strcpy (keep_file2 , save_fname);
-		strcpy (chimeric_file2 , save_fname);
+		strcpy (chimeric_bsj_file2 , save_fname);
+		strcpy (chimeric_fusion_file2 , save_fname);
 		strcpy (p_unmap_file2 , save_fname);
 		strcpy (unmap_file2 , save_fname);
 
 		strcat (ignore_file2, ".ignore_R2.fastq");
 		strcat (keep_file2, ".keep_R2.fastq");
-		strcat (chimeric_file2, ".chimeric_R2.fastq");
+		strcat (chimeric_bsj_file2, ".chimeric.bsj_R2.fastq");
+		strcat (chimeric_fusion_file2, ".chimeric.fusion_R2.fastq");
 		strcat (p_unmap_file2, ".OEA_R2.fastq");
 		strcat (unmap_file2, ".orphan_R2.fastq");
 
 		ignore_r2 = fopen(ignore_file2, "w");
 		keep_r2   = fopen(keep_file2, "w");
-		chimeric_r2   = fopen(chimeric_file2, "w");
+		chimeric_bsj_r2   = fopen(chimeric_bsj_file2, "w");
+		chimeric_fusion_r2   = fopen(chimeric_fusion_file2, "w");
 		partly_unmappable_r2   = fopen(p_unmap_file2, "w");
 		unmappable_r2   = fopen(unmap_file2, "w");
 	}
@@ -57,8 +65,10 @@ FilterRead::~FilterRead (void) {
 		fclose(ignore_r1);
 	if (keep_r1 != NULL)
 		fclose(keep_r1);
-	if (chimeric_r1 != NULL)
-		fclose(chimeric_r1);
+	if (chimeric_bsj_r1 != NULL)
+		fclose(chimeric_bsj_r1);
+	if (chimeric_fusion_r1 != NULL)
+		fclose(chimeric_fusion_r1);
 	if (partly_unmappable_r1 != NULL)
 		fclose(partly_unmappable_r1);
 	if (unmappable_r1 != NULL)
@@ -68,8 +78,10 @@ FilterRead::~FilterRead (void) {
 		fclose(ignore_r2);
 	if (keep_r2 != NULL)
 		fclose(keep_r2);
-	if (chimeric_r2 != NULL)
-		fclose(chimeric_r2);
+	if (chimeric_bsj_r2 != NULL)
+		fclose(chimeric_bsj_r2);
+	if (chimeric_fusion_r2 != NULL)
+		fclose(chimeric_fusion_r2);
 	if (partly_unmappable_r2 != NULL)
 		fclose(partly_unmappable_r2);
 	if (unmappable_r2 != NULL)
@@ -117,20 +129,20 @@ void FilterRead::write_read2 (Record* current_record1, Record* current_record2, 
 		fprintf(keep_r2, "%s%s%s%s", current_record2->rname, current_record2->seq, current_record2->comment, current_record2->qual);
 	}
 	else {
-		fprintf(chimeric_r1, "%s%s%s%s", current_record1->rname, current_record1->seq, current_record1->comment, current_record1->qual);
-		fprintf(chimeric_r2, "%s%s%s%s", current_record2->rname, current_record2->seq, current_record2->comment, current_record2->qual);
+		fprintf(chimeric_bsj_r1, "%s%s%s%s", current_record1->rname, current_record1->seq, current_record1->comment, current_record1->qual);
+		fprintf(chimeric_bsj_r2, "%s%s%s%s", current_record2->rname, current_record2->seq, current_record2->comment, current_record2->qual);
 	}
 }
 
-// write reads PE mode --detailed / 5 output files
+// write reads PE mode --detailed / 6 output files
 void FilterRead::write_read3 (Record* current_record1, Record* current_record2, int state) {
 	if (state == 0 or state == 1) {
 		fprintf(ignore_r1, "%s%s%s%s", current_record1->rname, current_record1->seq, current_record1->comment, current_record1->qual);
 		fprintf(ignore_r2, "%s%s%s%s", current_record2->rname, current_record2->seq, current_record2->comment, current_record2->qual);
 	}
 	else if (state == 2){
-		fprintf(chimeric_r1, "%s%s%s%s", current_record1->rname, current_record1->seq, current_record1->comment, current_record1->qual);
-		fprintf(chimeric_r2, "%s%s%s%s", current_record2->rname, current_record2->seq, current_record2->comment, current_record2->qual);
+		fprintf(chimeric_bsj_r1, "%s%s%s%s", current_record1->rname, current_record1->seq, current_record1->comment, current_record1->qual);
+		fprintf(chimeric_bsj_r2, "%s%s%s%s", current_record2->rname, current_record2->seq, current_record2->comment, current_record2->qual);
 	}
 	else if (state == 3) {
 		fprintf(keep_r1, "%s%s%s%s", current_record1->rname, current_record1->seq, current_record1->comment, current_record1->qual);
@@ -143,6 +155,10 @@ void FilterRead::write_read3 (Record* current_record1, Record* current_record2, 
 	else if (state == 5) {
 		fprintf(unmappable_r1, "%s%s%s%s", current_record1->rname, current_record1->seq, current_record1->comment, current_record1->qual);
 		fprintf(unmappable_r2, "%s%s%s%s", current_record2->rname, current_record2->seq, current_record2->comment, current_record2->qual);
+	}
+	else if (state == 6){
+		fprintf(chimeric_fusion_r1, "%s%s%s%s", current_record1->rname, current_record1->seq, current_record1->comment, current_record1->qual);
+		fprintf(chimeric_fusion_r2, "%s%s%s%s", current_record2->rname, current_record2->seq, current_record2->comment, current_record2->qual);
 	}
 }
 

@@ -764,7 +764,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				}
 				spos_front = forwardlist_f[i];
 				spos_back = backwardlist_b[j];
-				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
+				//fprintf(stderr, "111---Start pos front: %llu\n---Start pos back: %llu\n len front: %d\n len back: %d\n", spos_front, spos_back, len_f, len_b);
 			
 				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
@@ -784,7 +784,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				}
 				spos_front = forwardlist_f[i-1];
 				spos_back = backwardlist_b[j];
-				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
+				//fprintf(stderr, "222---Start pos front: %llu\n---Start pos back: %llu\n len front: %d\n len back: %d\n", spos_front, spos_back, len_f, len_b);
 
 				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
@@ -808,7 +808,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				}
 				spos_front = backwardlist_f[i];
 				spos_back = forwardlist_b[j-1];
-				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
+				//fprintf(stderr, "333---Start pos front: %llu\n---Start pos back: %llu\n len front: %d\n len back: %d\n", spos_front, spos_back, len_f, len_b);
 				
 				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
@@ -830,7 +830,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				}
 				spos_front = backwardlist_f[i];
 				spos_back = forwardlist_b[j];
-				//fprintf(stderr, "---Start pos front: %llu\n---Start pos back: %llu\n Dir front: %d\n Dir back: %d\n", spos_front, spos_back, dir_front, dir_back);
+				//fprintf(stderr, "444---Start pos front: %llu\n---Start pos back: %llu\n len front: %d\n len back: %d\n", spos_front, spos_back, len_f, len_b);
 				
 				bwt_get_intv_info(spos_front, spos_front + len_f - 1, &chr_name_f, &chr_len_f, &chr_beg_f, &chr_end_f);
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
@@ -848,7 +848,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 // 1: concordant juinction
 // 2: chimeric
 // 3: discordant
-int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, vector <MatchedRead>& mrl, int& mrl_size) {
+int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, vector <MatchedRead>& mrl, int& mrl_size, bool same_strand) {
 	//if ((ep_f - sp_f >= REGIONSIZELIM) or (ep_b - sp_b >= REGIONSIZELIM))
 	if ((ep_b - sp_b) >= REGIONSIZELIM or (ep_f - sp_f) >= REGIONSIZELIM) {
 		mrl_size = 0;
@@ -872,8 +872,14 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 	vector<bwtint_t> forwardlist_b(ep_b - sp_b + 2);
 	vector<bwtint_t> backwardlist_b(ep_b - sp_b + 2);
 
-	sort_positions(sp_f, ep_f, len_f, forwardlist_f, flist_size_f, backwardlist_f, blist_size_f);
-	sort_positions(sp_b, ep_b, len_b, forwardlist_b, flist_size_b, backwardlist_b, blist_size_b);
+	if (! same_strand) {
+		sort_positions(sp_f, ep_f, len_f, forwardlist_f, flist_size_f, backwardlist_f, blist_size_f);
+		sort_positions(sp_b, ep_b, len_b, forwardlist_b, flist_size_b, backwardlist_b, blist_size_b);
+	}
+	else {
+		sort_positions(sp_f, ep_f, len_f, forwardlist_f, flist_size_f, backwardlist_f, blist_size_f);
+		sort_positions(sp_b, ep_b, len_b, backwardlist_b, blist_size_b, forwardlist_b, flist_size_b);
+	}
 	
 	//fprintf(stderr, "forward front size: %llu\nbackward front size: %llu\n", flist_size_f, blist_size_f);
 	//fprintf(stderr, "forward back size: %llu\nbackward back size: %llu\n", flist_size_b, blist_size_b);
@@ -1038,16 +1044,23 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	int exp_len_front = 0;
 	int dir;
 	int i;
+	int intersect_ret;
 
 	char *chr_name;
 	int32_t chr_len;
 	uint32_t chr_beg;
 	uint32_t chr_end;
 
+	vector <ExtendMatch> extended_match(rseq_len);
 	for (i = 0; i < rseq_len - window_size; i += step) {
 		exp_len_front = get_expanded_locs(rcseq, rseq_len - i, &sp_f, &ep_f);
-		if (exp_len_front < window_size)
+		if (exp_len_front < window_size) {
+			extended_match[i].sp = sp_f;
+			extended_match[i].ep = ep_f;
+			extended_match[i].matched_len = exp_len_front;
+			extended_match[i].end_ind = i + exp_len_front - 1;
 			continue;
+		}
 
 		//print_location_list(sp_f, ep_f, exp_len_front);
 
@@ -1074,7 +1087,7 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 		break;
 	}
 
-	if (exp_len_front < window_size) {	// un-mappable
+	if (exp_len_front < window_size) {	// un-mappable (i > rseq_len - window_size)
 		mrl_size = 0;
 		return 5;
 	}
@@ -1083,37 +1096,55 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	int remain_len = rseq_len - i - exp_len_front - 1;
 	//fprintf(stderr, "Remaining len: %d\n", remain_len);
 	
-	// TO DO: try to intersect with longest match of previous part
+	bwtint_t longest_sp_f, longest_ep_f;
+	int max_len_front = 0;
 	if (remain_len < junction_detect_size_lim) {	// won't be able to find an event from the remaining of the read (potentially mappable)
 		
-		//print_location_list(sp_f, ep_f, exp_len_front);
-		
-		mrl_size = 0;
-		for (sapos = sp_f; sapos <= ep_f; ++sapos) {
-			mrl[mrl_size].is_concord = false;
-			
-			tmp_pos = get_pos(&sapos, exp_len_front, dir);
-			bwt_get_intv_info(tmp_pos, tmp_pos + exp_len_front - 1, &chr_name, &chr_len, &chr_beg, &chr_end);
-			
-			mrl[mrl_size].chr = chr_name;
-			mrl[mrl_size].start_pos = chr_beg;
-			mrl[mrl_size].end_pos = chr_end;
-			mrl[mrl_size].dir = -1 * dir;
-			mrl[mrl_size].matched_len = exp_len_front;
-			if (++mrl_size >= MRLSIZELIM)
-				break;
+		// intersect with longest non-overlapping match of previous part
+		int l = -1;
+		for (int k = 0; k < i; k += step) { 	// k < i since we do not consider the last match
+			if (extended_match[k].end_ind < i and extended_match[k].matched_len > max_len_front) {
+				max_len_front = extended_match[k].matched_len;
+				longest_sp_f = extended_match[k].sp;
+				longest_ep_f = extended_match[k].ep;
+				l = k;
+			}
 		}
-		return 4;
+		
+		if (max_len_front < junction_detect_size_lim) {
+			mrl_size = 0;
+			for (sapos = sp_f; sapos <= ep_f; ++sapos) {
+				mrl[mrl_size].is_concord = false;
+				
+				tmp_pos = get_pos(&sapos, exp_len_front, dir);
+				bwt_get_intv_info(tmp_pos, tmp_pos + exp_len_front - 1, &chr_name, &chr_len, &chr_beg, &chr_end);
+				
+				mrl[mrl_size].chr = chr_name;
+				mrl[mrl_size].start_pos = chr_beg;
+				mrl[mrl_size].end_pos = chr_end;
+				mrl[mrl_size].dir = -1 * dir;
+				mrl[mrl_size].matched_len = exp_len_front;
+				if (++mrl_size >= MRLSIZELIM)
+					break;
+			}
+			return 4;
+		}
+		// intersect
+		//fprintf(stderr, "Intersecting:\n");
+		//fprintf(stderr, "start index: %d\n", l);
+		//print_location_list(longest_sp_f, longest_ep_f, max_len_front);
+		intersect_ret = intersect(longest_sp_f, longest_ep_f, max_len_front, sp_f, ep_f, exp_len_front, mrl, mrl_size, true);
+		return intersect_ret;
 	}
 
 	int j = 0;
 	bwtint_t longest_sp_b, longest_ep_b;
 	int max_len_back = 0;
-	for (j = 0; j < remain_len - max_len_back; j += step) {
+	for (j = 0; j <= remain_len - max_len_back; j += step) {
 		exp_len_back = get_expanded_locs(remain_rseq, remain_len - j, &sp_b, &ep_b);
-		//fprintf(stderr, "%s\tlen front: %d,\tlen back: %d\n", rseq, exp_len_front, exp_len_back);
+		//fprintf(stderr, "%s\tlen front: %d,\tlen back: %d,\tj: %d\n", rseq, exp_len_front, exp_len_back, j);
 	
-		if (exp_len_back > max_len_back) {
+		if (exp_len_back >= max_len_back) {
 			max_len_back = exp_len_back;
 			longest_sp_b = sp_b;
 			longest_ep_b = ep_b;
@@ -1142,10 +1173,10 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	//bool consis = check_cosistent_match(&sp_b, &ep_b, exp_len_backward, &sp_f, &ep_f, exp_len_forward);
 	//bool consis = is_concordant(sp_f, ep_f, exp_len_front, sp_b, ep_b, exp_len_back, noise_thresh);
 	//bool consis = is_concordant_sorted2(sp_f, ep_f, exp_len_front, longest_sp_b, longest_ep_b, exp_len_back, 10, mr);
-	//
+	
 	//fprintf(stderr, "Intersecting:\n");
-	//print_location_list(longest_sp_b, longest_ep_b, exp_len_back);
-	int intersect_ret = intersect(sp_f, ep_f, exp_len_front, longest_sp_b, longest_ep_b, exp_len_back, mrl, mrl_size);
+	//print_location_list(longest_sp_b, longest_ep_b, max_len_back);
+	intersect_ret = intersect(sp_f, ep_f, exp_len_front, longest_sp_b, longest_ep_b, exp_len_back, mrl, mrl_size, false);
 
 	return intersect_ret;
 }
@@ -1153,10 +1184,11 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 // return value:
 // 0 : concordant (exon)
 // 1 : concordant (junction)
-// 2 : chimeric
+// 2 : chimeric (back splice junction)
 // 3 : discordant
 // 4 : potentially mappable
 // 5 : un-mappable
+// 6 : chimeric (fusion)
 int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 	int junction_detect_size_lim = 9;
 	MatchedRead mr1, mr2;
@@ -1184,7 +1216,7 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 		return 3;
 
 	if (mate1_state == 4 or mate2_state == 4)
-		return 3;
+		return 4;
 
 	// check for any concordancy evidence/explanation
 	for (int i = 0; i < mrl1_size; i++)
@@ -1217,8 +1249,7 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 				return 2;
 		}
 
-	//return (same_chr_exists) ? 0 : 2;	// fusion if no occurance on same chr exists
-	return 0;
+	return (same_chr_exists) ? 0 : 6;	// fusion if no occurance on same chr exists
 }
 
 void print_location_list(const bwtint_t& sp, const bwtint_t& ep, const int& len) {
