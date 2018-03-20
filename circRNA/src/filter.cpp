@@ -9,6 +9,7 @@ FilterRead::FilterRead (char* save_fname, bool pe) {
 	char chimeric_fusion_file1[1000];
 	char p_unmap_file1[1000];
 	char unmap_file1[1000];
+
 	strcpy (ignore_file1, save_fname);
 	strcpy (keep_file1 , save_fname);
 	strcpy (chimeric_bsj_file1 , save_fname);

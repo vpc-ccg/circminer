@@ -5,6 +5,8 @@
 #include "fastq_parser.h"
 #include "filter.h"
 
+int verbosity;
+
 using namespace std;
 
 int main(int argc, char **argv) {
@@ -12,6 +14,8 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Usage: %s <FASTA> <FASTQ> <OUT> [--pe]\n", argv[0]);
 		return 1;
 	}
+
+	verbosity = 0;
 
 	char* ref_file = argv[1];
 	char* fq_file1 = argv[2];

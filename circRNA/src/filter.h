@@ -14,9 +14,9 @@
 
 using namespace std;
 
-#define GENETHRESH 100000
-#define RANGELIM 1000
-#define REGIONSIZELIM 2e5
+//#define GENETHRESH 100000
+//#define RANGELIM 1000
+//#define REGIONSIZELIM 2e5
 
 class FilterRead {
 private:

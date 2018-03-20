@@ -1062,10 +1062,10 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 			continue;
 		}
 
-		//print_location_list(sp_f, ep_f, exp_len_front);
+		print_location_list(verbosity, sp_f, ep_f, exp_len_front);
 
 		if (i < junction_detect_size_lim and rseq_len - exp_len_front - i < junction_detect_size_lim) {	// concordant (exon)
-			//fprintf(stderr, "[Concordant-e]\tfront matched: %d\n", exp_len_front);
+			vafprintf(verbosity, stderr, "[Concordant-e]\tfront matched: %d\n", exp_len_front);
 			
 			mrl_size = 0;
 			for (sapos = sp_f; sapos <= ep_f; ++sapos) {
@@ -1094,7 +1094,7 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 
 	const char* remain_rseq = rseq + i + exp_len_front + 1;	// skipping one bp for noise/mismatch
 	int remain_len = rseq_len - i - exp_len_front - 1;
-	//fprintf(stderr, "Remaining len: %d\n", remain_len);
+	vafprintf(verbosity, stderr, "Remaining len: %d\n", remain_len);
 	
 	bwtint_t longest_sp_f, longest_ep_f;
 	int max_len_front = 0;
@@ -1130,9 +1130,9 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 			return 4;
 		}
 		// intersect
-		//fprintf(stderr, "Intersecting:\n");
-		//fprintf(stderr, "start index: %d\n", l);
-		//print_location_list(longest_sp_f, longest_ep_f, max_len_front);
+		vafprintf(verbosity, stderr, "Intersecting same strand:\n");
+		vafprintf(verbosity, stderr, "start index: %d\n", l);
+		print_location_list(verbosity, longest_sp_f, longest_ep_f, max_len_front);
 		intersect_ret = intersect(longest_sp_f, longest_ep_f, max_len_front, sp_f, ep_f, exp_len_front, mrl, mrl_size, true);
 		return intersect_ret;
 	}
@@ -1142,7 +1142,7 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	int max_len_back = 0;
 	for (j = 0; j <= remain_len - max_len_back; j += step) {
 		exp_len_back = get_expanded_locs(remain_rseq, remain_len - j, &sp_b, &ep_b);
-		//fprintf(stderr, "%s\tlen front: %d,\tlen back: %d,\tj: %d\n", rseq, exp_len_front, exp_len_back, j);
+		vafprintf(verbosity, stderr, "%s\tlen front: %d,\tlen back: %d,\tj: %d\n", rseq, exp_len_front, exp_len_back, j);
 	
 		if (exp_len_back >= max_len_back) {
 			max_len_back = exp_len_back;
@@ -1174,8 +1174,8 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	//bool consis = is_concordant(sp_f, ep_f, exp_len_front, sp_b, ep_b, exp_len_back, noise_thresh);
 	//bool consis = is_concordant_sorted2(sp_f, ep_f, exp_len_front, longest_sp_b, longest_ep_b, exp_len_back, 10, mr);
 	
-	//fprintf(stderr, "Intersecting:\n");
-	//print_location_list(longest_sp_b, longest_ep_b, max_len_back);
+	vafprintf(verbosity, stderr, "Intersecting different strand:\n");
+	print_location_list(verbosity, longest_sp_b, longest_ep_b, max_len_back);
 	intersect_ret = intersect(sp_f, ep_f, exp_len_front, longest_sp_b, longest_ep_b, exp_len_back, mrl, mrl_size, false);
 
 	return intersect_ret;
@@ -1197,12 +1197,12 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 	vector <MatchedRead> mrl2(MRLSIZELIM);
 	int mrl1_size, mrl2_size;
 
-	//fprintf(stderr, "Read name: %s1st mate:\n", m1->rname);
+	vafprintf(verbosity, stderr, "Read name: %s1st mate:\n", m1->rname);
 	int mate1_state = find_expanded_sliding_positions(m1->seq, m1->rcseq, m1->seq_len, 23, 3, junction_detect_size_lim, mrl1, mrl1_size);
-	//fprintf(stderr, "2nd mate:\n");
+	vafprintf(verbosity, stderr, "2nd mate:\n");
 	int mate2_state = find_expanded_sliding_positions(m2->seq, m2->rcseq, m2->seq_len, 23, 3, junction_detect_size_lim, mrl2, mrl2_size);
 
-	//fprintf(stderr, "%d\n%d\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", mate1_state, mate2_state);
+	vafprintf(verbosity, stderr, "%d\n%d\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", mate1_state, mate2_state);
 
 	if (mate1_state == 2 or mate2_state == 2)
 		return 2;
@@ -1252,7 +1252,8 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 	return (same_chr_exists) ? 0 : 6;	// fusion if no occurance on same chr exists
 }
 
-void print_location_list(const bwtint_t& sp, const bwtint_t& ep, const int& len) {
+void print_location_list(int verbosity, const bwtint_t& sp, const bwtint_t& ep, const int& len) {
+	if (verbosity < 1)	return;
 	bwtint_t tmp;
 	int dir;
 	fprintf(stderr, "===\nLength of match: %d\n", len);
@@ -1269,4 +1270,14 @@ void print_location_list(const bwtint_t& sp, const bwtint_t& ep, const int& len)
 		fprintf(stderr, "%"PRIu64"\t", chr_end);
 	}
 	fprintf(stderr, "\n===\n");
+}
+
+// verbose-aware fprintf
+void vafprintf(int verbosity, FILE *stream, const char *format, ...) {
+	if (verbosity < 1)	return;
+
+	va_list args;
+	va_start (args, format);
+	vfprintf (stream, format, args);
+	va_end (args);
 }
