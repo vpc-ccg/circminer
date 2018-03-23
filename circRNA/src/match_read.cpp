@@ -1,5 +1,9 @@
 #include "match_read.h"
 
+char keep_log1[500];
+char keep_log2[500];
+static int trig = 0;
+
 void get_mate_name(char* fq1, char* fq2) {
 	strcpy(fq2, fq1);
 	int i = strlen(fq1) - 1;
@@ -770,6 +774,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 				
 				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_back + len_b <= spos_front + GENETHRESH) {
+					//fprintf(stderr, "%s\t%d\t%d\t-\t%s\t%d\t%d\t-\t", chr_name_b, chr_beg_b, chr_end_b, chr_name_f, chr_beg_f, chr_end_f);
 					return true;
 				}
 			}
@@ -790,6 +795,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 				
 				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_back + len_b <= spos_front + GENETHRESH) {
+					//fprintf(stderr, "%s\t%d\t%d\t-\t%s\t%d\t%d\t-\t", chr_name_b, chr_beg_b, chr_end_b, chr_name_f, chr_beg_f, chr_end_f);
 					return true;
 				}
 			}
@@ -814,6 +820,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 				
 				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_front + len_f <= spos_back + GENETHRESH) {
+					//fprintf(stderr, "%s\t%d\t%d\t+\t%s\t%d\t%d\t+\t", chr_name_f, chr_beg_f, chr_end_f, chr_name_b, chr_beg_b, chr_end_b);
 					return true;
 				}
 			}
@@ -836,6 +843,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 				
 				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_front + len_f <= spos_back + GENETHRESH) {
+					//fprintf(stderr, "%s\t%d\t%d\t+\t%s\t%d\t%d\t+\t", chr_name_f, chr_beg_f, chr_end_f, chr_name_b, chr_beg_b, chr_end_b);
 					return true;
 				}
 			}
@@ -849,9 +857,12 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 // 2: chimeric
 // 3: discordant
 int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, const bwtint_t& sp_b, const bwtint_t& ep_b, const int& len_b, vector <MatchedRead>& mrl, int& mrl_size, bool same_strand) {
-	//if ((ep_f - sp_f >= REGIONSIZELIM) or (ep_b - sp_b >= REGIONSIZELIM))
 	if ((ep_b - sp_b) >= REGIONSIZELIM or (ep_f - sp_f) >= REGIONSIZELIM) {
 		mrl_size = 0;
+		//if (trig == 0)
+		//	sprintf(keep_log1, "LongList\t%llu\t%llu\t", ep_f - sp_f + 1, ep_b - sp_b + 1);
+		//else
+		//	sprintf(keep_log2, "LongList\t%llu\t%llu\t", ep_f - sp_f + 1, ep_b - sp_b + 1);
 		return 3;
 	}
 
@@ -859,8 +870,6 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 	int32_t chr_len_f, chr_len_b;
 	uint32_t chr_beg_f, chr_beg_b;
 	uint32_t chr_end_f, chr_end_b;
-
-	//fprintf(stderr, "back size: %llu\nfront size: %llu\n", ep_b - sp_b + 1, ep_f - sp_f + 1);
 
 	int dir_front=0, dir_back=0;
 	bwtint_t flist_size_f, blist_size_f;
@@ -1026,6 +1035,12 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 	bool is_chimeric = is_chimeric_intersect(forwardlist_f, flist_size_f, backwardlist_f, blist_size_f, len_f, forwardlist_b, flist_size_b, backwardlist_b, blist_size_b, len_b);
 	if (is_chimeric)	// does not keep chimeric match record
 		return 2;
+	mrl_size = 0;
+	
+	//if (trig == 0)
+	//	sprintf(keep_log1, "Discordant\t%llu\t%llu\t%llu\t%llu\t", flist_size_f, blist_size_f, flist_size_b, blist_size_b);
+	//else
+	//	sprintf(keep_log2, "Discordant\t%llu\t%llu\t%llu\t%llu\t", flist_size_f, blist_size_f, flist_size_b, blist_size_b);
 	return 3;
 }
 
@@ -1181,6 +1196,10 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	return intersect_ret;
 }
 
+// deciding mate state based on seq map and its rc map
+//int decide_mate_status() {
+//}
+
 // return value:
 // 0 : concordant (exon)
 // 1 : concordant (junction)
@@ -1196,24 +1215,88 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 	vector <MatchedRead> mrl1(MRLSIZELIM);
 	vector <MatchedRead> mrl2(MRLSIZELIM);
 	int mrl1_size, mrl2_size;
+	vector <MatchedRead> mrl1_rc(MRLSIZELIM);
+	vector <MatchedRead> mrl2_rc(MRLSIZELIM);
+	int mrl1_rc_size, mrl2_rc_size;
+
+	int mate1_state, mate2_state;
+	int mate1_rc_state = -1, mate2_rc_state = -1;
 
 	vafprintf(verbosity, stderr, "Read name: %s1st mate:\n", m1->rname);
-	int mate1_state = find_expanded_sliding_positions(m1->seq, m1->rcseq, m1->seq_len, 23, 3, junction_detect_size_lim, mrl1, mrl1_size);
+	trig = 0;
+	mate1_state = find_expanded_sliding_positions(m1->seq, m1->rcseq, m1->seq_len, 23, 3, junction_detect_size_lim, mrl1, mrl1_size);
+	//mate1_state = find_expanded_sliding_positions(m1->rcseq, m1->seq, m1->seq_len, 23, 3, junction_detect_size_lim, mrl1, mrl1_size);
+	if (mate1_state == 2 or mate1_state == 3 or mate1_state == 4) {
+		mate1_rc_state = find_expanded_sliding_positions(m1->rcseq, m1->seq, m1->seq_len, 23, 3, junction_detect_size_lim, mrl1_rc, mrl1_rc_size);
+		
+		// deciding mate1 state based on seq map and its rc map
+		if (mate1_rc_state == 0 or mate1_rc_state == 1) {
+			mate1_state = mate1_rc_state;
+			mrl1_size = mrl1_rc_size;
+			mrl1 = mrl1_rc;
+			for (int l = 0; l < mrl1_size; l++)
+				mrl1[l].dir *= -1;
+		}
+		else if (mate1_state == 2 or mate1_rc_state == 2) {
+			mate1_state = 2;
+		}
+		else if (mate1_state == 3 or mate1_rc_state == 3) {
+			mate1_state = 3;
+		}
+		else if (mate1_state == 4 or mate1_rc_state == 4) {
+			mate1_state = 4;
+		}
+	}
+
 	vafprintf(verbosity, stderr, "2nd mate:\n");
-	int mate2_state = find_expanded_sliding_positions(m2->seq, m2->rcseq, m2->seq_len, 23, 3, junction_detect_size_lim, mrl2, mrl2_size);
+	trig = 1;
+	mate2_state = find_expanded_sliding_positions(m2->seq, m2->rcseq, m2->seq_len, 23, 3, junction_detect_size_lim, mrl2, mrl2_size);
+	//mate2_state = find_expanded_sliding_positions(m2->rcseq, m2->seq, m2->seq_len, 23, 3, junction_detect_size_lim, mrl2, mrl2_size);
+	if (mate2_state == 2 or mate2_state == 3 or mate2_state == 4) {
+		mate2_rc_state = find_expanded_sliding_positions(m2->rcseq, m2->seq, m2->seq_len, 23, 3, junction_detect_size_lim, mrl2_rc, mrl2_rc_size);
+		
+		// deciding mate2 state based on seq map and its rc map
+		if (mate2_rc_state == 0 or mate2_rc_state == 1) {
+			mate2_state = mate2_rc_state;
+			mrl2_size = mrl2_rc_size;
+			mrl2 = mrl2_rc;
+			for (int l = 0; l < mrl2_size; l++)
+				mrl2[l].dir *= -1;
+		}
+		else if (mate2_state == 2 or mate2_rc_state == 2) {
+			mate2_state = 2;
+		}
+		else if (mate2_state == 3 or mate2_rc_state == 3) {
+			mate2_state = 3;
+		}
+		else if (mate2_state == 4 or mate2_rc_state == 4) {
+			mate2_state = 4;
+		}
+	}
 
 	vafprintf(verbosity, stderr, "%d\n%d\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", mate1_state, mate2_state);
 
-	if (mate1_state == 2 or mate2_state == 2)
+	if (mate1_state == 2 or mate2_state == 2) {
+		//if (mate1_state == 2)
+		//	fprintf(stderr, "Split Read/1st Mate\t%s", m1->rname);
+		//if (mate2_state == 2)
+		//	fprintf(stderr, "Split Read/2nd Mate\t%s", m2->rname);
 		return 2;
+	}
+
+	if (mate1_state == 3 or mate2_state == 3) {
+		//if (mate1_state == 3)
+		//	fprintf(stderr, "%s\t", keep_log1);
+		//if (mate2_state == 3)
+		//	fprintf(stderr, "%s\t", keep_log2);
+		//fprintf(stderr, "%s", m1->rname);
+		return 3;
+	}
 
 	if (mate1_state == 5)
 		return mate2_state;
 	if (mate2_state == 5)
 		return mate1_state;
-
-	if (mate1_state == 3 or mate2_state == 3)
-		return 3;
 
 	if (mate1_state == 4 or mate2_state == 4)
 		return 4;
@@ -1243,10 +1326,14 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 				same_chr_exists = true;
 
 			// non-overlapping back scplice junction
-			if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos > mr2.start_pos + mr2.matched_len) and (mr1.start_pos <= mr2.start_pos + GENETHRESH))
+			if (mr1.dir == 1 and mr2.dir == -1 and (mr1.start_pos > mr2.start_pos + mr2.matched_len) and (mr1.start_pos <= mr2.start_pos + GENETHRESH)) {
+				//fprintf(stderr, "%s\t%d\t%d\t+\t%s\t%d\t%d\t-\tWrong Mate Orientation\t%s", mr1.chr, mr1.start_pos, mr1.end_pos, mr2.chr, mr2.start_pos, mr2.end_pos, m1->rname);
 				return 2;
-			if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos > mr1.start_pos + mr1.matched_len) and (mr2.start_pos <= mr1.start_pos + GENETHRESH))
+			}
+			if (mr1.dir == -1 and mr2.dir == 1 and (mr2.start_pos > mr1.start_pos + mr1.matched_len) and (mr2.start_pos <= mr1.start_pos + GENETHRESH)) {
+				//fprintf(stderr, "%s\t%d\t%d\t+\t%s\t%d\t%d\t-\tWrong Mate Orientation\t%s", mr2.chr, mr2.start_pos, mr2.end_pos, mr1.chr, mr1.start_pos, mr1.end_pos, m1->rname);
 				return 2;
+			}
 		}
 
 	return (same_chr_exists) ? 0 : 6;	// fusion if no occurance on same chr exists
