@@ -2,33 +2,34 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "common.h"
+#include "commandline_parser.h"
 #include "fastq_parser.h"
 #include "filter.h"
 
-int verbosity;
+char versionNumberMajor[10] = "0";
+char versionNumberMinor[10] = "1";
 
 using namespace std;
 
 int main(int argc, char **argv) {
-	if (argc < 4) {
-		fprintf(stderr, "Usage: %s <FASTA> <FASTQ> <OUT> [--pe]\n", argv[0]);
-		return 1;
-	}
+	//if (argc < 4) {
+	//	fprintf(stderr, "Usage: %s <FASTA> <FASTQ> <OUT> [--pe]\n", argv[0]);
+	//	return 1;
+	//}
+	
+	int exit = parse_command( argc, argv );
+	if (exit == 1)
+		return 0;
 
-	verbosity = 0;
-
-	char* ref_file = argv[1];
-	char* fq_file1 = argv[2];
+	char* ref_file = referenceFilename;
+	char* fq_file1 = fastqFilename;
 	char fq_file2[1000];
-	bool is_pe = false;
-	if (argc >= 5 and strcmp(argv[4], "--pe") == 0) {
-		is_pe = true;
+	bool is_pe = pairedEnd;
+	if (pairedEnd) {
 		get_mate_name(fq_file1, fq_file2);
 	}
 	
-	/*
-	*/
-
 	if (bwt_load(ref_file)) {
 		fprintf(stdout, "Index not found!\n");
 		//if (bwt_index(ref_file)) {
@@ -50,7 +51,7 @@ int main(int argc, char **argv) {
 		fq_parser2.init(fq_file2);
 	}
 
-	FilterRead filter_read(argv[3], is_pe);
+	FilterRead filter_read(outputFilename, is_pe);
 
 	fprintf(stdout, "Started reading FASTQ file...\n");
 	int line = 0;

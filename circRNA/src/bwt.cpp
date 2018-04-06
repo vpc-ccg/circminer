@@ -42,6 +42,7 @@ int get_expanded_locs(const char *str, int len, bwtint_t *sa_begin, bwtint_t *sa
     int i;
     k = 0;
     l = bwt->seq_len;
+	//fprintf(stderr, "<> Extending match - bases: ");
     for (i = len - 1; i >= 0; --i)
     {
         c = nst_nt4_table[ str[i] ];
@@ -50,9 +51,13 @@ int get_expanded_locs(const char *str, int len, bwtint_t *sa_begin, bwtint_t *sa
         k = bwt->L2[c] + ok + 1;
         l = bwt->L2[c] + ol;
         if (k > l) break; // no match
+		//fprintf(stderr, "%d", c);
 		pre_k = k;
 		pre_l = l;
     }
+
+	//fprintf(stderr, " <\\>\n");
+
     //*sa_begin = k;
     //*sa_end = l;
     //return l - k + 1;

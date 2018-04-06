@@ -15,6 +15,7 @@
 
 #include "bwt.h"
 #include "fastq_parser.h"
+#include "common.h"
 
 using namespace std;
 
@@ -25,8 +26,6 @@ using namespace std;
 //#define REGIONSIZELIM 10000
 #define REGIONSIZELIM 1000
 #define MRLSIZELIM 20
-
-extern int verbosity;
 
 typedef struct {
 	bool is_concord;
