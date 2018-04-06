@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 		int is_chimeric;
 		if (is_pe) {
 			//is_chimeric = check_concordant_mates(current_record1, current_record2);
-			is_chimeric = filter_read.process_read(current_record1, current_record2);
+			is_chimeric = filter_read.process_read(current_record1, current_record2, kmer);
 			filter_read.write_read3(current_record1, current_record2, is_chimeric);
 		}
 		else {

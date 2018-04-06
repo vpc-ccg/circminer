@@ -1208,7 +1208,7 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 // 4 : potentially mappable
 // 5 : un-mappable
 // 6 : chimeric (fusion)
-int check_concordant_mates_expand(const Record* m1, const Record* m2) {
+int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_size) {
 	int junction_detect_size_lim = 9;
 	MatchedRead mr1, mr2;
 	//MatchedReadList mrl1, mrl2;
@@ -1224,10 +1224,10 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 
 	vafprintf(verboseMode, stderr, "Read name: %s1st mate:\n", m1->rname);
 	trig = 0;
-	mate1_state = find_expanded_sliding_positions(m1->seq, m1->rcseq, m1->seq_len, 23, 3, junction_detect_size_lim, mrl1, mrl1_size);
-	//mate1_state = find_expanded_sliding_positions(m1->rcseq, m1->seq, m1->seq_len, 23, 3, junction_detect_size_lim, mrl1, mrl1_size);
+	mate1_state = find_expanded_sliding_positions(m1->seq, m1->rcseq, m1->seq_len, kmer_size, 3, junction_detect_size_lim, mrl1, mrl1_size);
+	//mate1_state = find_expanded_sliding_positions(m1->rcseq, m1->seq, m1->seq_len, kmer_size, 3, junction_detect_size_lim, mrl1, mrl1_size);
 	if (mate1_state == 2 or mate1_state == 3 or mate1_state == 4) {
-		mate1_rc_state = find_expanded_sliding_positions(m1->rcseq, m1->seq, m1->seq_len, 23, 3, junction_detect_size_lim, mrl1_rc, mrl1_rc_size);
+		mate1_rc_state = find_expanded_sliding_positions(m1->rcseq, m1->seq, m1->seq_len, kmer_size, 3, junction_detect_size_lim, mrl1_rc, mrl1_rc_size);
 		
 		// deciding mate1 state based on seq map and its rc map
 		if (mate1_rc_state == 0 or mate1_rc_state == 1) {
@@ -1250,10 +1250,10 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2) {
 
 	vafprintf(verboseMode, stderr, "2nd mate:\n");
 	trig = 1;
-	mate2_state = find_expanded_sliding_positions(m2->seq, m2->rcseq, m2->seq_len, 23, 3, junction_detect_size_lim, mrl2, mrl2_size);
-	//mate2_state = find_expanded_sliding_positions(m2->rcseq, m2->seq, m2->seq_len, 23, 3, junction_detect_size_lim, mrl2, mrl2_size);
+	mate2_state = find_expanded_sliding_positions(m2->seq, m2->rcseq, m2->seq_len, kmer_size, 3, junction_detect_size_lim, mrl2, mrl2_size);
+	//mate2_state = find_expanded_sliding_positions(m2->rcseq, m2->seq, m2->seq_len, kmer_size, 3, junction_detect_size_lim, mrl2, mrl2_size);
 	if (mate2_state == 2 or mate2_state == 3 or mate2_state == 4) {
-		mate2_rc_state = find_expanded_sliding_positions(m2->rcseq, m2->seq, m2->seq_len, 23, 3, junction_detect_size_lim, mrl2_rc, mrl2_rc_size);
+		mate2_rc_state = find_expanded_sliding_positions(m2->rcseq, m2->seq, m2->seq_len, kmer_size, 3, junction_detect_size_lim, mrl2_rc, mrl2_rc_size);
 		
 		// deciding mate2 state based on seq map and its rc map
 		if (mate2_rc_state == 0 or mate2_rc_state == 1) {

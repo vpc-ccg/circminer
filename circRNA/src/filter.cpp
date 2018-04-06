@@ -93,8 +93,8 @@ int FilterRead::process_read (Record* current_record) {
 	return find_expanded_positions(current_record->seq, current_record->rcseq, current_record->seq_len);
 }
 
-int FilterRead::process_read (Record* current_record1, Record* current_record2) {
-	return check_concordant_mates_expand(current_record1, current_record2);
+int FilterRead::process_read (Record* current_record1, Record* current_record2, int kmer_size) {
+	return check_concordant_mates_expand(current_record1, current_record2, kmer_size);
 }
 
 // write reads SE mode
