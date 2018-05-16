@@ -774,7 +774,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 				
 				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_back + len_b <= spos_front + GENETHRESH) {
-					//fprintf(stderr, "%s\t%d\t%d\t-\t%s\t%d\t%d\t-\t", chr_name_b, chr_beg_b, chr_end_b, chr_name_f, chr_beg_f, chr_end_f);
+					fprintf(outputJuncFile, "%s\t%d\t%d\t-\t%s\t%d\t%d\t-\t", chr_name_b, chr_beg_b, chr_end_b, chr_name_f, chr_beg_f, chr_end_f);
 					return true;
 				}
 			}
@@ -795,7 +795,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 				
 				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_back + len_b <= spos_front + GENETHRESH) {
-					//fprintf(stderr, "%s\t%d\t%d\t-\t%s\t%d\t%d\t-\t", chr_name_b, chr_beg_b, chr_end_b, chr_name_f, chr_beg_f, chr_end_f);
+					fprintf(outputJuncFile, "%s\t%d\t%d\t-\t%s\t%d\t%d\t-\t", chr_name_b, chr_beg_b, chr_end_b, chr_name_f, chr_beg_f, chr_end_f);
 					return true;
 				}
 			}
@@ -820,7 +820,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 				
 				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_front + len_f <= spos_back + GENETHRESH) {
-					//fprintf(stderr, "%s\t%d\t%d\t+\t%s\t%d\t%d\t+\t", chr_name_f, chr_beg_f, chr_end_f, chr_name_b, chr_beg_b, chr_end_b);
+					fprintf(outputJuncFile, "%s\t%d\t%d\t+\t%s\t%d\t%d\t+\t", chr_name_f, chr_beg_f, chr_end_f, chr_name_b, chr_beg_b, chr_end_b);
 					return true;
 				}
 			}
@@ -843,7 +843,7 @@ bool is_chimeric_intersect(const vector<bwtint_t>& forwardlist_f, const bwtint_t
 				bwt_get_intv_info(spos_back,  spos_back  + len_b - 1, &chr_name_b, &chr_len_b, &chr_beg_b, &chr_end_b);
 				
 				if (strcmp(chr_name_f, chr_name_b) == 0 and spos_front + len_f <= spos_back + GENETHRESH) {
-					//fprintf(stderr, "%s\t%d\t%d\t+\t%s\t%d\t%d\t+\t", chr_name_f, chr_beg_f, chr_end_f, chr_name_b, chr_beg_b, chr_end_b);
+					fprintf(outputJuncFile, "%s\t%d\t%d\t+\t%s\t%d\t%d\t+\t", chr_name_f, chr_beg_f, chr_end_f, chr_name_b, chr_beg_b, chr_end_b);
 					return true;
 				}
 			}
@@ -1164,6 +1164,7 @@ int find_expanded_sliding_positions2(const char* rseq, const char* rcseq, const 
 	for (j = 0; j <= remain_len - max_len_back; j += step) {
 		exp_len_back = get_expanded_locs(remain_rseq, remain_len - j, &sp_b, &ep_b);
 		vafprintf(verboseMode, stderr, "%s\tlen front: %d,\tlen back: %d,\tj: %d\n", rseq, exp_len_front, exp_len_back, j);
+		//print_location_list(verboseMode, sp_b, ep_b, exp_len_back);
 	
 		if (exp_len_back >= max_len_back) {
 			max_len_back = exp_len_back;
@@ -1321,6 +1322,7 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 	for (j = 0; j <= remain_len - max_len_back; j += step) {
 		exp_len_back = get_expanded_locs(remain_rseq, remain_len - j, &sp_b, &ep_b);
 		vafprintf(verboseMode, stderr, "%s\tlen front: %d,\tlen back: %d,\tj: %d\n", rseq, exp_len_front, exp_len_back, j);
+		//print_location_list(verboseMode, sp_b, ep_b, exp_len_back);
 	
 		if (exp_len_back >= max_len_back) {
 			max_len_back = exp_len_back;
@@ -1551,6 +1553,14 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_s
 	int mate1_rc_state = -1, mate2_rc_state = -1;
 
 	vafprintf(verboseMode, stderr, "Read name: %s1st mate:\n", m1->rname);
+	
+	////
+	string rname = m1->rname;
+	int size = rname.length();
+	rname[size-1] = '\0';
+	fprintf(outputJuncFile, "%s\\R1\t", rname.c_str());
+	////
+	
 	trig = 0;
 	//mate1_state = find_expanded_sliding_positions(m1->seq, m1->rcseq, m1->seq_len, kmer_size, 3, junction_detect_size_lim, mrl1, mrl1_size);
 	bwtint_t sp_b, ep_b;
@@ -1559,6 +1569,7 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_s
 	int len_b_rc;
 	mate1_state = find_expanded_sliding_positions2(m1->seq, m1->rcseq, m1->seq_len, kmer_size, 3, junction_detect_size_lim, mrl1, mrl1_size, sp_b, ep_b, len_b);
 	if (mate1_state == 2 or mate1_state == 3 or mate1_state == 4) {
+	//if (mate1_state == 3 or mate1_state == 4) {
 		mate1_rc_state = find_expanded_sliding_positions2(m1->rcseq, m1->seq, m1->seq_len, kmer_size, 3, junction_detect_size_lim, mrl1_rc, mrl1_rc_size, sp_b_rc, ep_b_rc, len_b_rc);
 		
 		// deciding mate1 state based on seq map and its rc map
@@ -1586,10 +1597,27 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_s
 		}
 	}
 
+	////
+	if (mate1_state == 2)
+		fprintf(outputJuncFile, "\n");
+	else if (mate1_state < 2) {
+		string mate_strand = (mrl1[0].dir == 1) ? "+" : "-";
+		fprintf(outputJuncFile, "%s\t%d\t%d\t%s\n", mrl1[0].chr, mrl1[0].start_pos, mrl1[0].start_pos + mrl1[0].matched_len, mate_strand.c_str());
+	}
+	else 
+		fprintf(outputJuncFile, "-\t-\t-\t-\n", m1->rname);
+	////
+
 	vafprintf(verboseMode, stderr, "2nd mate:\n");
+
+	////
+	fprintf(outputJuncFile, "%s\\R2\t", rname.c_str());
+	////
+	
 	trig = 1;
 	mate2_state = find_expanded_sliding_positions2(m2->seq, m2->rcseq, m2->seq_len, kmer_size, 3, junction_detect_size_lim, mrl2, mrl2_size, sp_b, ep_b, len_b);
 	if (mate2_state == 2 or mate2_state == 3 or mate2_state == 4) {
+	//if (mate2_state == 3 or mate2_state == 4) {
 		mate2_rc_state = find_expanded_sliding_positions2(m2->rcseq, m2->seq, m2->seq_len, kmer_size, 3, junction_detect_size_lim, mrl2_rc, mrl2_rc_size, sp_b_rc, ep_b_rc, len_b_rc);
 		
 		// deciding mate2 state based on seq map and its rc map
@@ -1617,13 +1645,25 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_s
 		}
 	}
 
+	////
+	if (mate2_state == 2)
+		fprintf(outputJuncFile, "\n");
+	else if (mate2_state < 2) {
+		string mate_strand = (mrl2[0].dir == 1) ? "+" : "-";
+		fprintf(outputJuncFile, "%s\t%d\t%d\t%s\n", mrl2[0].chr, mrl2[0].start_pos, mrl2[0].start_pos + mrl2[0].matched_len, mate_strand.c_str());
+	}
+	else 
+		fprintf(outputJuncFile, "-\t-\t-\t-\n");
+	////
+
 	vafprintf(verboseMode, stderr, "%d\n%d\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n", mate1_state, mate2_state);
 
 	if (mate1_state == 2 or mate2_state == 2) {
 		//if (mate1_state == 2)
-		//	fprintf(stderr, "Split Read/1st Mate\t%s", m1->rname);
+		//	return mate2_state;
 		//if (mate2_state == 2)
-		//	fprintf(stderr, "Split Read/2nd Mate\t%s", m2->rname);
+		//	return mate1_state;
+
 		return 2;
 	}
 
@@ -1711,3 +1751,25 @@ void vafprintf(int verbosity, FILE *stream, const char *format, ...) {
 	vfprintf (stream, format, args);
 	va_end (args);
 }
+
+
+unsigned long long find_occ_sum(const char* rseq, int rseq_len, const int& kmer_size) {
+	bwtint_t sp_f, ep_f;
+	bwtint_t sp_b, ep_b;
+	int occ = 0, i, j;
+	unsigned long long sum = 0;
+
+	for (i = 0; i <= rseq_len - kmer_size; ++i) {
+		occ = get_exact_locs(rseq + i, kmer_size, &sp_f, &ep_f);
+		//fprintf(stderr, "Number of matches: %d\n", occ);
+
+		if (occ > 0) {
+			sum += occ;
+		}
+	}
+
+	fprintf(stderr, "%llu\n", sum);
+
+	return sum;
+}
+

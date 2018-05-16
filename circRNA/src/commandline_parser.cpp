@@ -11,6 +11,8 @@ char fastqFilename[FILE_NAME_LENGTH];
 char outputFilename[FILE_NAME_LENGTH]="output";
 char outputDir[FILE_NAME_LENGTH] = "./";
 
+FILE *outputJuncFile; 
+
 /**********************************************/
 // return:
 // 0: normal execution
@@ -63,9 +65,15 @@ int parse_command( int argc, char *argv[] )
 			case 'k':
 				kmer = atoi(optarg);
 				break;
-			case 'o':
+			case 'o': {
 				strncpy(outputFilename, optarg, FILE_NAME_LENGTH);
-				break;		
+				
+				char juncFilename[FILE_NAME_LENGTH] = "";
+				strncpy(juncFilename, optarg, FILE_NAME_LENGTH);
+				strcat(juncFilename, ".junc");
+				outputJuncFile = fopen(juncFilename,"w");
+				break;
+			}
 			case 'd':
 				verboseMode = atoi(optarg);
 				break;

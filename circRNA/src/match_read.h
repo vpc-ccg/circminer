@@ -72,4 +72,7 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_s
 void print_location_list(int verbosity, const bwtint_t& sp, const bwtint_t& ep, const int& len);
 void vafprintf(int verbosity, FILE *stream, const char *format, ...);
 
+// kmer analysis
+unsigned long long find_occ_sum(const char* rseq, int rseq_len, const int& kmer_size);
+
 #endif // __MATCHREAD_H__
