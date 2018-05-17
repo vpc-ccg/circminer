@@ -22,10 +22,9 @@ using namespace std;
 //#define GENETHRESH 160000
 #define GENETHRESH 500000
 #define RANGELIM 1000
-//#define REGIONSIZELIM 2e5
-//#define REGIONSIZELIM 10000
 #define REGIONSIZELIM 1000
 #define MRLSIZELIM 20
+#define FRAGLIM 1000
 
 typedef struct {
 	bool is_concord;
@@ -68,6 +67,8 @@ int intersect(const bwtint_t& sp_f, const bwtint_t& ep_f, const int& len_f, cons
 int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const int& rseq_len, const int& window_size, const int& step, const int& junction_detect_size_lim, vector <MatchedRead>& mrl, int& mrl_size);
 int find_expanded_sliding_positions2(const char* rseq, const char* rcseq, const int& rseq_len, const int& window_size, const int& step, const int& junction_detect_size_lim, vector <MatchedRead>& mrl, int& mrl_size, bwtint_t& sp_b, bwtint_t& ep_b, int& exp_len_back);
 int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_size);
+
+void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count);
 
 void print_location_list(int verbosity, const bwtint_t& sp, const bwtint_t& ep, const int& len);
 void vafprintf(int verbosity, FILE *stream, const char *format, ...);

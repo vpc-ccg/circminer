@@ -20,6 +20,7 @@ MYOBJ        = $(SRCDIR)/circRNA.o \
                $(SRCDIR)/match_read.o \
                $(SRCDIR)/fastq_parser.o \
                $(SRCDIR)/commandline_parser.o \
+			   $(SRCDIR)/chain.o
 
 BWAOBJ       = $(BWADIR)/*.o
 

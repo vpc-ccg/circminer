@@ -593,7 +593,7 @@ int find_exact_positions(const char* rseq, int rseq_len, int window_size) {
 	bwtint_t sp, ep;
 	int occ = 0;
 
-	for (int i = 0; i < rseq_len; i+=window_size) {
+	for (int i = 0; i < rseq_len; i += window_size) {
 		occ = get_exact_locs(rseq + i, window_size, &sp, &ep);
 		//fprintf(stderr, "Start pos: %d\n", i);
 		//fprintf(stderr, "Number of matches: %d\n", occ);
@@ -1721,6 +1721,52 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_s
 
 	return (same_chr_exists) ? 0 : 6;	// fusion if no occurance on same chr exists
 }
+
+void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count) {
+	bwtint_t sp, ep, j, rpos;
+	int i, occ;
+	int sum = 0;
+	int dir;
+	uint32_t match_len = kmer_size;
+	int32_t end_pos;
+
+	forward_fragment_count = 0;
+	backward_fragment_count = 0;
+	for (i = 0; i < rseq_len; i += kmer_size) {
+		if (rseq_len - i < kmer_size)
+			match_len = rseq_len - i;
+		occ = get_exact_locs(rseq + i, match_len, &sp, &ep);
+		if (occ <= 0)
+			continue;
+
+		sum += occ;
+		if (sum >= FRAGLIM) {
+			forward_fragment_count = 0;
+			backward_fragment_count = 0;
+			return;
+		}
+
+		//fprintf(stderr, "Occ: %d\tmatch len: %d\n", occ, match_len);
+
+		for (j = sp; j <= ep; j++) {
+			rpos = get_pos(&j, match_len, dir);
+			if (dir == 1) {
+				forward_fragments[forward_fragment_count].qpos = i;
+				forward_fragments[forward_fragment_count].rpos = rpos;
+				forward_fragments[forward_fragment_count].len = match_len;
+				forward_fragment_count++;
+			}
+			else {
+				end_pos = i + match_len - 1;
+				backward_fragments[backward_fragment_count].qpos = -1 * end_pos;
+				backward_fragments[backward_fragment_count].rpos = rpos;
+				backward_fragments[backward_fragment_count].len = match_len;
+				backward_fragment_count++;
+			}
+		}
+	}
+}
+
 
 void print_location_list(int verbosity, const bwtint_t& sp, const bwtint_t& ep, const int& len) {
 	if (verbosity < 1)	return;

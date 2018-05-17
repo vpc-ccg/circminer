@@ -3,14 +3,17 @@
 
 #define FILE_NAME_LENGTH 1000
 
+#include <vector>
+#include <stdint.h>
+
 typedef struct {
 	uint32_t rpos;
-	uint32_t qpos;
+	int32_t qpos;
 	uint32_t len;
 } fragment_t;
 
 typedef struct {
-	fragment_t *frags;
+	std::vector<fragment_t> frags;
 	uint32_t chain_len;
 	float score;
 } chain_t;

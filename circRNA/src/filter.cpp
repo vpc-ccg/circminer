@@ -1,4 +1,7 @@
+#include <vector>
+
 #include "filter.h"
+#include "chain.h"
 
 FilterRead::FilterRead (char* save_fname, bool pe) {
 	is_pe = pe;
@@ -95,6 +98,55 @@ int FilterRead::process_read (Record* current_record) {
 
 int FilterRead::process_read (Record* current_record1, Record* current_record2, int kmer_size) {
 	return check_concordant_mates_expand(current_record1, current_record2, kmer_size);
+}
+
+bool is_concord(const chain_t& a, int seq_len, int kmer) {
+	if (a.chain_len < 2)
+		return false;
+	return (a.frags[a.chain_len-1].qpos - a.frags[0].qpos + kmer) >= seq_len;
+}
+
+int FilterRead::process_read_chain (Record* current_record1, Record* current_record2, int kmer_size) {
+	int forward_fragment_count, backward_fragment_count;
+	vector <fragment_t> forward_fragments(FRAGLIM);
+	vector <fragment_t> backward_fragments(FRAGLIM);
+
+	int max_frag_count = current_record1->seq_len / kmer_size + 1;
+
+	// R1
+	chain_t forward_best_chain_r1;
+	forward_best_chain_r1.frags.resize(max_frag_count + 1);
+	chain_t backward_best_chain_r1;
+	backward_best_chain_r1.frags.resize(max_frag_count + 1);
+	chop_read_match(current_record1->seq, current_record1->seq_len, kmer_size, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+	chain_seeds_n2(forward_fragments, forward_fragment_count, forward_best_chain_r1);
+	chain_seeds_n2(backward_fragments, backward_fragment_count, backward_best_chain_r1);
+
+	//fprintf(stderr, "R1 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r1.score, (unsigned long)forward_best_chain_r1.chain_len);
+	//fprintf(stderr, "R1 Backward score:%.4f,\t len: %lu\n", backward_best_chain_r1.score, (unsigned long)backward_best_chain_r1.chain_len);
+
+	// R2
+	chain_t forward_best_chain_r2;
+	forward_best_chain_r2.frags.resize(max_frag_count + 1);
+	chain_t backward_best_chain_r2;
+	backward_best_chain_r2.frags.resize(max_frag_count + 1);
+	chop_read_match(current_record2->seq, current_record2->seq_len, kmer_size, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+	chain_seeds_n2(forward_fragments, forward_fragment_count, forward_best_chain_r2);
+	chain_seeds_n2(backward_fragments, backward_fragment_count, backward_best_chain_r2);
+
+	//fprintf(stderr, "R2 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r2.score, (unsigned long)forward_best_chain_r2.chain_len);
+	//fprintf(stderr, "R2 Backward score:%.4f,\t len: %lu\n", backward_best_chain_r2.score, (unsigned long)backward_best_chain_r2.chain_len);
+
+	// checking read concordancy
+	if (is_concord(forward_best_chain_r1, current_record1->seq_len, kmer_size) and is_concord(backward_best_chain_r2, current_record2->seq_len, kmer_size)) {
+		//fprintf(stderr, "%s+++++Concordant+++++\n", current_record1->rname);
+		return 0;
+	}
+	else if (is_concord(forward_best_chain_r2, current_record2->seq_len, kmer_size) and is_concord(backward_best_chain_r1, current_record1->seq_len, kmer_size)) {
+		//fprintf(stderr, "+++++Concordant+++++\n");
+		return 0;
+	}
+	return 3;
 }
 
 // write reads SE mode
