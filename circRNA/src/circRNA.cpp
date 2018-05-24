@@ -6,6 +6,7 @@
 #include "commandline_parser.h"
 #include "fastq_parser.h"
 #include "filter.h"
+#include "gene_annotation.h"
 
 char versionNumberMajor[10] = "0";
 char versionNumberMinor[10] = "1";
@@ -18,13 +19,13 @@ int main(int argc, char **argv) {
 	//	return 1;
 	//}
 	
-	int exit = parse_command( argc, argv );
-	if (exit == 1)
+	int exit_c = parse_command( argc, argv );
+	if (exit_c == 1)
 		return 0;
 
 	char* ref_file = referenceFilename;
 	char* fq_file1 = fastqFilename;
-	char fq_file2[1000];
+	char fq_file2[FILE_NAME_LENGTH];
 	bool is_pe = pairedEnd;
 	if (pairedEnd) {
 		get_mate_name(fq_file1, fq_file2);
@@ -41,6 +42,12 @@ int main(int argc, char **argv) {
 	}
 	else
 		fprintf(stdout, "Index file successfully loaded!\n");
+
+	GTFParser gtf_parser(gtfFilename);
+	if (! gtf_parser.load_gtf()) {
+		fprintf(stderr, "Error in reading GTF file.\n");
+		exit(1);
+	}
 
 	FASTQParser fq_parser1(fq_file1);
 	Record* current_record1;
