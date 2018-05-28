@@ -150,7 +150,7 @@ void GTFParser::set_wild_type(void) {
 	if (records.size() <= 0)
 		return;
 	sort(records.begin(), records.end());
-	print_records();
+	//print_records();
 
 	ExonSeg wt_exon;
 	wt_exon.gene_id = records[0].gene_id;
@@ -173,9 +173,6 @@ void GTFParser::set_wild_type(void) {
 		}
 	}
 	wt_exons[wt_exon.chr].push_back(wt_exon);
-
-	for (int i = 0; i < wt_exons["MT"].size(); i++)
-		fprintf(stderr, "WT: %s %s %d %d\n", wt_exons["MT"][i].gene_name.c_str(), wt_exons["MT"][i].chr.c_str(), wt_exons["MT"][i].start, wt_exons["MT"][i].end);
 }
 
 // assumption: target is not less than list[0]
@@ -199,6 +196,18 @@ int GTFParser::binary_search(const vector <ExonSeg>& seg, int beg, int end, bool
 int GTFParser::search_loc(const string& chr, bool on_start, uint32_t target) {
 	int ret_ind = binary_search(wt_exons[chr], 0, wt_exons[chr].size(), on_start, target);
 	return (on_start)? ret_ind-1 : ret_ind;
+}
+
+uint32_t GTFParser::get_start(const string& chr, int seg_ind) {
+	return wt_exons[chr][seg_ind].start;
+}
+
+uint32_t GTFParser::get_end(const string& chr, int seg_ind) {
+	return wt_exons[chr][seg_ind].end;
+}
+
+bool GTFParser::is_last_exonic_region(const string& chr, int seg_ind) {
+	return (seg_ind >= (wt_exons[chr].size() - 1));
 }
 
 void GTFParser::print_record(const GTFRecord& r) {

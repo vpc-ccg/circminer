@@ -13,6 +13,8 @@ char versionNumberMinor[10] = "1";
 
 using namespace std;
 
+GTFParser gtf_parser;
+
 int main(int argc, char **argv) {
 	//if (argc < 4) {
 	//	fprintf(stderr, "Usage: %s <FASTA> <FASTQ> <OUT> [--pe]\n", argv[0]);
@@ -43,11 +45,13 @@ int main(int argc, char **argv) {
 	else
 		fprintf(stdout, "Index file successfully loaded!\n");
 
-	GTFParser gtf_parser(gtfFilename);
+	gtf_parser.init(gtfFilename);
 	if (! gtf_parser.load_gtf()) {
 		fprintf(stderr, "Error in reading GTF file.\n");
 		exit(1);
 	}
+	else 
+		fprintf(stdout, "GTF file successfully loaded!\n");
 
 	FASTQParser fq_parser1(fq_file1);
 	Record* current_record1;

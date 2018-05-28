@@ -10,8 +10,8 @@ BWADIR      := $(SRCDIR)/bwa
 INCS        := -I$(BWADIR)
 LIBS        := -lz
 #LIBS        := -lz -lm -lpthread
-CFLAGS      := -w -O3
-CXXFLAGS    := -w -O3 $(INCS)
+CFLAGS      := -w -O3 
+CXXFLAGS    := -w -O3 $(INCS) -g
 LDFLAGS     := 
 
 MYOBJ        = $(SRCDIR)/circRNA.o \
@@ -21,7 +21,8 @@ MYOBJ        = $(SRCDIR)/circRNA.o \
                $(SRCDIR)/fastq_parser.o \
                $(SRCDIR)/commandline_parser.o \
 			   $(SRCDIR)/chain.o \
-			   $(SRCDIR)/gene_annotation.o
+			   $(SRCDIR)/gene_annotation.o \
+			   $(SRCDIR)/align.o 
 
 BWAOBJ       = $(BWADIR)/*.o
 

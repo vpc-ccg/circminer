@@ -1,4 +1,6 @@
+#include <cstdlib>
 #include "match_read.h"
+#include "gene_annotation.h"
 
 char keep_log1[500];
 char keep_log2[500];
@@ -1767,6 +1769,89 @@ void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragm
 	}
 }
 
+// pos is exclusive
+void get_reference_chunk(uint32_t pos, int len, char* res_str) {
+	res_str[0] = 0;
+	char* chr_name;
+	int32_t chr_len;
+	uint32_t chr_beg;
+	uint32_t chr_end;
+	
+	if (len < 0) {	// [ pos-len, pos-1 ]
+		len *= -1;
+		//char* res_str = (char*) malloc(len+5);
+
+		bwt_get_intv_info((bwtint_t) (pos - len), (bwtint_t) pos, &chr_name, &chr_len, &chr_beg, &chr_end);
+		string chr = chr_name;
+		//fprintf(stderr, "Chrom: %s, pos: %lu\n", chr.c_str(), chr_end+1);	
+		int seg_ind = gtf_parser.search_loc(chr, true, chr_end+1);	// chr_end+1: to convert to 1-based coordinate system used by GTF format
+		//fprintf(stderr, "Index found: %d\n", seg_ind);
+		uint32_t seg_start = gtf_parser.get_start(chr, seg_ind);
+		//fprintf(stderr, "Start of exon: %lu\nChr beg: %lu\n", seg_start, chr_beg);
+		if (seg_start <= chr_beg+1) {	// 0-based vs. 1-based
+			bwt_str_pac2char(pos - len, len, res_str);
+			//fprintf(stderr, "Res beg: %s\n", res_str);
+			return;
+		}
+		else {
+			int remain_len = seg_start - chr_beg - 1;
+			int covered_len = len - remain_len;
+			bwt_str_pac2char(pos - covered_len, covered_len, res_str);
+			if (seg_ind == 0) {	// reached first exonic region on chromosome
+				//fprintf(stderr, "Res beg: %s\n", res_str);
+				return;
+			}
+
+			uint32_t prev_end = gtf_parser.get_end(chr, seg_ind - 1);
+			uint32_t prev_integrated_pos = pos - covered_len - (seg_start - prev_end);
+			char* remain_str = (char*) malloc(len+5);
+			get_reference_chunk(prev_integrated_pos, -1 * remain_len, remain_str);
+			//fprintf(stderr, "Remain beg: %s\n", remain_str);
+			strncat(remain_str, res_str, covered_len);
+			strcpy(res_str, remain_str);
+			//fprintf(stderr, "Res beg: %s\n", res_str);
+			free(remain_str);
+			return;
+		}
+	}
+	else {			// [ pos+1, pos+len ]
+		//char* res_str = (char*) malloc(len+5);
+
+		bwt_get_intv_info((bwtint_t) pos, (bwtint_t) (pos + len), &chr_name, &chr_len, &chr_beg, &chr_end);
+		string chr = chr_name;
+		//fprintf(stderr, "Chrom: %s, pos: %lu\n", chr.c_str(), chr_beg+2);
+		int seg_ind = gtf_parser.search_loc(chr, false, chr_beg);	// no need to convert to 1-based coordinate, because of search implementation
+		//fprintf(stderr, "Index found: %d\n", seg_ind);
+		uint32_t seg_end = gtf_parser.get_end(chr, seg_ind);
+		//fprintf(stderr, "End of exon: %lu\nChr end: %lu\n", seg_end, chr_end);
+		if (seg_end >= chr_end+1) {	//0-based vs. 1-based
+			bwt_str_pac2char(pos + 1, len, res_str);
+			//fprintf(stderr, "Res end: %s\n", res_str);
+			return;
+		}
+		else {
+			int remain_len = chr_end+1 - seg_end;
+			int covered_len = len - remain_len;
+			//fprintf(stderr, "Covered len: %d\n", covered_len);
+			bwt_str_pac2char(pos + 1, covered_len, res_str);
+			//fprintf(stderr, "Here\n");
+			if (gtf_parser.is_last_exonic_region(chr, seg_ind)) {	// reached first exonic region on chromosome
+				//fprintf(stderr, "Res end: %s\n", res_str);
+				return;
+			}
+
+			uint32_t next_start = gtf_parser.get_start(chr, seg_ind + 1);
+			uint32_t next_integrated_pos = pos + covered_len + (next_start - seg_end);
+			char* remain_str = (char*) malloc(len+5);
+			get_reference_chunk(next_integrated_pos, remain_len, remain_str);
+			//fprintf(stderr, "Remain end: %s\n", remain_str);
+			strncat(res_str, remain_str, remain_len);
+			//fprintf(stderr, "Res end: %s\n", res_str);
+			free(remain_str);
+			return;
+		}
+	}
+}
 
 void print_location_list(int verbosity, const bwtint_t& sp, const bwtint_t& ep, const int& len) {
 	if (verbosity < 1)	return;

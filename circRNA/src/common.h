@@ -2,6 +2,7 @@
 #define __COMMON_H__
 
 #define FILE_NAME_LENGTH 1000
+#define GENETHRESH 500000
 
 #include <vector>
 #include <stdint.h>
@@ -33,5 +34,6 @@ extern FILE* outputJuncFile;
 
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];
+
 
 #endif

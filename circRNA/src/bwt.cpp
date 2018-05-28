@@ -718,8 +718,10 @@ void bwt_str_pac2char(uint32_t beg, uint32_t len, char *seq)
 {
     uint32_t k;
     uint32_t l = 0;
-    for (k = beg; k < beg + len; k++)
+    for (k = beg; k < beg + len; k++) {
         seq[l++] = "ACGTN"[_get_pac(_fmd_index->pac, k)];
+	}
+	seq[l] = 0;
 }
 
 // void bwt_get_intv_info(uint64_t beg, uint64_t end, char **chr_name, int32_t *chr_len, uint64_t *chr_beg, uint64_t *chr_end, int *is_rev)

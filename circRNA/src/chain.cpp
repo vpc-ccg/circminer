@@ -4,6 +4,8 @@
 
 #include "chain.h"
 
+#define INF 100000
+
 inline double score_beta(int distr, int distt, int frag_len) {
 	int maxd = distr < distt ? distt : distr;
 	int mind = distr < distt ? distr : distt;
@@ -52,7 +54,7 @@ void chain_seeds_n2(vector<fragment_t>& fragment_list, uint32_t fragment_count, 
 				continue;
 
 			distt = fragment_list[i].rpos - (fragment_list[j].rpos + fragment_list[j].len - 1);
-			if (distt <= 0)
+			if (distt <= 0 or distt > GENETHRESH)	// should be in gene size range
 				continue;
 
 			a_score = score_alpha(distr, distt, fragment_list[i].len);

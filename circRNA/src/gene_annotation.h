@@ -65,8 +65,14 @@ public:
 	int binary_search(const vector <ExonSeg>& seg, int beg, int end, bool on_start, uint32_t target);
 	int search_loc(const string& chr, bool on_start, uint32_t target);
 
+	uint32_t get_start(const string& chr, int seg_ind);
+	uint32_t get_end(const string& chr, int seg_ind);
+	bool is_last_exonic_region(const string& chr, int seg_ind);
+
 	void print_record(const GTFRecord& r);
 	void print_records(void);
 };
+
+extern GTFParser gtf_parser;
 
 #endif	//__GENE_ANNOTATION_H__
