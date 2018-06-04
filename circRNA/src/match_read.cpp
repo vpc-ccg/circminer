@@ -1741,14 +1741,14 @@ void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragm
 		if (occ <= 0)
 			continue;
 
+		vafprintf(2, stderr, "Occ: %d\tmatch len: %d\n", occ, match_len);
+
 		sum += occ;
 		if (sum >= FRAGLIM) {
 			forward_fragment_count = 0;
 			backward_fragment_count = 0;
 			return;
 		}
-
-		//fprintf(stderr, "Occ: %d\tmatch len: %d\n", occ, match_len);
 
 		for (j = sp; j <= ep; j++) {
 			rpos = get_pos(&j, match_len, dir);
@@ -1871,16 +1871,6 @@ void print_location_list(int verbosity, const bwtint_t& sp, const bwtint_t& ep, 
 		fprintf(stderr, "%"PRIu64"\t", chr_end);
 	}
 	fprintf(stderr, "\n===\n");
-}
-
-// verbose-aware fprintf
-void vafprintf(int verbosity, FILE *stream, const char *format, ...) {
-	if (verbosity < 1)	return;
-
-	va_list args;
-	va_start (args, format);
-	vfprintf (stream, format, args);
-	va_end (args);
 }
 
 

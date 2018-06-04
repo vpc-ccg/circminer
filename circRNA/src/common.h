@@ -6,6 +6,9 @@
 
 #include <vector>
 #include <stdint.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 
 typedef struct {
 	uint32_t rpos;
@@ -35,5 +38,7 @@ extern FILE* outputJuncFile;
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];
 
+// verbose-aware fprintf
+void vafprintf(int verbosity, FILE *stream, const char *format, ...);
 
 #endif

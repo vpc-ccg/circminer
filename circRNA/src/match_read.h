@@ -11,7 +11,6 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <cstdarg>
 
 #include "bwt.h"
 #include "fastq_parser.h"
@@ -71,7 +70,7 @@ void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragm
 void get_reference_chunk(uint32_t pos, int len, char* res_str);
 
 void print_location_list(int verbosity, const bwtint_t& sp, const bwtint_t& ep, const int& len);
-void vafprintf(int verbosity, FILE *stream, const char *format, ...);
+//void vafprintf(int verbosity, FILE *stream, const char *format, ...);
 
 // kmer analysis
 unsigned long long find_occ_sum(const char* rseq, int rseq_len, const int& kmer_size);
