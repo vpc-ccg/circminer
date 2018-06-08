@@ -1,4 +1,4 @@
-#include <cstdlib>
+#include <cmath>
 #include "match_read.h"
 #include "gene_annotation.h"
 
@@ -1732,37 +1732,94 @@ void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragm
 	uint32_t match_len = kmer_size;
 	int32_t end_pos;
 
+	//char* chr_name;
+	//uint32_t chr_beg;
+	//uint32_t chr_end;
+	//int32_t chr_len;
+
 	forward_fragment_count = 0;
 	backward_fragment_count = 0;
+	int region_count = ceil(1.0 * rseq_len / kmer_size);
+	vector <ExactMatchRes> exact_match_res(region_count);
+	int em_count = 0;
+	int over_lim = 0;
 	for (i = 0; i < rseq_len; i += kmer_size) {
 		if (rseq_len - i < kmer_size)
 			match_len = rseq_len - i;
 		occ = get_exact_locs(rseq + i, match_len, &sp, &ep);
+		
 		if (occ <= 0)
-			continue;
+			occ = 0;
 
+		if (occ > FRAGLIM)
+			over_lim++;
 		vafprintf(2, stderr, "Occ: %d\tmatch len: %d\n", occ, match_len);
 
-		sum += occ;
-		if (sum >= FRAGLIM) {
-			forward_fragment_count = 0;
-			backward_fragment_count = 0;
-			return;
-		}
+		//for (j = sp; j <= ep; j++) {
+		//	rpos = get_pos(&j, match_len, dir);
+		//	if (dir == 1) {
+		//		forward_fragments[forward_fragment_count].qpos = i;
+		//		forward_fragments[forward_fragment_count].rpos = rpos;
+		//		forward_fragments[forward_fragment_count].len = match_len;
+		//		forward_fragment_count++;
+		//	}
+		//	else {
+		//		end_pos = i + match_len - 1;
+		//		backward_fragments[backward_fragment_count].qpos = -1 * end_pos;
+		//		backward_fragments[backward_fragment_count].rpos = rpos;
+		//		backward_fragments[backward_fragment_count].len = match_len;
+		//		backward_fragment_count++;
+		//	}
+		//}
+		exact_match_res[em_count].sp = sp;
+		exact_match_res[em_count].ep = ep;
+		exact_match_res[em_count].q_ind = i;
+		exact_match_res[em_count].matched_len = match_len;
+		exact_match_res[em_count].occ = occ;
 
-		for (j = sp; j <= ep; j++) {
-			rpos = get_pos(&j, match_len, dir);
+		em_count++;		
+	}
+
+	//sort(exact_match_res.begin(), exact_match_res.end());
+
+	// how many kmers will be missed ?
+	//int contained = region_count;
+	//for (int k = 0; k < exact_match_res.size(); k++) {
+	//	vafprintf(2, stderr, "Occ: %d\tind: %d\n", exact_match_res[k].occ, exact_match_res[k].q_ind);
+	//	sum += exact_match_res[k].occ;
+	//	if (sum > FRAGLIM) {
+	//		contained = k;
+	//		break;
+	//	}
+	//}
+	//if (contained < region_count - MAXMISSKMER)
+	//	return;
+	
+	if (region_count - over_lim <= 1)
+		return;
+
+	for (int k = 0; k < region_count; k++) {
+		//vafprintf(2, stderr, "---Occ: %d\tind: %d\n", exact_match_res[k].occ, exact_match_res[k].q_ind);
+		if (exact_match_res[k].occ == 0 or exact_match_res[k].occ > FRAGLIM)
+			continue;
+		for (j = exact_match_res[k].sp; j <= exact_match_res[k].ep; j++) {
+			rpos = get_pos(&j, exact_match_res[k].matched_len, dir);
+			
+			// do not add a fragment that is comming from two different refrences (concat point is inside it)
+			if (! bwt_uniq_ref(rpos, rpos + exact_match_res[k].matched_len - 1))
+				continue;
+
 			if (dir == 1) {
-				forward_fragments[forward_fragment_count].qpos = i;
+				forward_fragments[forward_fragment_count].qpos = exact_match_res[k].q_ind;
 				forward_fragments[forward_fragment_count].rpos = rpos;
-				forward_fragments[forward_fragment_count].len = match_len;
+				forward_fragments[forward_fragment_count].len = exact_match_res[k].matched_len;
 				forward_fragment_count++;
 			}
 			else {
-				end_pos = i + match_len - 1;
+				end_pos = exact_match_res[k].q_ind + exact_match_res[k].matched_len - 1;
 				backward_fragments[backward_fragment_count].qpos = -1 * end_pos;
 				backward_fragments[backward_fragment_count].rpos = rpos;
-				backward_fragments[backward_fragment_count].len = match_len;
+				backward_fragments[backward_fragment_count].len = exact_match_res[k].matched_len;
 				backward_fragment_count++;
 			}
 		}
@@ -1783,6 +1840,8 @@ void get_reference_chunk(uint32_t pos, int len, char* res_str) {
 
 		bwt_get_intv_info((bwtint_t) (pos - len), (bwtint_t) pos, &chr_name, &chr_len, &chr_beg, &chr_end);
 		string chr = chr_name;
+		if (chr == "")
+			return; 
 		//fprintf(stderr, "Chrom: %s, pos: %lu\n", chr.c_str(), chr_end+1);	
 		int seg_ind = gtf_parser.search_loc(chr, true, chr_end+1);	// chr_end+1: to convert to 1-based coordinate system used by GTF format
 		//fprintf(stderr, "Index found: %d\n", seg_ind);
@@ -1819,6 +1878,8 @@ void get_reference_chunk(uint32_t pos, int len, char* res_str) {
 
 		bwt_get_intv_info((bwtint_t) pos, (bwtint_t) (pos + len), &chr_name, &chr_len, &chr_beg, &chr_end);
 		string chr = chr_name;
+		if (chr == "")
+			return; 
 		//fprintf(stderr, "Chrom: %s, pos: %lu\n", chr.c_str(), chr_beg+2);
 		int seg_ind = gtf_parser.search_loc(chr, false, chr_beg);	// no need to convert to 1-based coordinate, because of search implementation
 		//fprintf(stderr, "Index found: %d\n", seg_ind);

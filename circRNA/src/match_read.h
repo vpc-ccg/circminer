@@ -23,14 +23,17 @@ using namespace std;
 #define REGIONSIZELIM 1000
 #define MRLSIZELIM 20
 #define FRAGLIM 1000
+#define MAXMISSKMER 1
 
 typedef struct {
 	bool is_concord;
+	int type;
 	char* chr;
 	bwtint_t start_pos;
 	bwtint_t end_pos;
 	int matched_len;
 	int dir;
+	string gene_id;
 } MatchedRead;
 
 typedef struct {
@@ -39,6 +42,18 @@ typedef struct {
 	int matched_len;
 	int end_ind;
 } ExtendMatch;
+
+typedef struct ExactMatchRes{
+	bwtint_t sp;
+	bwtint_t ep;
+	int q_ind;
+	int matched_len;
+	int occ;
+
+	bool operator < (const ExactMatchRes& mr) const {
+		return occ < mr.occ;
+	}
+} ExactMatchRes;
 
 //typedef struct {
 //	MatchedRead* match_list;

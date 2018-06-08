@@ -7,5 +7,6 @@
 using namespace std;
 
 void chain_seeds_n2(vector<fragment_t>& fragment_list, uint32_t fragment_count, chain_t &best_chain);
+void chain_seeds_n2_kbest(vector<fragment_t>& fragment_list, uint32_t fragment_count, vector <chain_t>& best_chain);
 
 #endif

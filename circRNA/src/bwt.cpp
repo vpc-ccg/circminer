@@ -768,6 +768,16 @@ void bwt_get_intv_info(uint64_t beg, uint64_t end, char **chr_name, int32_t *chr
     *chr_len = _fmd_index->bns->anns[rid].len;
 }
 
+bool bwt_uniq_ref(uint64_t beg, uint64_t end) 
+{
+	int rid_beg;
+	int rid_end;
+    rid_beg = bns_pos2rid(_fmd_index->bns, beg);
+    rid_end = bns_pos2rid(_fmd_index->bns, end);
+
+	return rid_beg == rid_end;
+}
+
 void bwt_get_chr_boundaries(uint64_t beg, uint64_t end, uint32_t *chr_beg, uint32_t *chr_end)
 {
     int rid;

@@ -67,6 +67,7 @@ public:
 
 	uint32_t get_start(const string& chr, int seg_ind);
 	uint32_t get_end(const string& chr, int seg_ind);
+	void get_gene_id(const string& chr, int seg_ind, string& gene_id);
 	bool is_last_exonic_region(const string& chr, int seg_ind);
 
 	void print_record(const GTFRecord& r);

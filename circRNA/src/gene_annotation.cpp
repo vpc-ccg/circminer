@@ -206,6 +206,10 @@ uint32_t GTFParser::get_end(const string& chr, int seg_ind) {
 	return wt_exons[chr][seg_ind].end;
 }
 
+void  GTFParser::get_gene_id(const string& chr, int seg_ind, string& gene_id) {
+	gene_id = wt_exons[chr][seg_ind].gene_id;
+}
+
 bool GTFParser::is_last_exonic_region(const string& chr, int seg_ind) {
 	return (seg_ind >= (wt_exons[chr].size() - 1));
 }
