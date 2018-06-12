@@ -3,6 +3,7 @@
 
 #define FILE_NAME_LENGTH 1000
 #define GENETHRESH 500000
+#define MINKMER 15
 
 #include <vector>
 #include <stdint.h>

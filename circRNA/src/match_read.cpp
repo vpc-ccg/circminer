@@ -1724,7 +1724,10 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_s
 	return (same_chr_exists) ? 0 : 6;	// fusion if no occurance on same chr exists
 }
 
-void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count) {
+// return:
+// # valid kmers
+// is valid if: #fragments > 0 and < FRAGLIM
+int chop_read_match(const char* rseq, int rseq_len, int kmer_size, int shift, bool recursive, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count) {
 	bwtint_t sp, ep, j, rpos;
 	int i, occ;
 	int sum = 0;
@@ -1742,18 +1745,23 @@ void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragm
 	int region_count = ceil(1.0 * rseq_len / kmer_size);
 	vector <ExactMatchRes> exact_match_res(region_count);
 	int em_count = 0;
-	int over_lim = 0;
-	for (i = 0; i < rseq_len; i += kmer_size) {
+	int invalid_kmer = 0;
+	for (i = shift; i < rseq_len; i += kmer_size) {
 		if (rseq_len - i < kmer_size)
 			match_len = rseq_len - i;
+		if (match_len < MINKMER) 
+			break;
+
 		occ = get_exact_locs(rseq + i, match_len, &sp, &ep);
 		
-		if (occ <= 0)
+		if (occ <= 0) {
 			occ = 0;
+			invalid_kmer++;
+		}
 
 		if (occ > FRAGLIM)
-			over_lim++;
-		vafprintf(2, stderr, "Occ: %d\tmatch len: %d\n", occ, match_len);
+			invalid_kmer++;
+		vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
 
 		//for (j = sp; j <= ep; j++) {
 		//	rpos = get_pos(&j, match_len, dir);
@@ -1794,11 +1802,22 @@ void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragm
 	//}
 	//if (contained < region_count - MAXMISSKMER)
 	//	return;
-	
-	if (region_count - over_lim <= 1)
-		return;
 
-	for (int k = 0; k < region_count; k++) {
+	int valid_kmer = em_count - invalid_kmer;
+
+	if (valid_kmer <= 1) {
+		if (recursive) {
+			int valid_mid_kmers = chop_read_match(rseq, rseq_len, kmer_size, kmer_size / 2, false, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+			int new_valids = valid_kmer + valid_mid_kmers;
+			if (new_valids <= 0) {
+				forward_fragment_count = 0;
+				backward_fragment_count = 0;
+				return 0;	// <2 valid kmers is not useful
+			}
+		}
+	}
+
+	for (int k = 0; k < em_count; k++) {
 		//vafprintf(2, stderr, "---Occ: %d\tind: %d\n", exact_match_res[k].occ, exact_match_res[k].q_ind);
 		if (exact_match_res[k].occ == 0 or exact_match_res[k].occ > FRAGLIM)
 			continue;
@@ -1806,8 +1825,8 @@ void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragm
 			rpos = get_pos(&j, exact_match_res[k].matched_len, dir);
 			
 			// do not add a fragment that is comming from two different refrences (concat point is inside it)
-			if (! bwt_uniq_ref(rpos, rpos + exact_match_res[k].matched_len - 1))
-				continue;
+			//if (! bwt_uniq_ref(rpos, rpos + exact_match_res[k].matched_len - 1))
+			//	continue;
 
 			if (dir == 1) {
 				forward_fragments[forward_fragment_count].qpos = exact_match_res[k].q_ind;
@@ -1823,6 +1842,51 @@ void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragm
 				backward_fragment_count++;
 			}
 		}
+	}
+	return valid_kmer;
+}
+
+// pos is exclusive
+// for Transcriptome
+void get_reference_chunk2(uint32_t pos, int len, char* res_str) {
+	res_str[0] = 0;
+	char* chr_name;
+	int32_t chr_len;
+	uint32_t chr_beg;
+	uint32_t chr_end;
+	
+	uint32_t avail_len;
+
+	if (len < 0) {	// [ pos-len, pos-1 ]
+		len *= -1;
+		//char* res_str = (char*) malloc(len+5);
+
+		bwt_get_intv_info((bwtint_t) pos, (bwtint_t) pos, &chr_name, &chr_len, &chr_beg, &chr_end);
+		string chr = chr_name;
+		if (chr == "")
+			return; 
+
+		//fprintf(stderr, "Chrom: %s, pos: %lu\n", chr.c_str(), chr_end+1);	
+		
+		avail_len = (chr_beg >= len) ? len : chr_beg;
+		
+		bwt_str_pac2char(pos - avail_len, avail_len, res_str);
+		//fprintf(stderr, "Res beg: %s\n", res_str);
+	}
+	else {		// [ pos+1, pos+len ]
+		//char* res_str = (char*) malloc(len+5);
+
+		bwt_get_intv_info((bwtint_t) pos, (bwtint_t) pos, &chr_name, &chr_len, &chr_beg, &chr_end);
+		string chr = chr_name;
+		if (chr == "")
+			return; 
+
+		//fprintf(stderr, "Chrom: %s, pos: %lu\n", chr.c_str(), chr_beg+2);
+		
+		avail_len = ((chr_len - 1 - pos) >= len) ? len : chr_len - 1 - pos;
+
+		bwt_str_pac2char(pos + 1, avail_len, res_str);
+		//fprintf(stderr, "Res end: %s\n", res_str);
 	}
 }
 

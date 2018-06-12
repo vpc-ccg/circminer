@@ -81,8 +81,9 @@ int find_expanded_sliding_positions(const char* rseq, const char* rcseq, const i
 int find_expanded_sliding_positions2(const char* rseq, const char* rcseq, const int& rseq_len, const int& window_size, const int& step, const int& junction_detect_size_lim, vector <MatchedRead>& mrl, int& mrl_size, bwtint_t& sp_b, bwtint_t& ep_b, int& exp_len_back);
 int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_size);
 
-void chop_read_match(const char* rseq, int rseq_len, int kmer_size, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count);
+int chop_read_match(const char* rseq, int rseq_len, int kmer_size, int shift, bool recursive, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count);
 void get_reference_chunk(uint32_t pos, int len, char* res_str);
+void get_reference_chunk2(uint32_t pos, int len, char* res_str);
 
 void print_location_list(int verbosity, const bwtint_t& sp, const bwtint_t& ep, const int& len);
 //void vafprintf(int verbosity, FILE *stream, const char *format, ...);

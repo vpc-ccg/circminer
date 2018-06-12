@@ -149,7 +149,7 @@ void get_best_chain(char* read_seq, int seq_len, int kmer_size, chain_t& forward
 	vector <fragment_t> forward_fragments(FRAGLIM * kmer_count);
 	vector <fragment_t> backward_fragments(FRAGLIM * kmer_count);
 
-	chop_read_match(read_seq, seq_len, kmer_size, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+	chop_read_match(read_seq, seq_len, kmer_size, 0, true, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
 	//vafprintf(2, stderr, "Forward#: %d\n", forward_fragment_count);
 	//for (int i = 0; i < forward_fragment_count; i++)
 	//	vafprintf(2, stderr, "rpos: %lu, qpos: %d, len: %lu", forward_fragments[i].rpos, forward_fragments[i].qpos, forward_fragments[i].len);
@@ -169,7 +169,7 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t
 	vector <fragment_t> forward_fragments(FRAGLIM * kmer_count);
 	vector <fragment_t> backward_fragments(FRAGLIM * kmer_count);
 
-	chop_read_match(read_seq, seq_len, kmer_size, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+	chop_read_match(read_seq, seq_len, kmer_size, 0, true, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
 	//vafprintf(2, stderr, "Forward#: %d\n", forward_fragment_count);
 	//for (int i = 0; i < forward_fragment_count; i++)
 	//	vafprintf(2, stderr, "rpos: %lu, qpos: %d, len: %lu", forward_fragments[i].rpos, forward_fragments[i].qpos, forward_fragments[i].len);
@@ -196,8 +196,6 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 
 	if (is_concord(ch, seq_len, mr))
 		return 0;
-
-	return 3;
 
 	char* chr_name;
 	int32_t chr_len;
@@ -294,21 +292,21 @@ int FilterRead::process_read_chain (Record* current_record1, Record* current_rec
 
 	get_best_chains(current_record1->seq, current_record1->seq_len, kmer_size, forward_best_chain_r1, backward_best_chain_r1);
 
-	vafprintf(1, stderr, "R1 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r1[0].score, (unsigned long)forward_best_chain_r1.size());
-	for (int j = 0; j < forward_best_chain_r1.size(); j++)
-		for (int i = 0; i < forward_best_chain_r1[j].chain_len; i++) {
-			vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%lu\n", j, i, forward_best_chain_r1[j].frags[i].rpos, forward_best_chain_r1[j].frags[i].qpos, forward_best_chain_r1[j].frags[i].len);
-			bwt_get_intv_info((bwtint_t) forward_best_chain_r1[j].frags[i].rpos, (bwtint_t) (forward_best_chain_r1[j].frags[i].rpos + forward_best_chain_r1[j].frags[i].len - 1), &chr_name, &chr_len, &chr_beg, &chr_end);
-			vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
-		}
+	//vafprintf(1, stderr, "R1 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r1[0].score, (unsigned long)forward_best_chain_r1.size());
+	//for (int j = 0; j < forward_best_chain_r1.size(); j++)
+	//	for (int i = 0; i < forward_best_chain_r1[j].chain_len; i++) {
+	//		vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, forward_best_chain_r1[j].frags[i].rpos, forward_best_chain_r1[j].frags[i].qpos, forward_best_chain_r1[j].frags[i].len);
+	//		bwt_get_intv_info((bwtint_t) forward_best_chain_r1[j].frags[i].rpos, (bwtint_t) (forward_best_chain_r1[j].frags[i].rpos + forward_best_chain_r1[j].frags[i].len - 1), &chr_name, &chr_len, &chr_beg, &chr_end);
+	//		vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
+	//	}
 
-	vafprintf(1, stderr, "R1 Backward score:%.4f,\t len: %lu\n", backward_best_chain_r1[0].score, (unsigned long)backward_best_chain_r1.size());
-	for (int j = 0; j < backward_best_chain_r1.size(); j++)
-		for (int i = 0; i < backward_best_chain_r1[j].chain_len; i++) {
-			vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%lu\n", j, i, backward_best_chain_r1[j].frags[i].rpos, backward_best_chain_r1[j].frags[i].qpos, backward_best_chain_r1[j].frags[i].len);
-			bwt_get_intv_info((bwtint_t) backward_best_chain_r1[j].frags[i].rpos, (bwtint_t) (backward_best_chain_r1[j].frags[i].rpos + backward_best_chain_r1[j].frags[i].len - 1), &chr_name, &chr_len, &chr_beg, &chr_end);
-			vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
-		}
+	//vafprintf(1, stderr, "R1 Backward score:%.4f,\t len: %lu\n", backward_best_chain_r1[0].score, (unsigned long)backward_best_chain_r1.size());
+	//for (int j = 0; j < backward_best_chain_r1.size(); j++)
+	//	for (int i = 0; i < backward_best_chain_r1[j].chain_len; i++) {
+	//		vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, backward_best_chain_r1[j].frags[i].rpos, backward_best_chain_r1[j].frags[i].qpos, backward_best_chain_r1[j].frags[i].len);
+	//		bwt_get_intv_info((bwtint_t) backward_best_chain_r1[j].frags[i].rpos, (bwtint_t) (backward_best_chain_r1[j].frags[i].rpos + backward_best_chain_r1[j].frags[i].len - 1), &chr_name, &chr_len, &chr_beg, &chr_end);
+	//		vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
+	//	}
 
 	vafprintf(1, stderr, "Forward R1\n");
 	vector <MatchedRead> forward_mrl_r1(forward_best_chain_r1.size());
@@ -345,21 +343,21 @@ int FilterRead::process_read_chain (Record* current_record1, Record* current_rec
 
 	get_best_chains(current_record2->seq, current_record2->seq_len, kmer_size, forward_best_chain_r2, backward_best_chain_r2);
 
-	vafprintf(1, stderr, "R2 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r2[0].score, (unsigned long)forward_best_chain_r2.size());
-	for (int j = 0; j < forward_best_chain_r2.size(); j++)
-		for (int i = 0; i < forward_best_chain_r2[j].chain_len; i++) {
-			vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%lu\n", j, i, forward_best_chain_r2[j].frags[i].rpos, forward_best_chain_r2[j].frags[i].qpos, forward_best_chain_r2[j].frags[i].len);
-			bwt_get_intv_info((bwtint_t) forward_best_chain_r2[j].frags[i].rpos, (bwtint_t) (forward_best_chain_r2[j].frags[i].rpos + forward_best_chain_r2[j].frags[i].len - 1), &chr_name, &chr_len, &chr_beg, &chr_end);
-			vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
-		}
+	//vafprintf(1, stderr, "R2 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r2[0].score, (unsigned long)forward_best_chain_r2.size());
+	//for (int j = 0; j < forward_best_chain_r2.size(); j++)
+	//	for (int i = 0; i < forward_best_chain_r2[j].chain_len; i++) {
+	//		vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, forward_best_chain_r2[j].frags[i].rpos, forward_best_chain_r2[j].frags[i].qpos, forward_best_chain_r2[j].frags[i].len);
+	//		bwt_get_intv_info((bwtint_t) forward_best_chain_r2[j].frags[i].rpos, (bwtint_t) (forward_best_chain_r2[j].frags[i].rpos + forward_best_chain_r2[j].frags[i].len - 1), &chr_name, &chr_len, &chr_beg, &chr_end);
+	//		vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
+	//	}
 
-	vafprintf(1, stderr, "R2 Backward score:%.4f,\t len: %lu\n", backward_best_chain_r2[0].score, (unsigned long)backward_best_chain_r2.size());
-	for (int j = 0; j < backward_best_chain_r2.size(); j++)
-		for (int i = 0; i < backward_best_chain_r2[j].chain_len; i++) {
-			vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%lu\n", j, i, backward_best_chain_r2[j].frags[i].rpos, backward_best_chain_r2[j].frags[i].qpos, backward_best_chain_r2[j].frags[i].len);
-			bwt_get_intv_info((bwtint_t) backward_best_chain_r2[j].frags[i].rpos, (bwtint_t) (backward_best_chain_r2[j].frags[i].rpos + backward_best_chain_r2[j].frags[i].len - 1), &chr_name, &chr_len, &chr_beg, &chr_end);
-			vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
-		}
+	//vafprintf(1, stderr, "R2 Backward score:%.4f,\t len: %lu\n", backward_best_chain_r2[0].score, (unsigned long)backward_best_chain_r2.size());
+	//for (int j = 0; j < backward_best_chain_r2.size(); j++)
+	//	for (int i = 0; i < backward_best_chain_r2[j].chain_len; i++) {
+	//		vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, backward_best_chain_r2[j].frags[i].rpos, backward_best_chain_r2[j].frags[i].qpos, backward_best_chain_r2[j].frags[i].len);
+	//		bwt_get_intv_info((bwtint_t) backward_best_chain_r2[j].frags[i].rpos, (bwtint_t) (backward_best_chain_r2[j].frags[i].rpos + backward_best_chain_r2[j].frags[i].len - 1), &chr_name, &chr_len, &chr_beg, &chr_end);
+	//		vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
+	//	}
 
 	vafprintf(1, stderr, "Forward R2\n");
 	vector <MatchedRead> forward_mrl_r2(forward_best_chain_r2.size());
