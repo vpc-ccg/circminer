@@ -1724,6 +1724,100 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_s
 	return (same_chr_exists) ? 0 : 6;	// fusion if no occurance on same chr exists
 }
 
+void saposlist2frag(const ExactMatchRes& emr, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count) {
+	bwtint_t rpos, j;
+	int end_pos, dir;
+	for (j = emr.sp; j <= emr.ep; j++) {
+		rpos = get_pos(&j, emr.matched_len, dir);
+		
+		// do not add a fragment that is comming from two different refrences (concat point is inside it)
+		//if (! bwt_uniq_ref(rpos, rpos + exact_match_res[k].matched_len - 1))
+		//	continue;
+
+		if (dir == 1) {
+			forward_fragments[forward_fragment_count].qpos = emr.q_ind;
+			forward_fragments[forward_fragment_count].rpos = rpos;
+			forward_fragments[forward_fragment_count].len = emr.matched_len;
+			forward_fragment_count++;
+		}
+		else {
+			end_pos = emr.q_ind + emr.matched_len - 1;
+			backward_fragments[backward_fragment_count].qpos = -1 * end_pos;
+			backward_fragments[backward_fragment_count].rpos = rpos;
+			backward_fragments[backward_fragment_count].len = emr.matched_len;
+			backward_fragment_count++;
+		}
+	}
+}
+
+bool frag_comp(const fragment_t& a, const fragment_t& b) {
+	return a.rpos < b.rpos;
+}
+
+// assumption: target is not less than list[0]
+// input interval: [, )
+// return: i if target in [i-1, i)
+// => 
+// closest Greater than: returned index
+// closest Less than or Equal: returned index - 1
+int frag_binary_search(const vector<fragment_t>& list, int beg, int end, int target) {
+	if (end - beg <= 1)
+		return end;
+	int mid = (beg + end) / 2;
+	if (target < list[mid].rpos)
+		return frag_binary_search(list, beg, mid, target);
+	else 
+		return frag_binary_search(list, mid, end, target);
+}
+
+// assumes sorted lists
+void prune_frag(const ExactMatchRes& large_list,
+				const vector<fragment_t>& pre_forward_fragments, int ff_ref_cnt, 
+				const vector<fragment_t>& pre_backward_fragments, int bf_ref_cnt, 
+				vector<fragment_t>& new_forward_fragments, int& new_forward_fragment_count, 
+				vector<fragment_t>& new_backward_fragments, int& new_backward_fragment_count) {
+
+	int valid = 0;
+	int ind;
+	int dir;
+	int end_pos;
+	bwtint_t rpos, j;
+	for (j = large_list.sp; j <= large_list.ep; j++) {
+		rpos = get_pos(&j, large_list.matched_len, dir);
+		if (dir == 1) {
+			ind = frag_binary_search(pre_forward_fragments, 0, ff_ref_cnt, rpos);
+			if (((ind < ff_ref_cnt) and (pre_forward_fragments[ind].rpos - rpos <= FLGENETH)) or ((ind > 0) and (rpos - pre_forward_fragments[ind-1].rpos <= FLGENETH))) {
+				valid++;
+				if (valid > FRAGLIM) {
+					new_forward_fragment_count = 0;
+					new_backward_fragment_count = 0;
+					return;
+				}
+				new_forward_fragments[new_forward_fragment_count].qpos = large_list.q_ind;
+				new_forward_fragments[new_forward_fragment_count].rpos = rpos;
+				new_forward_fragments[new_forward_fragment_count].len = large_list.matched_len;
+				new_forward_fragment_count++;
+			}
+		}
+		else {
+			ind = frag_binary_search(pre_backward_fragments, 0, bf_ref_cnt, rpos);
+			if (((ind < bf_ref_cnt) and (pre_backward_fragments[ind].rpos - rpos <= FLGENETH)) or ((ind > 0) and (rpos - pre_backward_fragments[ind-1].rpos <= FLGENETH))) {
+				valid++;
+				if (valid > FRAGLIM) {
+					new_forward_fragment_count = 0;
+					new_backward_fragment_count = 0;
+					return;
+				}
+				end_pos = large_list.q_ind + large_list.matched_len - 1;
+				new_backward_fragments[new_backward_fragment_count].qpos = -1 * end_pos;
+				new_backward_fragments[new_backward_fragment_count].rpos = rpos;
+				new_backward_fragments[new_backward_fragment_count].len = large_list.matched_len;
+				new_backward_fragment_count++;
+			}
+		}
+	}
+}
+
 // return:
 // # valid kmers
 // is valid if: #fragments > 0 and < FRAGLIM
@@ -1814,6 +1908,7 @@ int chop_read_match(const char* rseq, int rseq_len, int kmer_size, int shift, bo
 				backward_fragment_count = 0;
 				return 0;	// <2 valid kmers is not useful
 			}
+			valid_kmer = new_valids;
 		}
 	}
 
@@ -1842,6 +1937,53 @@ int chop_read_match(const char* rseq, int rseq_len, int kmer_size, int shift, bo
 				backward_fragment_count++;
 			}
 		}
+	}
+	if (recursive and valid_kmer <= 1) {	// overlapping kmers added to fragment lists
+		//saposlist2frag(exact_match_res[k], forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+		vector < vector<fragment_t> > forward_new_frags(em_count);
+		vector < vector<fragment_t> > backward_new_frags(em_count);
+		vector <int> ff_new_cnt(em_count, 0);
+		vector <int> bf_new_cnt(em_count, 0);
+		sort(forward_fragments.begin(), forward_fragments.begin() + forward_fragment_count, frag_comp);
+		sort(backward_fragments.begin(), backward_fragments.begin() + backward_fragment_count, frag_comp);
+		int ff_ref_cnt = forward_fragment_count;
+		int bf_ref_cnt = backward_fragment_count;
+		for (int k = 0; k < em_count; k++) {
+			if (exact_match_res[k].occ <= FRAGLIM or exact_match_res[k].occ > FRAGLIM * 20)
+				continue;
+
+			forward_new_frags[k].resize(FRAGLIM);
+			backward_new_frags[k].resize(FRAGLIM);
+
+			prune_frag(	exact_match_res[k],
+						forward_fragments, ff_ref_cnt, 
+						backward_fragments, bf_ref_cnt,
+						forward_new_frags[k], ff_new_cnt[k],
+						backward_new_frags[k], bf_new_cnt[k]
+						);
+
+		}
+
+
+		for (int k = 0; k < em_count; k++) {
+			vafprintf(1, stderr, "Reduced forward: %d,\tReduced Backward:%d\n", ff_new_cnt[k], bf_new_cnt[k]);
+			if (ff_new_cnt[k] + bf_new_cnt[k] > 0)
+				valid_kmer++;
+
+			for (int i = 0; i < ff_new_cnt[k]; i++) {
+				forward_fragments[forward_fragment_count].qpos = forward_new_frags[k][i].qpos;
+				forward_fragments[forward_fragment_count].rpos = forward_new_frags[k][i].rpos;
+				forward_fragments[forward_fragment_count].len = forward_new_frags[k][i].len;
+				forward_fragment_count++;
+			}
+			for (int i = 0; i < bf_new_cnt[k]; i++) {
+				backward_fragments[backward_fragment_count].qpos = backward_new_frags[k][i].qpos;
+				backward_fragments[backward_fragment_count].rpos = backward_new_frags[k][i].rpos;
+				backward_fragments[backward_fragment_count].len = backward_new_frags[k][i].len;
+				backward_fragment_count++;
+			}
+		}
+
 	}
 	return valid_kmer;
 }

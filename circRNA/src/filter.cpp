@@ -7,7 +7,7 @@
 #include "gene_annotation.h"
 #include <cmath>
 
-#define BESTCHAINLIM 5
+#define BESTCHAINLIM 30
 #define EDTH 3
 #define SOFTCLIPTH 7
 
@@ -268,7 +268,69 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 	return mr.type;
 }
 
-int process_mates(const chain_t& r1_chain, const chain_t& r2_chain, int seq_len, int kmer_size) {
+bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const MatchedRead& mr) {
+	if (mrs_size <= 0 or mr.dir * mrs[0].dir == 1)	// empty / same orientation
+		return false;
+
+	vafprintf(2, stderr, "MR: %s: %d - %d\n", mr.chr, mr.start_pos, mr.end_pos);
+	vafprintf(2, stderr, "Comp with %d candidates\n", mrs_size);
+
+	for (int i = 0; i < mrs_size; i++) {
+		vafprintf(2, stderr, "MR[%d]: %s: %d - %d\n", i, mr.chr, mr.start_pos, mr.end_pos);
+		MatchedRead omr = mrs[i];
+		if (mr.dir == 1 and strcmp(mr.chr, omr.chr) == 0 and mr.start_pos <= omr.start_pos and omr.end_pos <= mr.start_pos + GENETHRESH)
+			return true;
+		if (mr.dir == -1 and strcmp(mr.chr, omr.chr) == 0 and omr.start_pos <= mr.start_pos and mr.end_pos <= omr.start_pos + GENETHRESH)
+			return true;
+	}
+	return false;
+}
+
+int process_mates(const vector <chain_t>& forward_chain, const Record* record1, const vector <chain_t>& backward_chain, const Record* record2) {
+	int fc_size = forward_chain.size();
+	int bc_size = backward_chain.size();
+	if (fc_size == 0 or bc_size == 0)
+		return 5;
+
+	int max_len = (fc_size >= bc_size) ? fc_size : bc_size;
+
+	vector <MatchedRead> forward_mrl(fc_size);
+	vector <MatchedRead> backward_mrl(bc_size);
+
+	int ex_ret;
+	int fmrl_count = 0;
+	bool no_map1 = true;
+	int bmrl_count = 0;
+	bool no_map2 = true;
+	for (int i = 0; i < max_len; i++) {
+		if (i < fc_size) {
+			ex_ret = extend_chain(forward_chain[i], record1->seq, record1->seq_len, forward_mrl[fmrl_count]); 
+			if (ex_ret == 0) {
+				if (are_concordant(backward_mrl, bmrl_count, forward_mrl[fmrl_count])) {
+					vafprintf(1, stderr, "----Concordant\n");
+					return 0;
+				}
+				fmrl_count++;
+			}
+			if (ex_ret != 5)
+				no_map1 = false;
+		}
+
+		if (i < bc_size) {
+			ex_ret = extend_chain(backward_chain[i], record2->rcseq, record2->seq_len, backward_mrl[bmrl_count]); 
+			if (ex_ret == 0) {
+				if (are_concordant(forward_mrl, fmrl_count, backward_mrl[bmrl_count])) {
+					vafprintf(1, stderr, "----Concordant\n");
+					return 0;
+				}
+				bmrl_count++;
+			}
+			if (ex_ret != 5)
+				no_map2 = false;
+		}
+	}
+
+	return (no_map1 and no_map2) ? 5 : (no_map1 or no_map2) ? 4 : 3;
 }
 
 int FilterRead::process_read_chain (Record* current_record1, Record* current_record2, int kmer_size) {
@@ -308,29 +370,29 @@ int FilterRead::process_read_chain (Record* current_record1, Record* current_rec
 	//		vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
 	//	}
 
-	vafprintf(1, stderr, "Forward R1\n");
-	vector <MatchedRead> forward_mrl_r1(forward_best_chain_r1.size());
-	int fmrl_r1_count = 0;
-	int ex_ret;
-	for (int j = 0; j < forward_best_chain_r1.size(); j++) {
-		ex_ret = extend_chain(forward_best_chain_r1[j], current_record1->seq, current_record1->seq_len, forward_mrl_r1[fmrl_r1_count]);
-		vafprintf(1, stderr, "Extend ret: %d\n", ex_ret);
-		if (ex_ret == 0)	// only keep concordant ones
-			fmrl_r1_count++;
-		if (ex_ret != 5)
-			no_map_r1 = false;
-	}
+	//vafprintf(1, stderr, "Forward R1\n");
+	//vector <MatchedRead> forward_mrl_r1(forward_best_chain_r1.size());
+	//int fmrl_r1_count = 0;
+	//int ex_ret;
+	//for (int j = 0; j < forward_best_chain_r1.size(); j++) {
+	//	ex_ret = extend_chain(forward_best_chain_r1[j], current_record1->seq, current_record1->seq_len, forward_mrl_r1[fmrl_r1_count]);
+	//	vafprintf(1, stderr, "Extend ret: %d\n", ex_ret);
+	//	if (ex_ret == 0)	// only keep concordant ones
+	//		fmrl_r1_count++;
+	//	if (ex_ret != 5)
+	//		no_map_r1 = false;
+	//}
 
-	vafprintf(1, stderr, "Backward R1\n");
-	vector <MatchedRead> backward_mrl_r1(backward_best_chain_r1.size());
-	int bmrl_r1_count = 0;
-	for (int j = 0; j < backward_best_chain_r1.size(); j++) {
-		ex_ret = extend_chain(backward_best_chain_r1[j], current_record1->rcseq, current_record1->seq_len, backward_mrl_r1[bmrl_r1_count]); 
-		if (ex_ret == 0)
-			bmrl_r1_count++;
-		if (ex_ret != 5)
-			no_map_r1 = false;
-	}
+	//vafprintf(1, stderr, "Backward R1\n");
+	//vector <MatchedRead> backward_mrl_r1(backward_best_chain_r1.size());
+	//int bmrl_r1_count = 0;
+	//for (int j = 0; j < backward_best_chain_r1.size(); j++) {
+	//	ex_ret = extend_chain(backward_best_chain_r1[j], current_record1->rcseq, current_record1->seq_len, backward_mrl_r1[bmrl_r1_count]); 
+	//	if (ex_ret == 0)
+	//		bmrl_r1_count++;
+	//	if (ex_ret != 5)
+	//		no_map_r1 = false;
+	//}
 
 	// R2
 	vafprintf(1, stderr, "R2/%s", current_record2->rname);
@@ -359,56 +421,91 @@ int FilterRead::process_read_chain (Record* current_record1, Record* current_rec
 	//		vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
 	//	}
 
-	vafprintf(1, stderr, "Forward R2\n");
-	vector <MatchedRead> forward_mrl_r2(forward_best_chain_r2.size());
-	int fmrl_r2_count = 0;
-	for (int j = 0; j < forward_best_chain_r2.size(); j++) {
-		ex_ret = extend_chain(forward_best_chain_r2[j], current_record2->seq, current_record2->seq_len, forward_mrl_r2[fmrl_r2_count]);
-		if (ex_ret == 0)
-			fmrl_r2_count++;
-		if (ex_ret != 5)
-			no_map_r2 = false;
-	}
+	//vafprintf(1, stderr, "Forward R2\n");
+	//vector <MatchedRead> forward_mrl_r2(forward_best_chain_r2.size());
+	//int fmrl_r2_count = 0;
+	//for (int j = 0; j < forward_best_chain_r2.size(); j++) {
+	//	ex_ret = extend_chain(forward_best_chain_r2[j], current_record2->seq, current_record2->seq_len, forward_mrl_r2[fmrl_r2_count]);
+	//	if (ex_ret == 0)
+	//		fmrl_r2_count++;
+	//	if (ex_ret != 5)
+	//		no_map_r2 = false;
+	//}
 
-	vafprintf(1, stderr, "Backward R2\n");
-	vector <MatchedRead> backward_mrl_r2(backward_best_chain_r2.size());
-	int bmrl_r2_count = 0;
-	for (int j = 0; j < backward_best_chain_r2.size(); j++) {
-		ex_ret = extend_chain(backward_best_chain_r2[j], current_record2->rcseq, current_record2->seq_len, backward_mrl_r2[bmrl_r2_count]); 
-		if (ex_ret == 0)
-			bmrl_r2_count++;
-		if (ex_ret != 5)
-			no_map_r2 = false;
-	}
+	//vafprintf(1, stderr, "Backward R2\n");
+	//vector <MatchedRead> backward_mrl_r2(backward_best_chain_r2.size());
+	//int bmrl_r2_count = 0;
+	//for (int j = 0; j < backward_best_chain_r2.size(); j++) {
+	//	ex_ret = extend_chain(backward_best_chain_r2[j], current_record2->rcseq, current_record2->seq_len, backward_mrl_r2[bmrl_r2_count]); 
+	//	if (ex_ret == 0)
+	//		bmrl_r2_count++;
+	//	if (ex_ret != 5)
+	//		no_map_r2 = false;
+	//}
 
 	// Orphan / OEA
-	if (no_map_r1 and no_map_r2)
-		return 5;
-	if (no_map_r1 or no_map_r2)
-		return 4;
+	//if (no_map_r1 and no_map_r2)
+	//	return 5;
+	//if (no_map_r1 or no_map_r2)
+	//	return 4;
 
+	if (forward_best_chain_r1.size() + backward_best_chain_r1.size() + forward_best_chain_r2.size() + backward_best_chain_r2.size() <= 0)
+		return 2;
+	if ((forward_best_chain_r1.size() + backward_best_chain_r1.size() <= 0) or (forward_best_chain_r2.size() + backward_best_chain_r2.size() <= 0))
+		return 6;
 
 	// checking read concordancy
 	// any concordancy evidence/explanation ?
-	MatchedRead mr1, mr2;
-	for (int i = 0; i < fmrl_r1_count; i++) {
-		for (int j = 0; j < bmrl_r2_count; j++) {
-			mr1 = forward_mrl_r1[i];
-			mr2 = backward_mrl_r2[j];
-			if (strcmp(mr1.chr, mr2.chr) == 0 and mr1.start_pos <= mr2.start_pos and mr2.end_pos <= mr1.start_pos + GENETHRESH)
-				return 0;
-		}
-	}
-	for (int i = 0; i < fmrl_r2_count; i++) {
-		for (int j = 0; j < bmrl_r1_count; j++) {
-			mr1 = forward_mrl_r2[i];
-			mr2 = backward_mrl_r1[j];
-			if (strcmp(mr1.chr, mr2.chr) == 0 and mr1.start_pos <= mr2.start_pos and mr2.end_pos <= mr1.start_pos + GENETHRESH)
-				return 0;
-		}
-	}
+	float fc_score_r1 = forward_best_chain_r1[0].score;
+	float bc_score_r1 = backward_best_chain_r1[0].score;
+	float fc_score_r2 = forward_best_chain_r2[0].score;
+	float bc_score_r2 = backward_best_chain_r2[0].score;
+	int attempt1, attempt2;
+	if (fc_score_r1 + bc_score_r2 >= fc_score_r2 + bc_score_r1) {
+		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
+		attempt1 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2);
+		if (attempt1 == 0)
+			return 0;
 
-	return 3;
+		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
+		attempt2 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1);
+		if (attempt2 == 0)
+			return 0;
+		return (attempt1 < attempt2) ? attempt1 : attempt2;
+	}
+	else {
+		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
+		attempt1 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1);
+		if (attempt1 == 0)
+			return 0;
+
+		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
+		attempt2 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2);
+		if (attempt2 == 0)
+			return 0;
+		return (attempt1 < attempt2) ? attempt1 : attempt2;
+	}
+	
+	//
+	//MatchedRead mr1, mr2;
+	//for (int i = 0; i < fmrl_r1_count; i++) {
+	//	for (int j = 0; j < bmrl_r2_count; j++) {
+	//		mr1 = forward_mrl_r1[i];
+	//		mr2 = backward_mrl_r2[j];
+	//		if (strcmp(mr1.chr, mr2.chr) == 0 and mr1.start_pos <= mr2.start_pos and mr2.end_pos <= mr1.start_pos + GENETHRESH)
+	//			return 0;
+	//	}
+	//}
+	//for (int i = 0; i < fmrl_r2_count; i++) {
+	//	for (int j = 0; j < bmrl_r1_count; j++) {
+	//		mr1 = forward_mrl_r2[i];
+	//		mr2 = backward_mrl_r1[j];
+	//		if (strcmp(mr1.chr, mr2.chr) == 0 and mr1.start_pos <= mr2.start_pos and mr2.end_pos <= mr1.start_pos + GENETHRESH)
+	//			return 0;
+	//	}
+	//}
+
+	//return 3;
 }
 
 // write reads SE mode
