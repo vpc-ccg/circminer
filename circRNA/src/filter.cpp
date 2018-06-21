@@ -289,8 +289,8 @@ bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const Matched
 int process_mates(const vector <chain_t>& forward_chain, const Record* record1, const vector <chain_t>& backward_chain, const Record* record2) {
 	int fc_size = forward_chain.size();
 	int bc_size = backward_chain.size();
-	if (fc_size == 0 or bc_size == 0)
-		return 5;
+	//if (fc_size == 0 or bc_size == 0)
+	//	return 5;
 
 	int max_len = (fc_size >= bc_size) ? fc_size : bc_size;
 
@@ -299,12 +299,15 @@ int process_mates(const vector <chain_t>& forward_chain, const Record* record1, 
 
 	int ex_ret;
 	int fmrl_count = 0;
-	bool no_map1 = true;
 	int bmrl_count = 0;
+	bool no_map1 = true;
 	bool no_map2 = true;
+	int min_ret1 = 5;
+	int min_ret2 = 5;
 	for (int i = 0; i < max_len; i++) {
 		if (i < fc_size) {
 			ex_ret = extend_chain(forward_chain[i], record1->seq, record1->seq_len, forward_mrl[fmrl_count]); 
+			if (ex_ret < min_ret1)	min_ret1 = ex_ret;
 			if (ex_ret == 0) {
 				if (are_concordant(backward_mrl, bmrl_count, forward_mrl[fmrl_count])) {
 					vafprintf(1, stderr, "----Concordant\n");
@@ -318,6 +321,7 @@ int process_mates(const vector <chain_t>& forward_chain, const Record* record1, 
 
 		if (i < bc_size) {
 			ex_ret = extend_chain(backward_chain[i], record2->rcseq, record2->seq_len, backward_mrl[bmrl_count]); 
+			if (ex_ret < min_ret2)	min_ret2 = ex_ret;
 			if (ex_ret == 0) {
 				if (are_concordant(forward_mrl, fmrl_count, backward_mrl[bmrl_count])) {
 					vafprintf(1, stderr, "----Concordant\n");
@@ -330,7 +334,12 @@ int process_mates(const vector <chain_t>& forward_chain, const Record* record1, 
 		}
 	}
 
-	return (no_map1 and no_map2) ? 5 : (no_map1 or no_map2) ? 4 : 3;
+	vafprintf(2, stderr, "R1 mappablilty: %d\nR2 mappablity: %d\n", min_ret1, min_ret2);
+	
+	return 	((min_ret1 == 5) and (min_ret2 == 5)) ? 5 
+			: (((min_ret1 == 5) and (min_ret2 == 0)) or ((min_ret1 == 0) and (min_ret2 == 5))) ? 4 
+			: 3;
+	//return (no_map1 and no_map2) ? 5 : (no_map1 or no_map2) ? 4 : 3;
 }
 
 int FilterRead::process_read_chain (Record* current_record1, Record* current_record2, int kmer_size) {
@@ -460,6 +469,7 @@ int FilterRead::process_read_chain (Record* current_record1, Record* current_rec
 	float bc_score_r1 = backward_best_chain_r1[0].score;
 	float fc_score_r2 = forward_best_chain_r2[0].score;
 	float bc_score_r2 = backward_best_chain_r2[0].score;
+	vafprintf(2, stderr, "Scores: fc1=%f, bc1=%f, fc2=%f, bc2=%f\n", fc_score_r1, bc_score_r1, fc_score_r2, bc_score_r2);
 	int attempt1, attempt2;
 	if (fc_score_r1 + bc_score_r2 >= fc_score_r2 + bc_score_r1) {
 		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
