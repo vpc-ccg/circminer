@@ -1821,6 +1821,113 @@ void prune_frag(const ExactMatchRes& large_list,
 // return:
 // # valid kmers
 // is valid if: #fragments > 0 and < FRAGLIM
+int kmer_match_skip(const char* rseq, int rseq_len, int kmer_size, int shift, int skip, vector<ExactMatchRes>& exact_match_res) {
+	bwtint_t sp, ep;
+	int i, occ;
+	int sum = 0;
+	int dir;
+	uint32_t match_len = kmer_size;
+	int32_t end_pos;
+
+	//char* chr_name;
+	//uint32_t chr_beg;
+	//uint32_t chr_end;
+	//int32_t chr_len;
+
+	int em_count = 0;
+	int invalid_kmer = 0;
+	for (i = shift; i < rseq_len; i += skip) {
+		if (rseq_len - i < kmer_size)
+			match_len = rseq_len - i;
+		if (match_len < MINKMER) 
+			break;
+
+		occ = get_exact_locs(rseq + i, match_len, &sp, &ep);
+		
+		if (occ <= 0) {
+			occ = 0;
+			invalid_kmer++;
+		}
+
+		if (occ > FRAGLIM)
+			invalid_kmer++;
+		vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
+
+		exact_match_res[em_count].sp = sp;
+		exact_match_res[em_count].ep = ep;
+		exact_match_res[em_count].q_ind = i;
+		exact_match_res[em_count].matched_len = match_len;
+		exact_match_res[em_count].occ = occ;
+
+		em_count++;		
+	}
+
+	return em_count;
+}
+
+void swap(fragment_t& a, fragment_t& b, fragment_t& temp) {
+	temp = a;
+	a = b;
+	b = temp;
+}
+
+// fragment lists will be sorted by qpos
+void fill_fragments(vector<ExactMatchRes>& exact_match_res, int em_count, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count) {
+	bwtint_t j, rpos;
+	int dir;
+	int32_t end_pos;
+
+	forward_fragment_count = 0;
+	backward_fragment_count = 0;
+
+	for (int k = 0; k < em_count; k++) {
+		//vafprintf(2, stderr, "---Occ: %d\tind: %d\n", exact_match_res[k].occ, exact_match_res[k].q_ind);
+		if (exact_match_res[k].occ == 0 or exact_match_res[k].occ > FRAGLIM)
+			continue;
+		for (j = exact_match_res[k].sp; j <= exact_match_res[k].ep; j++) {
+			rpos = get_pos(&j, exact_match_res[k].matched_len, dir);
+			
+			// do not add a fragment that is comming from two different refrences (concat point is inside it)
+			//if (! bwt_uniq_ref(rpos, rpos + exact_match_res[k].matched_len - 1))
+			//	continue;
+
+			if (dir == 1) {
+				forward_fragments[forward_fragment_count].qpos = exact_match_res[k].q_ind;
+				forward_fragments[forward_fragment_count].rpos = rpos;
+				forward_fragments[forward_fragment_count].len = exact_match_res[k].matched_len;
+				forward_fragment_count++;
+			}
+			else {
+				end_pos = exact_match_res[k].q_ind + exact_match_res[k].matched_len - 1;
+				backward_fragments[backward_fragment_count].qpos = -1 * end_pos;
+				backward_fragments[backward_fragment_count].rpos = rpos;
+				backward_fragments[backward_fragment_count].len = exact_match_res[k].matched_len;
+				backward_fragment_count++;
+			}
+		}
+	}
+	
+	fragment_t temp;
+	for (int i = 0; i < backward_fragment_count / 2; i++) {
+		swap(backward_fragments[i], backward_fragments[backward_fragment_count - i - 1], temp);
+	}
+}
+
+// fragment results will be sorted
+int split_match(const char* rseq, int rseq_len, int kmer_size, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count) {
+	vector<ExactMatchRes> exact_match_res(2.0 * rseq_len / kmer_size); 
+	int valid_nonov_kmer = kmer_match_skip(rseq, rseq_len, kmer_size, 0, kmer_size, exact_match_res);
+	if (valid_nonov_kmer < 2)
+		valid_nonov_kmer = kmer_match_skip(rseq, rseq_len, kmer_size, 0, ceil(kmer_size/2.0), exact_match_res);
+	
+	fill_fragments(exact_match_res, valid_nonov_kmer, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+	return valid_nonov_kmer;
+
+}
+
+// return:
+// # valid kmers
+// is valid if: #fragments > 0 and < FRAGLIM
 int chop_read_match(const char* rseq, int rseq_len, int kmer_size, int shift, bool recursive, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count) {
 	bwtint_t sp, ep, j, rpos;
 	int i, occ;
@@ -1857,22 +1964,6 @@ int chop_read_match(const char* rseq, int rseq_len, int kmer_size, int shift, bo
 			invalid_kmer++;
 		vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
 
-		//for (j = sp; j <= ep; j++) {
-		//	rpos = get_pos(&j, match_len, dir);
-		//	if (dir == 1) {
-		//		forward_fragments[forward_fragment_count].qpos = i;
-		//		forward_fragments[forward_fragment_count].rpos = rpos;
-		//		forward_fragments[forward_fragment_count].len = match_len;
-		//		forward_fragment_count++;
-		//	}
-		//	else {
-		//		end_pos = i + match_len - 1;
-		//		backward_fragments[backward_fragment_count].qpos = -1 * end_pos;
-		//		backward_fragments[backward_fragment_count].rpos = rpos;
-		//		backward_fragments[backward_fragment_count].len = match_len;
-		//		backward_fragment_count++;
-		//	}
-		//}
 		exact_match_res[em_count].sp = sp;
 		exact_match_res[em_count].ep = ep;
 		exact_match_res[em_count].q_ind = i;

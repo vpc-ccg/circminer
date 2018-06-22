@@ -169,7 +169,9 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t
 	vector <fragment_t> forward_fragments(FRAGLIM * kmer_count);
 	vector <fragment_t> backward_fragments(FRAGLIM * kmer_count);
 
-	chop_read_match(read_seq, seq_len, kmer_size, 0, true, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+	split_match(read_seq, seq_len, kmer_size, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+	//chop_read_match(read_seq, seq_len, kmer_size, 0, true, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+	
 	//vafprintf(2, stderr, "Forward#: %d\n", forward_fragment_count);
 	//for (int i = 0; i < forward_fragment_count; i++)
 	//	vafprintf(2, stderr, "rpos: %lu, qpos: %d, len: %lu", forward_fragments[i].rpos, forward_fragments[i].qpos, forward_fragments[i].len);
@@ -219,13 +221,18 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 		get_reference_chunk(lm_pos, -1 * remain_beg, remain_str_beg);
 		vafprintf(1, stderr, "On Ref : %s\n", remain_str_beg);
 		vafprintf(1, stderr, "On Read: %s\n", seq);
-		//ed = alignment(remain_str_beg, remain_beg, seq, remain_beg, 1, 1);
-		loc_align align = local_alignment_reverse(remain_str_beg, remain_beg, seq, remain_beg, match_score, mm_pen, gap_pen);
 		
+		//ed = alignment(remain_str_beg, remain_beg, seq, remain_beg, 1, 1);
+		
+		loc_align align = local_alignment_reverse(remain_str_beg, remain_beg, seq, remain_beg, match_score, mm_pen, gap_pen);
 		lm_pos -= align.r_matched;
 		ed = alignment(remain_str_beg + remain_beg - align.r_matched, align.r_matched, seq + remain_beg - align.q_matched, align.q_matched, 1, 1);
 		vafprintf(1, stderr, "Score: %d, Edit dist: %d\n", align.score, ed);
 		if (remain_beg - align.q_matched > SOFTCLIPTH or ed > EDTH)
+		
+		//ed = hamming_distance(remain_str_beg, remain_beg, seq, remain_beg, SOFTCLIPTH, -1);
+		//vafprintf(1, stderr, "Hamming dist: %d\n", ed);
+		//if (ed > EDTH)
 			left_ok = false;
 	}
 
@@ -238,15 +245,17 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 		vafprintf(1, stderr, "On Ref : %s\n", remain_str_end);
 		vafprintf(1, stderr, "On Read: %s\n", seq + seq_len - remain_end);
 		//ed = alignment(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, 1, 1);
-		loc_align align = local_alignment(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, match_score, mm_pen, gap_pen);
 		
+		loc_align align = local_alignment(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, match_score, mm_pen, gap_pen);
 		rm_pos += align.r_matched;
-		//vafprintf(1, stderr, "On Ref : %s\n", remain_str_end + remain_end - align.r_matched);
-		//vafprintf(1, stderr, "On Read: %s\n", seq + seq_len - align.q_matched);
 		ed = alignment(remain_str_end, align.r_matched, seq + seq_len - remain_end, align.q_matched, 1, 1);
 		vafprintf(1, stderr, "Score: %d, Edit dist: %d\n", align.score, ed);
 		vafprintf(1, stderr, "Q matched: %d, R matched: %d\n", align.q_matched, align.r_matched);
 		if (remain_end - align.q_matched > SOFTCLIPTH or ed > EDTH)
+		
+		//ed = hamming_distance(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, SOFTCLIPTH, 1);
+		//vafprintf(1, stderr, "Hamming dist: %d\n", ed);
+		//if (ed > EDTH)
 			right_ok = false;
 	}
 

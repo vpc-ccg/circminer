@@ -106,7 +106,7 @@ void chain_seeds_n2_kbest(vector<fragment_t>& fragment_list, uint32_t fragment_c
 	vector <int> best_indices(max_best);
 	int best_count = 0;
 
-	sort(fragment_list.begin(), fragment_list.begin() + fragment_count, compare_frag);
+	//sort(fragment_list.begin(), fragment_list.begin() + fragment_count, compare_frag);
 
 	for (i = 0; i < fragment_count; i++) {
 		dp[i] = fragment_list[i].len;
