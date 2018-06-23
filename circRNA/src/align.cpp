@@ -19,6 +19,41 @@ inline T const& maximum(T const& a, T const& b, T const& c) {
 	return (a > b) ? ((a > c) ? (a) : (c)) : ((b > c) ? (b) : (c));
 }
 
+// dir > 0
+int hamming_distance_right(char* s, int n, char* t, int m, int max_sc) {
+	int mm_th = max_sc / 2;
+	int min_len = minM(n, m);
+	int mid_dist = 0;
+	int side_dist = 0;
+
+	int mid_range = min_len - max_sc;
+	for (int i = 0; i < mid_range; i++)
+		if (s[i] != t[i])
+			mid_dist++;
+	for (int i = mid_range; i < min_len; i++)
+		if (s[i] != t[i])
+			side_dist++;
+
+	return (side_dist > mm_th) ? (mid_dist) : (mid_dist + side_dist);
+}
+
+// dir < 0
+int hamming_distance_left(char* s, int n, char* t, int m, int max_sc) {
+	int mm_th = max_sc / 2;
+	int min_len = minM(n, m);
+	int mid_dist = 0;
+	int side_dist = 0;
+
+	for (int i = 0; i < max_sc; i++)
+		if (s[i] != t[i])
+			side_dist++;
+	for (int i = max_sc; i < min_len; i++)
+		if (s[i] != t[i])
+			mid_dist++;
+
+	return (side_dist > mm_th) ? (mid_dist) : (mid_dist + side_dist);
+}
+
 int hamming_distance(char* s, int n, char* t, int m, int max_sc, int dir) {
 	int mm_th = max_sc / 2;
 	int min_len = minM(n, m);

@@ -227,19 +227,20 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 	
 	char* remain_str_beg = (char*) malloc(remain_beg+5);
 	if (remain_beg > 0) {
-		get_reference_chunk(lm_pos, -1 * remain_beg, remain_str_beg);
-		vafprintf(1, stderr, "On Ref : %s\n", remain_str_beg);
-		vafprintf(1, stderr, "On Read: %s\n", seq);
+		get_reference_chunk_left(lm_pos, remain_beg, remain_str_beg);
+		//get_reference_chunk(lm_pos, -1 * remain_beg, remain_str_beg);
+		//vafprintf(1, stderr, "On Ref : %s\n", remain_str_beg);
+		//vafprintf(1, stderr, "On Read: %s\n", seq);
 		
 		//ed = alignment(remain_str_beg, remain_beg, seq, remain_beg, 1, 1);
 		
 		loc_align align = local_alignment_reverse(remain_str_beg, remain_beg, seq, remain_beg, match_score, mm_pen, gap_pen);
 		lm_pos -= align.r_matched;
 		ed = alignment(remain_str_beg + remain_beg - align.r_matched, align.r_matched, seq + remain_beg - align.q_matched, align.q_matched, 1, 1);
-		vafprintf(1, stderr, "Score: %d, Edit dist: %d\n", align.score, ed);
+		//vafprintf(1, stderr, "Score: %d, Edit dist: %d\n", align.score, ed);
 		if (remain_beg - align.q_matched > SOFTCLIPTH or ed > EDTH)
 		
-		//ed = hamming_distance(remain_str_beg, remain_beg, seq, remain_beg, SOFTCLIPTH, -1);
+		//ed = hamming_distance_left(remain_str_beg, remain_beg, seq, remain_beg, SOFTCLIPTH);
 		//vafprintf(1, stderr, "Hamming dist: %d\n", ed);
 		//if (ed > EDTH)
 			left_ok = false;
@@ -250,19 +251,20 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 
 	char* remain_str_end = (char*) malloc(remain_end+5);
 	if (remain_end > 0) {
-		get_reference_chunk(rm_pos, remain_end, remain_str_end);
-		vafprintf(1, stderr, "On Ref : %s\n", remain_str_end);
-		vafprintf(1, stderr, "On Read: %s\n", seq + seq_len - remain_end);
+		get_reference_chunk_right(rm_pos, remain_end, remain_str_end);
+		//get_reference_chunk(rm_pos, remain_end, remain_str_end);
+		//vafprintf(1, stderr, "On Ref : %s\n", remain_str_end);
+		//vafprintf(1, stderr, "On Read: %s\n", seq + seq_len - remain_end);
 		//ed = alignment(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, 1, 1);
 		
 		loc_align align = local_alignment(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, match_score, mm_pen, gap_pen);
 		rm_pos += align.r_matched;
 		ed = alignment(remain_str_end, align.r_matched, seq + seq_len - remain_end, align.q_matched, 1, 1);
-		vafprintf(1, stderr, "Score: %d, Edit dist: %d\n", align.score, ed);
-		vafprintf(1, stderr, "Q matched: %d, R matched: %d\n", align.q_matched, align.r_matched);
+		//vafprintf(1, stderr, "Score: %d, Edit dist: %d\n", align.score, ed);
+		//vafprintf(1, stderr, "Q matched: %d, R matched: %d\n", align.q_matched, align.r_matched);
 		if (remain_end - align.q_matched > SOFTCLIPTH or ed > EDTH)
 		
-		//ed = hamming_distance(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, SOFTCLIPTH, 1);
+		//ed = hamming_distance_right(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, SOFTCLIPTH);
 		//vafprintf(1, stderr, "Hamming dist: %d\n", ed);
 		//if (ed > EDTH)
 			right_ok = false;
@@ -281,8 +283,11 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 		mr.matched_len = rm_pos - lm_pos + 1;
 		mr.dir = (ch.frags[0].qpos >= 0) ? 1 : -1;
 	}
+	else if (left_ok or right_ok)
+		mr.type = 3;
+	else
+		mr.type = 5;
 
-	mr.type = (left_ok and right_ok) ? 0 : (left_ok or right_ok) ? 3 : 5;
 	return mr.type;
 }
 
@@ -318,46 +323,39 @@ int process_mates(const vector <chain_t>& forward_chain, const Record* record1, 
 	int ex_ret;
 	int fmrl_count = 0;
 	int bmrl_count = 0;
-	bool no_map1 = true;
-	bool no_map2 = true;
 	int min_ret1 = 5;
 	int min_ret2 = 5;
 	for (int i = 0; i < max_len; i++) {
 		if (i < fc_size) {
 			ex_ret = extend_chain(forward_chain[i], record1->seq, record1->seq_len, forward_mrl[fmrl_count]); 
-			if (ex_ret < min_ret1)	min_ret1 = ex_ret;
 			if (ex_ret == 0) {
 				if (are_concordant(backward_mrl, bmrl_count, forward_mrl[fmrl_count])) {
-					vafprintf(1, stderr, "----Concordant\n");
+					//vafprintf(1, stderr, "----Concordant\n");
 					return 0;
 				}
 				fmrl_count++;
 			}
-			if (ex_ret != 5)
-				no_map1 = false;
+			if (ex_ret < min_ret1)	min_ret1 = ex_ret;
 		}
 
 		if (i < bc_size) {
 			ex_ret = extend_chain(backward_chain[i], record2->rcseq, record2->seq_len, backward_mrl[bmrl_count]); 
-			if (ex_ret < min_ret2)	min_ret2 = ex_ret;
 			if (ex_ret == 0) {
 				if (are_concordant(forward_mrl, fmrl_count, backward_mrl[bmrl_count])) {
-					vafprintf(1, stderr, "----Concordant\n");
+					//vafprintf(1, stderr, "----Concordant\n");
 					return 0;
 				}
 				bmrl_count++;
 			}
-			if (ex_ret != 5)
-				no_map2 = false;
+			if (ex_ret < min_ret2)	min_ret2 = ex_ret;
 		}
 	}
 
-	vafprintf(2, stderr, "R1 mappablilty: %d\nR2 mappablity: %d\n", min_ret1, min_ret2);
+	//vafprintf(2, stderr, "R1 mappablilty: %d\nR2 mappablity: %d\n", min_ret1, min_ret2);
 	
 	return 	((min_ret1 == 5) and (min_ret2 == 5)) ? 5 
 			: (((min_ret1 == 5) and (min_ret2 == 0)) or ((min_ret1 == 0) and (min_ret2 == 5))) ? 4 
 			: 3;
-	//return (no_map1 and no_map2) ? 5 : (no_map1 or no_map2) ? 4 : 3;
 }
 
 int FilterRead::process_read_chain (Record* current_record1, Record* current_record2, int kmer_size) {
@@ -477,9 +475,9 @@ int FilterRead::process_read_chain (Record* current_record1, Record* current_rec
 	//	return 4;
 
 	if (forward_best_chain_r1.size() + backward_best_chain_r1.size() + forward_best_chain_r2.size() + backward_best_chain_r2.size() <= 0)
-		return 2;
+		return 5;
 	if ((forward_best_chain_r1.size() + backward_best_chain_r1.size() <= 0) or (forward_best_chain_r2.size() + backward_best_chain_r2.size() <= 0))
-		return 6;
+		return 4;
 
 	// checking read concordancy
 	// any concordancy evidence/explanation ?
