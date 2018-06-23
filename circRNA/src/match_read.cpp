@@ -1821,7 +1821,7 @@ void prune_frag(const ExactMatchRes& large_list,
 // return:
 // # valid kmers
 // is valid if: #fragments > 0 and < FRAGLIM
-int kmer_match_skip(const char* rseq, int rseq_len, int kmer_size, int shift, int skip, vector<ExactMatchRes>& exact_match_res) {
+int kmer_match_skip(const char* rseq, int rseq_len, int kmer_size, int shift, int skip, vector<ExactMatchRes>& exact_match_res, int& em_count) {
 	bwtint_t sp, ep;
 	int i, occ;
 	int sum = 0;
@@ -1834,7 +1834,7 @@ int kmer_match_skip(const char* rseq, int rseq_len, int kmer_size, int shift, in
 	//uint32_t chr_end;
 	//int32_t chr_len;
 
-	int em_count = 0;
+	em_count = 0;
 	int invalid_kmer = 0;
 	for (i = shift; i < rseq_len; i += skip) {
 		if (rseq_len - i < kmer_size)
@@ -1844,14 +1844,15 @@ int kmer_match_skip(const char* rseq, int rseq_len, int kmer_size, int shift, in
 
 		occ = get_exact_locs(rseq + i, match_len, &sp, &ep);
 		
+		vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
 		if (occ <= 0) {
 			occ = 0;
 			invalid_kmer++;
 		}
 
-		if (occ > FRAGLIM)
+		if (occ > FRAGLIM ) {
 			invalid_kmer++;
-		vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
+		}
 
 		exact_match_res[em_count].sp = sp;
 		exact_match_res[em_count].ep = ep;
@@ -1862,13 +1863,80 @@ int kmer_match_skip(const char* rseq, int rseq_len, int kmer_size, int shift, in
 		em_count++;		
 	}
 
-	return em_count;
+	return em_count - invalid_kmer;
 }
 
 void swap(fragment_t& a, fragment_t& b, fragment_t& temp) {
 	temp = a;
 	a = b;
 	b = temp;
+}
+
+void split_frags_by_strand(const ExactMatchRes& em_res, MatchedKmer* forward, MatchedKmer* backward) {
+	bwtint_t j, rpos;
+	int dir;
+	int32_t end_pos;
+
+	int forward_count = 0;
+	int backward_count = 0;
+
+	//vafprintf(2, stderr, "---Occ: %d\tind: %d\n", em_res.occ, em_res.q_ind);
+	if (em_res.occ == 0 or em_res.occ > FRAGLIM) {
+		return;
+	}
+
+	for (j = em_res.sp; j <= em_res.ep; j++) {
+		rpos = get_pos(&j, em_res.matched_len, dir);
+		
+		// do not add a fragment that is comming from two different refrences (concat point is inside it)
+		//if (! bwt_uniq_ref(rpos, rpos + exact_match_res[k].matched_len - 1))
+		//	continue;
+
+		if (dir == 1) {
+			forward->frags[forward->frag_count].qpos = em_res.q_ind;
+			forward->frags[forward->frag_count].rpos = rpos;
+			forward->frags[forward->frag_count].len = em_res.matched_len;
+			forward->frag_count++;
+		}
+		else {
+			end_pos = em_res.q_ind + em_res.matched_len - 1;
+			backward->frags[backward->frag_count].qpos = -1 * end_pos;
+			backward->frags[backward->frag_count].rpos = rpos;
+			backward->frags[backward->frag_count].len = em_res.matched_len;
+			backward->frag_count++;
+		}
+	}
+}
+
+// fragment lists will be sorted by qpos
+void fill_fragments_ll(	vector<ExactMatchRes>& exact_match_res_nonov, int em_count_nonov, 
+						vector<ExactMatchRes>& exact_match_res_ov, int em_count_ov,
+						FragmentList& forward_fragments,  
+						FragmentList& backward_fragments) {
+
+	//forward_fragment_count = 0;
+	//backward_fragment_count = 0;
+
+	for (int k = 0; k < em_count_nonov; k++) {
+		//vafprintf(2, stderr, "+++Occ: %d\tind: %d\n", exact_match_res_nonov[k].occ, exact_match_res_nonov[k].q_ind);
+		if (exact_match_res_nonov[k].occ > 0 and exact_match_res_nonov[k].occ <= FRAGLIM) {
+			MatchedKmer* forward = new MatchedKmer();
+			MatchedKmer* backward = new MatchedKmer();
+			split_frags_by_strand(exact_match_res_nonov[k], forward, backward);
+			forward_fragments.add_back(forward);
+			backward_fragments.add_front(backward);
+		}
+
+		if (k < em_count_ov and exact_match_res_ov[k].occ > 0 and exact_match_res_ov[k].occ <= FRAGLIM) {
+			MatchedKmer* forward_ov = new MatchedKmer();
+			MatchedKmer* backward_ov = new MatchedKmer();
+			split_frags_by_strand(exact_match_res_ov[k], forward_ov, backward_ov);
+			forward_fragments.add_back(forward_ov);
+			backward_fragments.add_front(backward_ov);
+		}
+	}
+	forward_fragments.print();
+	backward_fragments.print();
 }
 
 // fragment lists will be sorted by qpos
@@ -1916,12 +1984,33 @@ void fill_fragments(vector<ExactMatchRes>& exact_match_res, int em_count, vector
 // fragment results will be sorted
 int split_match(const char* rseq, int rseq_len, int kmer_size, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count) {
 	vector<ExactMatchRes> exact_match_res(2.0 * rseq_len / kmer_size); 
-	int valid_nonov_kmer = kmer_match_skip(rseq, rseq_len, kmer_size, 0, kmer_size, exact_match_res);
+	int em_count;
+	int valid_nonov_kmer = kmer_match_skip(rseq, rseq_len, kmer_size, 0, kmer_size, exact_match_res, em_count);
 	if (valid_nonov_kmer < 2)
-		valid_nonov_kmer = kmer_match_skip(rseq, rseq_len, kmer_size, 0, ceil(kmer_size/2.0), exact_match_res);
+		valid_nonov_kmer = kmer_match_skip(rseq, rseq_len, kmer_size, 0, ceil(kmer_size/2.0), exact_match_res, em_count);
 	
 	fill_fragments(exact_match_res, valid_nonov_kmer, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
 	return valid_nonov_kmer;
+
+}
+
+// fragment results will be sorted
+int split_match_ll(const char* rseq, int rseq_len, int kmer_size, FragmentList& forward_fragments, FragmentList&  backward_fragments) {
+	vector<ExactMatchRes> exact_match_res_nonov(2.0 * rseq_len / kmer_size); 
+	vector<ExactMatchRes> exact_match_res_ov(2.0 * rseq_len / kmer_size); 
+	int valid_nonov_kmer;
+	int valid_ov_kmer = 0;
+	int nonov_em_count;
+	int ov_em_count;
+
+	valid_nonov_kmer = kmer_match_skip(rseq, rseq_len, kmer_size, 0, kmer_size, exact_match_res_nonov, nonov_em_count);
+	if (valid_nonov_kmer < 2)
+		valid_ov_kmer = kmer_match_skip(rseq, rseq_len, kmer_size, kmer_size / 2, kmer_size, exact_match_res_ov, ov_em_count);
+	
+	vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
+	if (valid_nonov_kmer + valid_ov_kmer > 0)
+		fill_fragments_ll(exact_match_res_nonov, nonov_em_count, exact_match_res_ov, ov_em_count, forward_fragments, backward_fragments);
+	return valid_nonov_kmer + valid_ov_kmer;
 
 }
 

@@ -5,6 +5,7 @@
 #define GENETHRESH 500000
 #define FLGENETH 2000000
 #define MINKMER 15
+#define FRAGLIM 1000
 
 #include <vector>
 #include <stdint.h>

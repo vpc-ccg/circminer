@@ -15,6 +15,7 @@
 #include "bwt.h"
 #include "fastq_parser.h"
 #include "common.h"
+#include "fragment_list.h"
 
 using namespace std;
 
@@ -22,7 +23,6 @@ using namespace std;
 #define RANGELIM 1000
 #define REGIONSIZELIM 1000
 #define MRLSIZELIM 20
-#define FRAGLIM 1000
 #define MAXMISSKMER 1
 
 typedef struct {
@@ -83,6 +83,8 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_s
 
 int chop_read_match(const char* rseq, int rseq_len, int kmer_size, int shift, bool recursive, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count);
 int split_match(const char* rseq, int rseq_len, int kmer_size, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count);
+int split_match_ll(const char* rseq, int rseq_len, int kmer_size, FragmentList& forward_fragments, FragmentList&  backward_fragments);
+
 void get_reference_chunk(uint32_t pos, int len, char* res_str);
 void get_reference_chunk2(uint32_t pos, int len, char* res_str);
 

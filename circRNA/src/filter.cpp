@@ -1,11 +1,12 @@
 #include <vector>
 #include <cstdlib>
+#include <cmath>
 
 #include "filter.h"
 #include "align.h"
 #include "common.h"
 #include "gene_annotation.h"
-#include <cmath>
+#include "fragment_list.h"
 
 #define BESTCHAINLIM 30
 #define EDTH 3
@@ -166,10 +167,15 @@ void get_best_chain(char* read_seq, int seq_len, int kmer_size, chain_t& forward
 void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t>& forward_best_chain, vector<chain_t>& backward_best_chain) {
 	int kmer_count = ceil(seq_len / kmer_size);
 	int forward_fragment_count, backward_fragment_count;
-	vector <fragment_t> forward_fragments(FRAGLIM * kmer_count);
-	vector <fragment_t> backward_fragments(FRAGLIM * kmer_count);
 
-	split_match(read_seq, seq_len, kmer_size, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+	FragmentList forward_frag_ll;
+	FragmentList backward_frag_ll;
+	split_match_ll(read_seq, seq_len, kmer_size, forward_frag_ll, backward_frag_ll);
+	
+	//vector <fragment_t> forward_fragments(FRAGLIM * kmer_count);
+	//vector <fragment_t> backward_fragments(FRAGLIM * kmer_count);
+	//split_match(read_seq, seq_len, kmer_size, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
+	
 	//chop_read_match(read_seq, seq_len, kmer_size, 0, true, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
 	
 	//vafprintf(2, stderr, "Forward#: %d\n", forward_fragment_count);
@@ -181,8 +187,11 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t
 	//	vafprintf(2, stderr, "rpos: %lu, qpos: %d, len: %lu", backward_fragments[i].rpos, backward_fragments[i].qpos, backward_fragments[i].len);
 	//vafprintf(2, stderr, "\n");
 
-	chain_seeds_n2_kbest(forward_fragments, forward_fragment_count, forward_best_chain);
-	chain_seeds_n2_kbest(backward_fragments, backward_fragment_count, backward_best_chain);
+	chain_seeds_n2_kbest(forward_frag_ll, forward_best_chain);
+	chain_seeds_n2_kbest(backward_frag_ll, backward_best_chain);
+
+	//chain_seeds_n2_kbest(forward_fragments, forward_fragment_count, forward_best_chain);
+	//chain_seeds_n2_kbest(backward_fragments, backward_fragment_count, backward_best_chain);
 }
 
 // return:

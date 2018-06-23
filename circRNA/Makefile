@@ -23,6 +23,7 @@ MYOBJ        = $(SRCDIR)/circRNA.o \
 			   $(SRCDIR)/chain.o \
 			   $(SRCDIR)/gene_annotation.o \
 			   $(SRCDIR)/align.o \
+			   $(SRCDIR)/fragment_list.o \
 			   $(SRCDIR)/common.o
 
 BWAOBJ       = $(BWADIR)/*.o
