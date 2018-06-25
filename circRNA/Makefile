@@ -11,7 +11,7 @@ INCS        := -I$(BWADIR)
 LIBS        := -lz
 #LIBS        := -lz -lm -lpthread
 CFLAGS      := -w -O3 
-CXXFLAGS    := -w -O3 $(INCS) -g
+CXXFLAGS    := -w -O3 $(INCS)
 LDFLAGS     := 
 
 MYOBJ        = $(SRCDIR)/circRNA.o \

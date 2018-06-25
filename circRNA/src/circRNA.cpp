@@ -7,6 +7,7 @@
 #include "fastq_parser.h"
 #include "filter.h"
 #include "gene_annotation.h"
+#include "align.h"
 
 char versionNumberMajor[10] = "0";
 char versionNumberMinor[10] = "1";
@@ -14,6 +15,7 @@ char versionNumberMinor[10] = "1";
 using namespace std;
 
 GTFParser gtf_parser;
+Alignment alignment;
 
 int main(int argc, char **argv) {
 	//if (argc < 4) {
@@ -46,6 +48,7 @@ int main(int argc, char **argv) {
 		fprintf(stdout, "Index file successfully loaded!\n");
 
 	gtf_parser.init(gtfFilename);
+	alignment.init();
 	if (! gtf_parser.load_gtf()) {
 		fprintf(stderr, "Error in reading GTF file.\n");
 		exit(1);

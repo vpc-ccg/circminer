@@ -7,6 +7,10 @@
 #define MINKMER 15
 #define FRAGLIM 1000
 
+#define BESTCHAINLIM 30
+#define EDTH 3
+#define SOFTCLIPTH 7
+
 #include <vector>
 #include <stdint.h>
 #include <cstdarg>

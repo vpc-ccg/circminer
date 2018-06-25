@@ -1,13 +1,13 @@
 #include <vector>
 #include <cstdio>
+#include <cstring>
+#include <string>
+#include <algorithm>
+
 #include "align.h"
+#include "common.h"
 
 using namespace std;
-
-#define maxM(A,B) (((A) > (B)) ? (A) : (B))
-#define minM(A,B) (((A) < (B)) ? (A) : (B))
-
-int dp[100][100];
 
 template <typename T>
 inline T const& minimum(T const& a, T const& b, T const& c) {
@@ -19,8 +19,79 @@ inline T const& maximum(T const& a, T const& b, T const& c) {
 	return (a > b) ? ((a > c) ? (a) : (c)) : ((b > c) ? (b) : (c));
 }
 
+Alignment::Alignment(void) {
+	init();
+}
+
+Alignment::~Alignment(void) {
+}
+
+void Alignment::init(void) {
+	string nucs = "ACGTacgt";
+	int nlen = nucs.length();
+	int i;
+
+	for (i = 0; i < ASCISIZE; i++)
+		fill(diff_ch[i], diff_ch[i] + ASCISIZE, 1);
+
+	for (i = 0; i < nlen; i++)
+		diff_ch[nucs[i]][nucs[i]] = 0;
+
+	int half_nlen = nlen / 2;
+	for (i = 0; i < half_nlen; i++) {
+		diff_ch[nucs[i]][nucs[i+half_nlen]] = 0;
+		diff_ch[nucs[i+half_nlen]][nucs[i]] = 0;
+	}
+}
+
 // dir > 0
-int hamming_distance_right(char* s, int n, char* t, int m, int max_sc) {
+bool Alignment::hamming_match_right(char* s, int n, char* t, int m) {
+	int mm_th = SOFTCLIPTH / 2;
+	int min_len = minM(n, m);
+	int mid_dist = 0;
+	int side_dist = 0;
+
+	int mid_range = min_len - SOFTCLIPTH;
+	for (int i = 0; i < mid_range; i++) {
+		mid_dist += diff_ch[s[i]][t[i]];
+		if (mid_dist > EDTH)
+			return false;
+	}
+		//if (s[i] != t[i])
+		//	mid_dist++;
+	for (int i = mid_range; i < min_len; i++)
+		side_dist += diff_ch[s[i]][t[i]];
+		//if (s[i] != t[i])
+		//	side_dist++;
+
+	return (side_dist > mm_th) ? true : ((mid_dist + side_dist) <= EDTH);
+}
+
+// dir < 0
+bool Alignment::hamming_match_left(char* s, int n, char* t, int m) {
+	int mm_th = SOFTCLIPTH / 2;
+	int min_len = minM(n, m);
+	int mid_dist = 0;
+	int side_dist = 0;
+
+	for (int i = SOFTCLIPTH; i < min_len; i++) {
+		mid_dist += diff_ch[s[i]][t[i]];
+		if (mid_dist > EDTH)
+			return false;
+	}
+		//if (s[i] != t[i])
+		//	mid_dist++;
+
+	for (int i = 0; i < SOFTCLIPTH; i++)
+		side_dist += diff_ch[s[i]][t[i]];
+		//if (s[i] != t[i])
+		//	side_dist++;
+
+	return (side_dist > mm_th) ? true : ((mid_dist + side_dist) <= EDTH);
+}
+
+// dir > 0
+int Alignment::hamming_distance_right(char* s, int n, char* t, int m, int max_sc) {
 	int mm_th = max_sc / 2;
 	int min_len = minM(n, m);
 	int mid_dist = 0;
@@ -28,33 +99,37 @@ int hamming_distance_right(char* s, int n, char* t, int m, int max_sc) {
 
 	int mid_range = min_len - max_sc;
 	for (int i = 0; i < mid_range; i++)
-		if (s[i] != t[i])
-			mid_dist++;
+		mid_dist += diff_ch[s[i]][t[i]];
+		//if (s[i] != t[i])
+		//	mid_dist++;
 	for (int i = mid_range; i < min_len; i++)
-		if (s[i] != t[i])
-			side_dist++;
+		side_dist += diff_ch[s[i]][t[i]];
+		//if (s[i] != t[i])
+		//	side_dist++;
 
 	return (side_dist > mm_th) ? (mid_dist) : (mid_dist + side_dist);
 }
 
 // dir < 0
-int hamming_distance_left(char* s, int n, char* t, int m, int max_sc) {
+int Alignment::hamming_distance_left(char* s, int n, char* t, int m, int max_sc) {
 	int mm_th = max_sc / 2;
 	int min_len = minM(n, m);
 	int mid_dist = 0;
 	int side_dist = 0;
 
 	for (int i = 0; i < max_sc; i++)
-		if (s[i] != t[i])
-			side_dist++;
+		side_dist += diff_ch[s[i]][t[i]];
+		//if (s[i] != t[i])
+		//	side_dist++;
 	for (int i = max_sc; i < min_len; i++)
-		if (s[i] != t[i])
-			mid_dist++;
+		mid_dist += diff_ch[s[i]][t[i]];
+		//if (s[i] != t[i])
+		//	mid_dist++;
 
 	return (side_dist > mm_th) ? (mid_dist) : (mid_dist + side_dist);
 }
 
-int hamming_distance(char* s, int n, char* t, int m, int max_sc, int dir) {
+int Alignment::hamming_distance(char* s, int n, char* t, int m, int max_sc, int dir) {
 	int mm_th = max_sc / 2;
 	int min_len = minM(n, m);
 	int dist = 0;
@@ -80,7 +155,7 @@ int hamming_distance(char* s, int n, char* t, int m, int max_sc, int dir) {
 	return (side_dist > mm_th) ? (dist - side_dist) : (dist);
 }
 
-int alignment(char* s, int n, char* t, int m, int gap_pen, int mm_pen) {
+int Alignment::alignment(char* s, int n, char* t, int m, int gap_pen, int mm_pen) {
 	//vector <vector <int> > dp(n+1);
 	//for (int i = 0; i <= n; i++)
 	//	dp[i].resize(m+1);
@@ -109,7 +184,7 @@ int alignment(char* s, int n, char* t, int m, int gap_pen, int mm_pen) {
 	return dp[n][m];
 }
 
-loc_align local_alignment(char* ref, int n, char* query, int m, int match_score, int gap_pen, int mm_pen) {
+loc_align Alignment::local_alignment(char* ref, int n, char* query, int m, int match_score, int gap_pen, int mm_pen) {
 	//vector <vector <int> > dp(n+1);
 	//for (int i = 0; i <= n; i++)
 	//	dp[i].resize(m+1);
@@ -148,7 +223,7 @@ loc_align local_alignment(char* ref, int n, char* query, int m, int match_score,
 	return max_score;
 }
 
-loc_align local_alignment_reverse(char* ref, int n, char* query, int m, int match_score, int gap_pen, int mm_pen) {
+loc_align Alignment::local_alignment_reverse(char* ref, int n, char* query, int m, int match_score, int gap_pen, int mm_pen) {
 	//vector <vector <int> > dp(n+1);
 	//for (int i = 0; i <= n; i++)
 	//	dp[i].resize(m+1);

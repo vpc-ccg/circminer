@@ -2249,7 +2249,7 @@ void get_reference_chunk_left(uint32_t pos, int len, char* res_str) {
 		uint32_t prev_end = gtf_parser.get_end(chr, seg_ind - 1);
 		uint32_t prev_integrated_pos = pos - covered_len - (seg_start - prev_end);
 		char* remain_str = (char*) malloc(len+5);
-		get_reference_chunk(prev_integrated_pos, -1 * remain_len, remain_str);
+		get_reference_chunk_left(prev_integrated_pos, remain_len, remain_str);
 		//fprintf(stderr, "Remain beg: %s\n", remain_str);
 		strncat(remain_str, res_str, covered_len);
 		strcpy(res_str, remain_str);
@@ -2298,7 +2298,7 @@ void get_reference_chunk_right(uint32_t pos, int len, char* res_str) {
 		uint32_t next_start = gtf_parser.get_start(chr, seg_ind + 1);
 		uint32_t next_integrated_pos = pos + covered_len + (next_start - seg_end);
 		char* remain_str = (char*) malloc(len+5);
-		get_reference_chunk(next_integrated_pos, remain_len, remain_str);
+		get_reference_chunk_right(next_integrated_pos, remain_len, remain_str);
 		//fprintf(stderr, "Remain end: %s\n", remain_str);
 		strncat(res_str, remain_str, remain_len);
 		//fprintf(stderr, "Res end: %s\n", res_str);
