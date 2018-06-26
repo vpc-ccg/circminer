@@ -46,6 +46,8 @@ public:
 	void add_back(fragment_t* frags, uint32_t frag_count);
 	void add_back(MatchedKmer* new_mk);
 
+	void sort_lists(void);
+
 	void print(void);
 };
 

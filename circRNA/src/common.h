@@ -17,10 +17,14 @@
 #include <cstdio>
 #include <cstdlib>
 
-typedef struct {
+typedef struct fragment_t{
 	uint32_t rpos;
 	int32_t qpos;
 	uint32_t len;
+
+	bool operator < (const fragment_t& other) const {
+		return rpos < other.rpos;
+	}
 } fragment_t;
 
 typedef struct {

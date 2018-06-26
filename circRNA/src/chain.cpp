@@ -11,11 +11,11 @@ inline double score_beta(int distr, int distt, int frag_len) {
 	int maxd = distr < distt ? distt : distr;
 	int mind = distr < distt ? distr : distt;
 
-	return 0.15 * (maxd - mind) + 0 * mind;
+	return 0.15 * (maxd - mind);
 }
 
 inline double score_alpha(int distr, int distl, int frag_len) {
-	return 7 * frag_len;
+	return 7.0 * frag_len;
 }
 
 bool compare_frag(fragment_t a, fragment_t b) {
@@ -202,11 +202,13 @@ void chain_seeds_n2_kbest(FragmentList& fragment_list, vector <chain_t>& best_ch
 			jj = ii-1;
 			for (pre = t->prev; pre != NULL; pre = pre->prev) {
 				for (j = pre->frag_count-1; j >= 0; j--) {
-					distr = t->frags[i].qpos - (pre->frags[j].qpos + pre->frags[j].len - 1);
+					distr = t->frags[i].qpos - pre->frags[j].qpos;								// also consider overlapping
+					//distr = t->frags[i].qpos - (pre->frags[j].qpos + pre->frags[j].len - 1);	// for non-overlapping
 					if (distr <= 0)
 						continue;
 
-					distt = t->frags[i].rpos - (pre->frags[j].rpos + pre->frags[j].len - 1);
+					distt = t->frags[i].rpos - pre->frags[j].rpos;								// also consider overlapping
+					//distt = t->frags[i].rpos - (pre->frags[j].rpos + pre->frags[j].len - 1);	// for non-overlapping
 					if (distt <= 0 or distt > GENETHRESH)	// should be in gene size range
 						continue;
 
@@ -222,6 +224,137 @@ void chain_seeds_n2_kbest(FragmentList& fragment_list, vector <chain_t>& best_ch
 				jj--;
 			}
 
+			if (dp[ii][i].score > best_score) {
+				//fprintf(stderr, "Best score updated to %f\ti = %d\n", dp[i], i);
+				best_score = dp[ii][i].score;
+				best_count = 1;
+				best_indices[0].prev_list = ii;
+				best_indices[0].prev_ind = i;
+			}
+			else if (dp[ii][i].score == best_score and best_count < max_best) {
+				best_indices[best_count].prev_list = ii;
+				best_indices[best_count].prev_ind = i;
+				best_count++;
+			}
+		}
+		ii++;
+	}
+
+	// back-tracking
+	deque<chain_cell> chain_index;
+	chain_cell best_index;	
+	best_chain.resize(best_count);
+	int tmp_list_ind;
+	for (int j = 0; j < best_count; j++) {
+		chain_index.clear();
+		best_index = best_indices[j];
+		while (best_index.prev_list != -1) {
+			chain_index.push_front(best_index);
+			tmp_list_ind = best_index.prev_list;
+			best_index.prev_list = dp[best_index.prev_list][best_index.prev_ind].prev_list;
+			best_index.prev_ind = dp[tmp_list_ind][best_index.prev_ind].prev_ind;
+		}
+
+		best_chain[j].score = best_score;
+		best_chain[j].chain_len = chain_index.size();
+
+		for (i = 0; i < chain_index.size(); i++) {
+			best_chain[j].frags[i] = frag_tmp[chain_index[i].prev_list]->frags[chain_index[i].prev_ind];
+		}
+	}
+}
+
+// Assumption: target is not less than list[0]
+// input interval: [, )
+// return: i if target in [i-1, i)
+// => 
+// closest Greater than: returned index
+// closest Less than or Equal: returned index - 1
+int frag_binary_search(const fragment_t* list, int beg, int end, uint32_t target) {
+	if (end - beg <= 1)
+		return end;
+	//fprintf(stderr, "In Binary Search: (%d, %d) looking for %lu\n", beg, end, target);
+	int mid = (beg + end) / 2;
+	if (target < list[mid].rpos)
+		return frag_binary_search(list, beg, mid, target);
+	else 
+		return frag_binary_search(list, mid, end, target);
+}
+
+// Assumption: fragment list sorted by rpos
+//
+// f(i) = max{max_{j<i}{f(i) + a(i, j) - b(i, j)}, w_i}
+// a(i, j) = min{min{y_i - y_j, x_i - x_j}, w_i}
+// b(i, j) = inf     y_j >= y_i || max{y_i - y_j, x_i - x_j} > maxDist
+// b(i, j) = gap_cost
+void chain_seeds_sorted_kbest(FragmentList& fragment_list, vector <chain_t>& best_chain) {
+	int i, j;
+
+	int distr, distt;
+	double a_score, b_score;
+	chain_cell dp[fragment_list.get_size()][fragment_list.get_max_frag_size() + 1];
+
+	double best_score = -1;
+	int max_best = best_chain.size();
+	vector <chain_cell> best_indices(max_best);
+	int best_count = 0;
+	double temp_score;
+
+	MatchedKmer* t;
+	MatchedKmer* pre;
+	MatchedKmer* frag_tmp[fragment_list.get_size()];
+	int ii = 0;
+	int jj = 0;
+	int max_rpos_lim;
+	for (t = fragment_list.get_head(); t != NULL; t = t->next) {
+		frag_tmp[ii] = t;
+		for (i = 0; i < t->frag_count; i++) {
+			dp[ii][i].score = t->frags[i].len;
+			//fprintf(stderr, "Frag Len: %zu\n", fragment_list[i].len);
+			//fprintf(stderr, "Frag Len: %f\n", dp[i]);
+			dp[ii][i].prev_list = -1;
+			dp[ii][i].prev_ind = -1;
+		}
+
+		jj = ii;
+		for (pre = t->prev; pre != NULL; pre = pre->prev) {
+			jj--;
+			if (pre->frag_count <= 0)  
+				continue;
+
+			for (i = 0; i < t->frag_count; i++) {
+				if ((t->frags[i].rpos - 1) < pre->frags[0].rpos)
+					continue;
+
+				max_rpos_lim = t->frags[i].rpos - GENETHRESH;
+				//j = frag_binary_search(pre->frags, 0, pre->frag_count, t->frags[i].rpos - GENETHRESH - 1);
+				j = frag_binary_search(pre->frags, 0, pre->frag_count, t->frags[i].rpos - 1) - 1;
+				//fprintf(stderr, "found index on flist[%d]: %d\n", jj, j);
+				while ((j >= 0) and (pre->frags[j].rpos >= max_rpos_lim)) {
+					//fprintf(stderr, "working on t[%d], pre[%d]\n", i, j);
+					distr = t->frags[i].qpos - pre->frags[j].qpos;
+					//if (distr <= 0)
+					//	continue;
+
+					distt = t->frags[i].rpos - pre->frags[j].rpos;
+					//if (distt <= 0 or distt > GENETHRESH)	// should be in gene size range
+					//	continue;
+
+					//a_score = score_alpha(distr, distt, t->frags[i].len);
+					//b_score = score_beta (distr, distt, t->frags[i].len);
+
+					temp_score = dp[jj][j].score + score_alpha(distr, distt, t->frags[i].len) - score_beta(distr, distt, t->frags[i].len);
+					if (temp_score > dp[ii][i].score) {
+						dp[ii][i].score = temp_score;
+						dp[ii][i].prev_list = jj;
+						dp[ii][i].prev_ind = j;
+					}
+					j--;
+				}
+			}
+		}
+
+		for (i = 0; i < t->frag_count; i++) {
 			if (dp[ii][i].score > best_score) {
 				//fprintf(stderr, "Best score updated to %f\ti = %d\n", dp[i], i);
 				best_score = dp[ii][i].score;

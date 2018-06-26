@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "fragment_list.h"
 
 FragmentList::FragmentList(void) {
@@ -70,6 +72,13 @@ void FragmentList::add_back(MatchedKmer* new_mk) {
 		tail->next = new_mk;
 	tail = new_mk;
 	size++;
+}
+
+void FragmentList::sort_lists(void) {
+	MatchedKmer* it;
+	for (it = head; it != NULL; it = it->next) {
+		std::sort(it->frags, it->frags + it->frag_count);
+	}
 }
 
 void FragmentList::print() {

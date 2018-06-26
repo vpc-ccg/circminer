@@ -184,8 +184,18 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t
 	//	vafprintf(2, stderr, "rpos: %lu, qpos: %d, len: %lu", backward_fragments[i].rpos, backward_fragments[i].qpos, backward_fragments[i].len);
 	//vafprintf(2, stderr, "\n");
 
-	chain_seeds_n2_kbest(forward_frag_ll, forward_best_chain);
-	chain_seeds_n2_kbest(backward_frag_ll, backward_best_chain);
+	//vafprintf(2, stderr, "Forward sorting & chaining\n");
+	forward_frag_ll.sort_lists();
+	//forward_frag_ll.print();
+	chain_seeds_sorted_kbest(forward_frag_ll, forward_best_chain);
+
+	//vafprintf(2, stderr, "Backward sorting & chaining\n");
+	backward_frag_ll.sort_lists();
+	//backward_frag_ll.print();
+	chain_seeds_sorted_kbest(backward_frag_ll, backward_best_chain);
+
+	//chain_seeds_n2_kbest(forward_frag_ll, forward_best_chain);
+	//chain_seeds_n2_kbest(backward_frag_ll, backward_best_chain);
 
 	//chain_seeds_n2_kbest(forward_fragments, forward_fragment_count, forward_best_chain);
 	//chain_seeds_n2_kbest(backward_fragments, backward_fragment_count, backward_best_chain);
