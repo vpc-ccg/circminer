@@ -1923,6 +1923,8 @@ void fill_fragments_ll(	vector<ExactMatchRes>& exact_match_res_nonov, int em_cou
 			MatchedKmer* forward = new MatchedKmer();
 			MatchedKmer* backward = new MatchedKmer();
 			split_frags_by_strand(exact_match_res_nonov[k], forward, backward);
+			if (forward->frags[0].rpos > 6000000000)
+				fprintf(stdout, ".");
 			forward_fragments.add_back(forward);
 			backward_fragments.add_front(backward);
 		}
@@ -1931,6 +1933,8 @@ void fill_fragments_ll(	vector<ExactMatchRes>& exact_match_res_nonov, int em_cou
 			MatchedKmer* forward_ov = new MatchedKmer();
 			MatchedKmer* backward_ov = new MatchedKmer();
 			split_frags_by_strand(exact_match_res_ov[k], forward_ov, backward_ov);
+			if (forward_ov->frags[0].rpos > 6000000000)
+				fprintf(stdout, ".");
 			forward_fragments.add_back(forward_ov);
 			backward_fragments.add_front(backward_ov);
 		}
@@ -1981,6 +1985,20 @@ void fill_fragments(vector<ExactMatchRes>& exact_match_res, int em_count, vector
 	}
 }
 
+void get_rpos_list(vector<ExactMatchRes>& exact_match_res, int em_count) {
+	bwtint_t j, rpos;
+	int dir;
+
+	for (int k = 0; k < em_count; k++) {
+		//vafprintf(2, stderr, "---Occ: %d\tind: %d\n", exact_match_res[k].occ, exact_match_res[k].q_ind);
+		if (exact_match_res[k].occ == 0 or exact_match_res[k].occ > FRAGLIM)
+			continue;
+		for (j = exact_match_res[k].sp; j <= exact_match_res[k].ep; j++) {
+			rpos = get_pos(&j, exact_match_res[k].matched_len, dir);
+		}
+	}
+}
+
 // fragment results will be sorted
 int split_match(const char* rseq, int rseq_len, int kmer_size, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count) {
 	vector<ExactMatchRes> exact_match_res(2.0 * rseq_len / kmer_size); 
@@ -1998,7 +2016,7 @@ int split_match(const char* rseq, int rseq_len, int kmer_size, vector<fragment_t
 int split_match_ll(const char* rseq, int rseq_len, int kmer_size, FragmentList& forward_fragments, FragmentList&  backward_fragments) {
 	vector<ExactMatchRes> exact_match_res_nonov(2.0 * rseq_len / kmer_size); 
 	vector<ExactMatchRes> exact_match_res_ov(2.0 * rseq_len / kmer_size); 
-	int valid_nonov_kmer;
+	int valid_nonov_kmer = 0;
 	int valid_ov_kmer = 0;
 	int nonov_em_count;
 	int ov_em_count;
@@ -2008,6 +2026,13 @@ int split_match_ll(const char* rseq, int rseq_len, int kmer_size, FragmentList& 
 		valid_ov_kmer = kmer_match_skip(rseq, rseq_len, kmer_size, kmer_size / 2, kmer_size, exact_match_res_ov, ov_em_count);
 	
 	vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
+
+	//<> temporary
+	//get_rpos_list(exact_match_res_nonov, nonov_em_count);
+	//if (valid_ov_kmer > 0)
+	//	get_rpos_list(exact_match_res_ov, ov_em_count);
+	//<\> temporary
+	
 	if (valid_nonov_kmer + valid_ov_kmer > 0)
 		fill_fragments_ll(exact_match_res_nonov, nonov_em_count, exact_match_res_ov, ov_em_count, forward_fragments, backward_fragments);
 	return valid_nonov_kmer + valid_ov_kmer;

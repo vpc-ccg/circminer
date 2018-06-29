@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 
 #include "common.h"
 #include "commandline_parser.h"
@@ -17,12 +18,17 @@ using namespace std;
 GTFParser gtf_parser;
 Alignment alignment;
 
+bwtint_t* sapos2gpos_arr;
+
 int main(int argc, char **argv) {
 	//if (argc < 4) {
 	//	fprintf(stderr, "Usage: %s <FASTA> <FASTQ> <OUT> [--pe]\n", argv[0]);
 	//	return 1;
 	//}
 	
+	sapos2gpos_arr = (bwtint_t*) malloc(sizeof(bwtint_t) * 6200000000);
+	memset(sapos2gpos_arr, -1, sizeof(bwtint_t) * 6200000000);
+
 	int exit_c = parse_command( argc, argv );
 	if (exit_c == 1)
 		return 0;
@@ -70,6 +76,10 @@ int main(int argc, char **argv) {
 	fprintf(stdout, "Started reading FASTQ file...\n");
 	int line = 0;
 
+	time_t pre_time, curr_time;
+	double diff_time;
+	time(&pre_time);
+
 	while ( fq_parser1.has_next() ) { // go line by line on fastq file
 		current_record1 = fq_parser1.get_next();
 		if (is_pe)
@@ -78,8 +88,12 @@ int main(int argc, char **argv) {
 			break;
 
 		line++;
-		if (line % 100000 == 0)
-			fprintf(stdout, "[P] %d lines\n", line);
+		if (line % 100000 == 0) {
+			time(&curr_time);
+			diff_time = difftime(curr_time, pre_time);
+			pre_time = curr_time;
+			fprintf(stdout, "[P] %d reads in %.2f sec\n", line, diff_time);
+		}
 
 		//fprintf(stderr, "Seq: %s, len: %d\n", current_record1->seq, current_record1->seq_len);
 		//fprintf(stderr, "RC Seq: %s, len: %d\n", current_record->rcseq, current_record->seq_len);

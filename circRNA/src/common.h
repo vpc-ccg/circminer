@@ -2,7 +2,7 @@
 #define __COMMON_H__
 
 #define FILE_NAME_LENGTH 1000
-#define GENETHRESH 500000
+#define GENETHRESH 5000
 #define FLGENETH 2000000
 #define MINKMER 15
 #define FRAGLIM 1000

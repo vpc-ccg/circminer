@@ -11,8 +11,12 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #define _get_pac(pac, l) ((pac)[(l)>>2]>>((~(l)&3)<<1)&3)
+
+std::map<bwtint_t, bwtint_t> sapos2gpos;
+extern bwtint_t* sapos2gpos_arr;
 
 unsigned char WINDOW_SIZE = 14;
 
@@ -69,9 +73,26 @@ int get_expanded_locs(const char *str, int len, bwtint_t *sa_begin, bwtint_t *sa
 
 bwtint_t get_pos(const bwtint_t* p, const int& match_len, int& dir) {
 	bwtint_t sapos;
+	//std::map<bwtint_t, bwtint_t>::iterator it;
+	//it = sapos2gpos.find(*p);
+
+	//if (it != sapos2gpos.end())
+	//	sapos =  sapos2gpos[*p];
+	//else
+	//{
+    //	sapos2gpos[*p] = sapos = bwt_sa(_fmd_index->bwt, *p);
+	//}
+	if (sapos2gpos_arr[*p] != -1)
+		sapos =  sapos2gpos_arr[*p];
+	else
+	{
+    	sapos2gpos_arr[*p] = sapos = bwt_sa(_fmd_index->bwt, *p);
+	}
+
+
     
 	// locate
-    sapos = bwt_sa(_fmd_index->bwt, *p);
+//    sapos = bwt_sa(_fmd_index->bwt, *p);
     if (sapos >= _fmd_index->bns->l_pac) // reverse strand
     {
 		dir = -1;
@@ -97,7 +118,7 @@ bwtint_t get_pos(const bwtint_t* p, const int& match_len, int& dir) {
         //	fprintf(stderr, "%c", "ACGTN"[_get_pac(_fmd_index->pac, k)]);
         //fprintf(stderr, "\n");
     }
-
+	
 	return sapos;
 }
 

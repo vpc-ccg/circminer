@@ -168,6 +168,8 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t
 	FragmentList forward_frag_ll;
 	FragmentList backward_frag_ll;
 	split_match_ll(read_seq, seq_len, kmer_size, forward_frag_ll, backward_frag_ll);
+
+	//return;
 	
 	//vector <fragment_t> forward_fragments(FRAGLIM * kmer_count);
 	//vector <fragment_t> backward_fragments(FRAGLIM * kmer_count);
@@ -204,7 +206,7 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t
 // return:
 // 0 is successfully extended
 // 3 if not successful from at least one direction
-// 5 if orphan (chain length = 0)
+// 5 if orphan (chain length = 1)
 int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 	mr.is_concord = false;
 	if (ch.chain_len <= 0) {
@@ -231,6 +233,8 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 
 	uint32_t lm_pos = ch.frags[0].rpos;
 	int remain_beg = (ch.frags[0].qpos >= 0) ? (ch.frags[0].qpos) : (seq_len - 1 + ch.frags[0].qpos);	// based on forward or reverse strand mapping
+	
+	//left_ok = (remain_beg <= 0);
 	
 	char* remain_str_beg = (char*) malloc(remain_beg+5);
 	if (remain_beg > 0) {
@@ -260,6 +264,8 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
 	int remain_end = (ch.frags[0].qpos >= 0) ? (seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len)) : (1 - (ch.frags[ch.chain_len-1].len + ch.frags[ch.chain_len-1].qpos));
+
+	//right_ok = (remain_end <= 0);
 
 	char* remain_str_end = (char*) malloc(remain_end+5);
 	if (remain_end > 0) {
@@ -440,6 +446,7 @@ int FilterRead::process_read_chain (Record* current_record1, Record* current_rec
 	//		vafprintf(1, stderr, "Chr %s: %lu-%lu\n", chr_name, chr_beg, chr_end);
 	//	}
 
+	//return 0;
 	// Orphan / OEA
 	if (forward_best_chain_r1.size() + backward_best_chain_r1.size() + forward_best_chain_r2.size() + backward_best_chain_r2.size() <= 0)
 		return 5;
