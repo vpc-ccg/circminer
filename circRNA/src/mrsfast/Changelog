@@ -1,0 +1,82 @@
+2014-03-31  Faraz Hach  <fhach@sfu.ca>
+	* Added with-sse4 option to Makefile
+	* Bug reported by viktor in dc mode is fixed.
+
+2014-01-14  Faraz Hach  <fhach@sfu.ca>
+	* Bug related to calculation of q-grams with respect to last character
+	of referencce genome is fiexed..
+	* Code is ported to OS X Mavericks.
+	* Code is compatible with clang.
+	* Make file is modified to handle OS X help file generation.
+	* New GUI is released for use of mrsfast-ultra.
+
+2013-09-13  Faraz Hach  <fhach@cs.sfu.ca>
+	* Bug fixes.
+
+2013-07-23  Faraz Hach  <fhach@cs.sfu.ca>
+	* Patch sent by J.K Teer is applied on Reads.c for gzip PE input.
+
+2013-06-07  Faraz Hach  <fhach@cs.sfu.ca>
+	* Bug fixes.
+
+2013-01-16  Faraz Hach  <fhach@cs.sfu.ca>
+	* First Release of mrsfast-ultra BETA. 
+	* New High Performance mapper
+	* SNP-aware mapping mode.
+
+2012-11-14  Faraz Hach  <fhach@cs.sfu.ca>
+	* Bug fix with respect to quality end null characters.
+
+2012-08-18  Faraz Hach  <fhach@cs.sfu.ca>
+	* DIVET output format is fixed. 
+
+2012-06-13  Faraz Hach  <fhach@cs.sfu.ca>
+	* Phred offset is added.
+	* DISCORDANT_CUT_OFF is added.
+	* Bug related to MD is fixed.
+	* Bug related to CIGAR is fixed.
+	* Bug related to indexing is fixed.
+
+2010-05-03  Faraz Hach  <fhach@cs.sfu.ca>
+	* SAM field quality for fasta files is fixed.
+	* Window size issues are fixed.
+	* Path issues are fixed.
+	* Comments in fastq/fasta files are ignored.
+
+2010-02-08  Faraz Hach  <fhach@cs.sfu.ca>
+	* SAM field flag is fixed.
+	* Paths in discordant-vh mode is fixed.
+	* --min and --max parameters are now defining template length (the
+	distance between outer edges of the mapping).
+
+2009-12-08  Faraz Hach  <fhach@cs.sfu.ca>
+	* Cache oblivious algorithm is implemented (2x speed up)
+	* Bugs related to PE mode are fixed.
+	* Bisulfite support is dropped.
+	* VariationHunter mode is added.
+
+2009-09-11  Faraz Hach  <fhach@cs.sfu.ca>
+	* Bug related to reporting same location multiple times is fixed.
+
+2009-07-31  Faraz Hach  <fhach@cs.sfu.ca>
+	* Bug #2828635 is fixed.
+	* Bug #2828636 is fixed.
+	* Serveral Bugs in PE mode is fixed.
+	* SAM field TLEN is fixed.
+	* --crop is added to command line options.
+
+2009-06-17  Faraz Hach  <fhach@cs.sfu.ca>
+	* Performance Improvement.
+
+2009-06-04  Faraz Hach  <fhach@cs.sfu.ca> 
+	* SAM fields CIGAR and MD are implemented.
+	* Screen log output is modified.
+	* Same mate pair names without identifiers (/1,/2) in two files are supported.
+
+2009-06-01  Faraz Hach  <fhach@cs.sfu.ca>
+	* Command line options are simplified.
+	* Support for reading gzip files are added
+	* Support for outputing in gzip format is added.
+	* Support for SAM output is added.
+	* Multiple bug fixes related to memory leackage during indexing is fixed.
+	* Memory Usage is reported in the output.
