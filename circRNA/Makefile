@@ -1,4 +1,6 @@
-all: build
+all: OPTIMIZE_FLAGS build
+debug: DEBUG_FLAGS build
+profile: PROFILE_FLAGS build
 build: bwalib mrsfast circRNA cleanobj
 
 CC          ?= gcc
@@ -11,8 +13,8 @@ MRSDIR      := $(SRCDIR)/mrsfast
 INCS        := -I$(BWADIR)
 #LIBS        := -lz
 LIBS        := -lz -lm -lpthread
-CFLAGS      := -w -O3 
-CXXFLAGS    := -w -O3 $(INCS)
+CFLAGS      := -w 
+CXXFLAGS    := -w $(INCS)
 LDFLAGS     := 
 
 MYOBJ        = $(SRCDIR)/circRNA.o \
@@ -46,3 +48,13 @@ cleanobj:
 clean:
 	@rm -f $(MYOBJ) $(BWAOBJ) $(MRSOBJ)
 
+OPTIMIZE_FLAGS:
+	$(eval CFLAGS = $(CFLAGS) -O3)
+	$(eval CXXFLAGS = $(CXXFLAGS) -O3)
+
+DEBUG_FLAGS:
+	$(eval CFLAGS = $(CFLAGS) -g)
+	$(eval CXXFLAGS = $(CXXFLAGS) -g)
+
+PROFILE_FLAGS:
+	$(eval LIBS = $(LIBS) -lprofiler)
