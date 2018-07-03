@@ -44,6 +44,8 @@ public:
 	int process_read (Record* current_record);
 	int process_read (Record* current_record1, Record* current_record2, int kmer_size);
 	int process_read_chain (Record* current_record1, Record* current_record2, int kmer_size);
+	int process_read_chain_hash (Record* current_record1, Record* current_record2, int kmer_size);
+	int process_read_chain_hash (Record* current_record1, Record* current_record2, int kmer_size, FragmentList& fl, FragmentList& bl);
 
 	void write_read (Record* current_record, int is_chimeric);
 	void write_read (Record* current_record1, Record* current_record2, int is_chimeric);

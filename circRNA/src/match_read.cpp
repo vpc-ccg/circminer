@@ -1,6 +1,16 @@
 #include <cmath>
+#include <cassert>
 #include "match_read.h"
 #include "gene_annotation.h"
+
+extern "C" {
+#include "mrsfast/Common.h"
+//#include "mrsfast/CommandLineParser.h"
+//#include "mrsfast/Reads.h"
+//#include "mrsfast/Output.h"
+#include "mrsfast/HashTable.h"
+//#include "mrsfast/MrsFAST.h"
+}
 
 char keep_log1[500];
 char keep_log2[500];
@@ -1818,6 +1828,210 @@ void prune_frag(const ExactMatchRes& large_list,
 	}
 }
 
+int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, MatchedKmer* mk) {
+	vafprintf(2, stderr, "Seq: %s\tHash Val: %d\nWindow Size:%d\n",seq, hashVal(seq), WINDOW_SIZE);
+	GeneralIndex *it = getCandidates(hashVal(seq));
+	uint32_t i, j;
+
+	mk->frag_count = 0;
+	if (it == NULL) {
+		return 0;
+	}
+
+	char* checksum_beg = seq + WINDOW_SIZE;
+	uint32_t lb = 1;
+	uint32_t ub = it[0].info;
+	uint32_t mid;
+	uint16_t target = checkSumVal(checksum_beg);
+	uint32_t LB = 0;
+	uint32_t UB = 0;
+
+	//fprintf(stderr, "E1\n");
+
+	while (lb < ub) {
+		mid = (lb + ub) / 2;
+		if (target <= it[mid].checksum)
+			ub = mid;
+		else
+			lb = mid + 1;
+	}
+	
+	if (ub < lb || target != it[lb].checksum)
+		return 0;
+	UB = LB = lb;
+
+	lb = LB;
+	ub = it[0].info;
+	while (lb < ub) {
+		mid = (lb + ub + 1) / 2;
+		if (target < it[mid].checksum)
+			ub = mid - 1;
+		else
+			lb = mid;
+	}
+
+	if (target == it[lb].checksum)
+		UB = lb;
+	
+	//if (LB > 1)
+	//	fprintf(stderr, "<<%d\t", it[LB-1].checksum);
+	//fprintf(stderr, "%d\t", it[LB].checksum);
+	//fprintf(stderr, "%d\t", it[UB].checksum);
+	//if (UB < it[0].info)
+	//	fprintf(stderr, "%d>>\n", it[UB+1].checksum);
+	//else
+	//	fprintf(stderr, "\n");
+
+
+	//fprintf(stderr, "Size: %d\n", UB-LB+1);
+
+	if (UB-LB+1 > FRAGLIM) {
+		mk->frag_count = 0;
+		return 0;
+	}
+
+	mk->frag_count = UB - LB + 1;
+	
+	for (i = LB; i <= UB; i++) {
+		mk->frags[i-LB].rpos = it[i].info;
+		vafprintf(2, stderr, "loc: %lu\tchecksum %d\n", it[i].info, it[i].checksum);
+		mk->frags[i-LB].qpos = qpos;
+		mk->frags[i-LB].len = len;
+	}
+
+	vafprintf(2, stderr, "Occ: %lu\n", UB - LB + 1);
+
+	return UB - LB + 1;
+}
+
+int get_exact_locs_hash1(char* seq, int32_t qpos, uint32_t len, MatchedKmer* mk) {
+	vafprintf(2, stderr, "Seq: %s\tHash Val: %d\nWindow Size:%d\n",seq, hashVal(seq), WINDOW_SIZE);
+	GeneralIndex *it = getCandidates(hashVal(seq));
+	uint32_t i, j;
+
+	mk->frag_count = 0;
+	if (it == NULL) {
+		return 0;
+	}
+
+	char* checksum_beg = seq + WINDOW_SIZE;
+	for (i = 1; i <= it[0].info; i++) {
+		if (checkSumVal(checksum_beg) == it[i].checksum) {
+			for (j = i; j <= it[0].info; j++) { 
+				if (j - i + 1 > FRAGLIM) {
+					mk->frag_count = 0;
+					return 0;
+				}
+				if (checkSumVal(checksum_beg) != it[j].checksum)
+					break;
+				mk->frags[j-i].rpos = it[j].info;
+				vafprintf(2, stderr, "loc: %lu\tchecksum %d\n", it[j].info, it[j].checksum);
+				mk->frags[j-i].qpos = qpos;
+				mk->frags[j-i].len = len;
+			}
+			mk->frag_count = j - i;
+			vafprintf(2, stderr, "Occ: %lu\n", j - i);
+			return j - i;
+		}
+	}
+	return 0;
+}
+
+void move_on_ll(MatchedKmer*& mk, int steps) {
+	while (steps--) {
+		assert(mk != NULL);
+		mk = mk->next;
+	}
+}
+
+// return:
+// # valid kmers
+// is valid if: #fragments > 0 and < FRAGLIM
+int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int skip, int ll_step, MatchedKmer* mk_res, int& em_count) {
+	bwtint_t sp, ep;
+	int i, occ;
+	int sum = 0;
+	int dir;
+	uint32_t match_len = kmer_size;
+	int32_t end_pos;
+
+	//char* chr_name;
+	//uint32_t chr_beg;
+	//uint32_t chr_end;
+	//int32_t chr_len;
+
+	em_count = 0;
+	int invalid_kmer = 0;
+	for (i = shift; i < rseq_len; i += skip) {
+		if (rseq_len - i < kmer_size)
+			match_len = rseq_len - i;
+		if (match_len < MINKMER) 
+			break;
+
+		if (i != shift)
+			move_on_ll(mk_res, ll_step);
+		occ = get_exact_locs_hash(rseq + i, i, match_len, mk_res);
+		//occ = get_exact_locs_hash1(rseq + i, i, match_len, mk_res[em_count]);
+		
+		vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
+		if (occ <= 0) {
+			occ = 0;
+			invalid_kmer++;
+		}
+
+		if (occ > FRAGLIM ) {
+			invalid_kmer++;
+		}
+
+		em_count++;	
+	}
+
+	return em_count - invalid_kmer;
+}
+
+// return:
+// # valid kmers
+// is valid if: #fragments > 0 and < FRAGLIM
+int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int skip, vector<MatchedKmer*>& mk_res, int& em_count) {
+	bwtint_t sp, ep;
+	int i, occ;
+	int sum = 0;
+	int dir;
+	uint32_t match_len = kmer_size;
+	int32_t end_pos;
+
+	//char* chr_name;
+	//uint32_t chr_beg;
+	//uint32_t chr_end;
+	//int32_t chr_len;
+
+	em_count = 0;
+	int invalid_kmer = 0;
+	for (i = shift; i < rseq_len; i += skip) {
+		if (rseq_len - i < kmer_size)
+			match_len = rseq_len - i;
+		if (match_len < MINKMER) 
+			break;
+
+		occ = get_exact_locs_hash(rseq + i, i, match_len, mk_res[em_count]);
+		//occ = get_exact_locs_hash1(rseq + i, i, match_len, mk_res[em_count]);
+		
+		vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
+		if (occ <= 0) {
+			occ = 0;
+			invalid_kmer++;
+		}
+
+		if (occ > FRAGLIM ) {
+			invalid_kmer++;
+		}
+
+		em_count++;	
+	}
+
+	return em_count - invalid_kmer;
+}
+
 // return:
 // # valid kmers
 // is valid if: #fragments > 0 and < FRAGLIM
@@ -1909,6 +2123,49 @@ void split_frags_by_strand(const ExactMatchRes& em_res, MatchedKmer* forward, Ma
 }
 
 // fragment lists will be sorted by qpos
+void fill_fragments_ll_hash(	
+						vector<ExactMatchHash>& exact_match_res_nonov, int em_count_nonov, 
+						vector<ExactMatchHash>& exact_match_res_ov, int em_count_ov,
+						FragmentList& forward_fragments) { 
+
+	//forward_fragment_count = 0;
+	//backward_fragment_count = 0;
+
+	for (int k = 0; k < em_count_nonov; k++) {
+		//vafprintf(2, stderr, "+++Occ: %d\tind: %d\n", exact_match_res_nonov[k].occ, exact_match_res_nonov[k].q_ind);
+		if (exact_match_res_nonov[k].occ > 0 and exact_match_res_nonov[k].occ <= FRAGLIM) {
+			MatchedKmer* forward = new MatchedKmer();
+			//split_frags_by_strand(exact_match_res_nonov[k], forward, backward);
+			
+			forward->frag_count = exact_match_res_nonov[k].occ;
+			for (int i = 0; i < exact_match_res_nonov[k].occ; i++) {
+				forward->frags[i].rpos = exact_match_res_nonov[k].locs[i];
+				forward->frags[i].qpos = exact_match_res_nonov[k].q_ind;
+				forward->frags[i].len = exact_match_res_nonov[k].matched_len;
+			}
+
+			forward_fragments.add_back(forward);
+		}
+
+		if (k < em_count_ov and exact_match_res_ov[k].occ > 0 and exact_match_res_ov[k].occ <= FRAGLIM) {
+			MatchedKmer* forward_ov = new MatchedKmer();
+			//split_frags_by_strand(exact_match_res_ov[k], forward_ov, backward_ov);
+			
+			forward_ov->frag_count = exact_match_res_ov[k].occ;
+			for (int i = 0; i < exact_match_res_ov[k].occ; i++) {
+				forward_ov->frags[i].rpos = exact_match_res_ov[k].locs[i];
+				forward_ov->frags[i].qpos = exact_match_res_ov[k].q_ind;
+				forward_ov->frags[i].len = exact_match_res_ov[k].matched_len;
+			}
+
+			forward_fragments.add_back(forward_ov);
+		}
+	}
+	//forward_fragments.print();
+	//backward_fragments.print();
+}
+
+// fragment lists will be sorted by qpos
 void fill_fragments_ll(	vector<ExactMatchRes>& exact_match_res_nonov, int em_count_nonov, 
 						vector<ExactMatchRes>& exact_match_res_ov, int em_count_ov,
 						FragmentList& forward_fragments,  
@@ -1923,8 +2180,6 @@ void fill_fragments_ll(	vector<ExactMatchRes>& exact_match_res_nonov, int em_cou
 			MatchedKmer* forward = new MatchedKmer();
 			MatchedKmer* backward = new MatchedKmer();
 			split_frags_by_strand(exact_match_res_nonov[k], forward, backward);
-			if (forward->frags[0].rpos > 6000000000)
-				fprintf(stdout, ".");
 			forward_fragments.add_back(forward);
 			backward_fragments.add_front(backward);
 		}
@@ -1933,8 +2188,6 @@ void fill_fragments_ll(	vector<ExactMatchRes>& exact_match_res_nonov, int em_cou
 			MatchedKmer* forward_ov = new MatchedKmer();
 			MatchedKmer* backward_ov = new MatchedKmer();
 			split_frags_by_strand(exact_match_res_ov[k], forward_ov, backward_ov);
-			if (forward_ov->frags[0].rpos > 6000000000)
-				fprintf(stdout, ".");
 			forward_fragments.add_back(forward_ov);
 			backward_fragments.add_front(backward_ov);
 		}
@@ -2035,6 +2288,37 @@ int split_match_ll(const char* rseq, int rseq_len, int kmer_size, FragmentList& 
 	
 	if (valid_nonov_kmer + valid_ov_kmer > 0)
 		fill_fragments_ll(exact_match_res_nonov, nonov_em_count, exact_match_res_ov, ov_em_count, forward_fragments, backward_fragments);
+	return valid_nonov_kmer + valid_ov_kmer;
+
+}
+
+// fragment results will be sorted
+int split_match_hash(char* rseq, int rseq_len, int kmer_size, MatchedKmer* starting_node) {
+	//vector<ExactMatchHash> exact_match_res_nonov(2.0 * rseq_len / kmer_size); 
+	//vector<ExactMatchHash> exact_match_res_ov(2.0 * rseq_len / kmer_size); 
+	int valid_nonov_kmer = 0;
+	int valid_ov_kmer = 0;
+	int nonov_em_count;
+	int ov_em_count;
+
+	//vector <MatchedKmer*> mk_res_nonov(4);
+	//for (int i = 0; i < 4; i++) {
+	//	MatchedKmer* tmp = new MatchedKmer();
+	//	mk_res_nonov[i] = tmp;
+	//}
+
+	valid_nonov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, 0, kmer_size, 2, starting_node, nonov_em_count);
+	//for (int i = 0; i < 4; i++) {
+	//	forward_fragments.add_back(mk_res_nonov[i]);
+	//}
+
+	//if (valid_nonov_kmer < 2)
+	//	valid_ov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, kmer_size / 2, kmer_size, exact_match_res_ov, ov_em_count);
+	
+	vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
+
+	//if (valid_nonov_kmer + valid_ov_kmer > 0)
+	//	fill_fragments_ll_hash(exact_match_res_nonov, nonov_em_count, exact_match_res_ov, ov_em_count, forward_fragments);
 	return valid_nonov_kmer + valid_ov_kmer;
 
 }
@@ -2248,8 +2532,12 @@ void get_reference_chunk_left(uint32_t pos, int len, char* res_str) {
 	
 	//char* res_str = (char*) malloc(len+5);
 
-	bwt_get_intv_info((bwtint_t) (pos - len), (bwtint_t) pos, &chr_name, &chr_len, &chr_beg, &chr_end);
-	string chr = chr_name;
+	//bwt_get_intv_info((bwtint_t) (pos - len), (bwtint_t) pos, &chr_name, &chr_len, &chr_beg, &chr_end);
+	//string chr = chr_name;
+	string chr = "1";
+	chr_beg = pos - len;
+	chr_end = pos;
+	chr_len = len;
 	if (chr == "")
 		return; 
 	//fprintf(stderr, "Chrom: %s, pos: %lu\n", chr.c_str(), chr_end+1);	
@@ -2295,8 +2583,13 @@ void get_reference_chunk_right(uint32_t pos, int len, char* res_str) {
 	
 	//char* res_str = (char*) malloc(len+5);
 
-	bwt_get_intv_info((bwtint_t) pos, (bwtint_t) (pos + len), &chr_name, &chr_len, &chr_beg, &chr_end);
-	string chr = chr_name;
+	//bwt_get_intv_info((bwtint_t) pos, (bwtint_t) (pos + len), &chr_name, &chr_len, &chr_beg, &chr_end);
+	//string chr = chr_name;
+	string chr = "1";
+	chr_beg = pos;
+	chr_end = pos + len;
+	chr_len = len;
+
 	if (chr == "")
 		return; 
 	//fprintf(stderr, "Chrom: %s, pos: %lu\n", chr.c_str(), chr_beg+2);

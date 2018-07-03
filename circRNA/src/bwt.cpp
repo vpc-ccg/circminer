@@ -15,10 +15,10 @@
 
 #define _get_pac(pac, l) ((pac)[(l)>>2]>>((~(l)&3)<<1)&3)
 
-std::map<bwtint_t, bwtint_t> sapos2gpos;
-extern bwtint_t* sapos2gpos_arr;
+//std::map<bwtint_t, bwtint_t> sapos2gpos;
+//extern bwtint_t* sapos2gpos_arr;
 
-unsigned char WINDOW_SIZE = 14;
+unsigned char MYWINDOW_SIZE = 14;
 
 bwaidx_t *_fmd_index;
 bwtCache_t *_fmd_cacheTable;
@@ -82,17 +82,17 @@ bwtint_t get_pos(const bwtint_t* p, const int& match_len, int& dir) {
 	//{
     //	sapos2gpos[*p] = sapos = bwt_sa(_fmd_index->bwt, *p);
 	//}
-	if (sapos2gpos_arr[*p] != -1)
-		sapos =  sapos2gpos_arr[*p];
-	else
-	{
-    	sapos2gpos_arr[*p] = sapos = bwt_sa(_fmd_index->bwt, *p);
-	}
+	//if (sapos2gpos_arr[*p] != -1)
+	//	sapos =  sapos2gpos_arr[*p];
+	//else
+	//{
+    //	sapos2gpos_arr[*p] = sapos = bwt_sa(_fmd_index->bwt, *p);
+	//}
 
 
     
 	// locate
-//    sapos = bwt_sa(_fmd_index->bwt, *p);
+    sapos = bwt_sa(_fmd_index->bwt, *p);
     if (sapos >= _fmd_index->bns->l_pac) // reverse strand
     {
 		dir = -1;
@@ -459,7 +459,7 @@ void getLocs_extend_whole_step(char *qSeq, uint32_t qLen, uint32_t hash_count, S
   
     for(i=0; i<hash_count; i++)
     {
-        m = WINDOW_SIZE;
+        m = MYWINDOW_SIZE;
         // occ = bwt_count_exact(_fmd_index->bwt, qSeq + seed_pos_int, m, &sp, &ep);
         // fprintf(stderr, "%.*s %llu %llu %llu\n", m, qSeq + seed_pos_int, occ, sp, ep);
         occ = bwt_count_exact_cached(_fmd_index->bwt, qSeq + seed_pos_int, m, &sp, &ep);
@@ -547,7 +547,7 @@ int bwt_count_exact_backward(const bwt_t *bwt, const char *str, int ePos, bwtint
         k = k_tmp;
         l = l_tmp;
     }
-    if(ePos - i < WINDOW_SIZE) return 0; // no match >= WINDOW_SIZE
+    if(ePos - i < MYWINDOW_SIZE) return 0; // no match >= MYWINDOW_SIZE
     *sa_begin = k;
     *sa_end = l;
     *sPos = i + 1;
@@ -575,7 +575,7 @@ void getLocs_extend_whole_step2(char *qSeq, uint32_t qLen, uint32_t hash_count, 
     uint32_t numForward = 0;
     uint32_t numReverse = 0;
   
-    while(ePos >= WINDOW_SIZE - 1)
+    while(ePos >= MYWINDOW_SIZE - 1)
     {
         occ = bwt_count_exact_backward(_fmd_index->bwt, qSeq, ePos, &k, &l, &sPos);
         m = ePos - sPos + 1;
@@ -684,7 +684,7 @@ void getLocs_extend_whole_step3(char *qSeq, uint32_t qLen, uint32_t hash_count, 
     for(i = 0; i < hash_count; i++)
     {
         // if there are some locations, the number of locations is less than MAX_NUM_HITS
-        if(allIntv[seed_pos_int].m >= WINDOW_SIZE && allIntv[seed_pos_int].k != -1 && allIntv[seed_pos_int].l != -1 &&
+        if(allIntv[seed_pos_int].m >= MYWINDOW_SIZE && allIntv[seed_pos_int].k != -1 && allIntv[seed_pos_int].l != -1 &&
             allIntv[seed_pos_int].l - allIntv[seed_pos_int].k + 1 < MAX_NUM_HITS &&
             (seed_pos_int + allIntv[seed_pos_int].m) > last_pos)
         {

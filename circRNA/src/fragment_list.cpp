@@ -9,6 +9,17 @@ FragmentList::FragmentList(void) {
 	max_frag_size = FRAGLIM;
 }
 
+FragmentList::FragmentList(int flen) {
+	head = NULL;
+	tail = NULL;
+	size = 0;
+	max_frag_size = FRAGLIM;
+	for (int i = 0; i < flen; i++) {
+		MatchedKmer* mk = new MatchedKmer();
+		add_back(mk);
+	}
+}
+
 FragmentList::~FragmentList(void) {
 	MatchedKmer* pre_head;
 	while (head != NULL) {

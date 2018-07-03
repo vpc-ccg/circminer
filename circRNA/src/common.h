@@ -5,7 +5,7 @@
 #define GENETHRESH 5000
 #define FLGENETH 2000000
 #define MINKMER 15
-#define FRAGLIM 1000
+#define FRAGLIM 5000
 
 #define BESTCHAINLIM 30
 #define EDTH 3

@@ -113,7 +113,7 @@ bool is_concord(const chain_t& a, int seq_len, int kmer) {
 	return (a.frags[a.chain_len-1].qpos - a.frags[0].qpos + kmer) >= seq_len;
 }
 
-bool is_concord(const chain_t& a, int seq_len, MatchedRead& mr) {
+bool is_concord_bwt(const chain_t& a, int seq_len, MatchedRead& mr) {
 	if (a.chain_len < 2) {
 		mr.is_concord = false;
 	}
@@ -141,6 +141,29 @@ bool is_concord(const chain_t& a, int seq_len, MatchedRead& mr) {
 	return mr.is_concord;
 }
 
+bool is_concord(const chain_t& a, int seq_len, MatchedRead& mr) {
+	if (a.chain_len < 2) {
+		mr.is_concord = false;
+	}
+	else if ((a.frags[a.chain_len-1].qpos + a.frags[a.chain_len-1].len - a.frags[0].qpos) >= seq_len) {
+		mr.is_concord = true;
+		mr.type = 0;
+		
+		//mr.chr = chr_name;
+		mr.chr = "1";
+		mr.start_pos = a.frags[0].rpos;
+		mr.end_pos = a.frags[a.chain_len-1].rpos + a.frags[a.chain_len-1].len - 1;
+		//int seg_ind = gtf_parser.search_loc(chr_name, true, chr_beg);
+		//gtf_parser.get_gene_id(chr, seg_ind, mr.gene_id);
+		mr.matched_len = a.frags[a.chain_len-1].qpos + a.frags[a.chain_len-1].len - a.frags[0].qpos;
+		//mr.dir = (a.frags[0].qpos >= 0) ? 1 : -1;
+	}
+	else {
+		mr.is_concord = false;
+	}
+	return mr.is_concord;
+}
+
 void get_best_chain(char* read_seq, int seq_len, int kmer_size, chain_t& forward_best_chain, chain_t& backward_best_chain) {
 	int kmer_count = ceil(seq_len / kmer_size);
 	int forward_fragment_count, backward_fragment_count;
@@ -149,7 +172,7 @@ void get_best_chain(char* read_seq, int seq_len, int kmer_size, chain_t& forward
 
 	chop_read_match(read_seq, seq_len, kmer_size, 0, true, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
 	//vafprintf(2, stderr, "Forward#: %d\n", forward_fragment_count);
-	//for (int i = 0; i < forward_fragment_count; i++)
+	//for (int i = 1; i < forward_fragment_count; i++)
 	//	vafprintf(2, stderr, "rpos: %lu, qpos: %d, len: %lu", forward_fragments[i].rpos, forward_fragments[i].qpos, forward_fragments[i].len);
 	//vafprintf(2, stderr, "\n");
 	//vafprintf(2, stderr, "Backward#: %d\n", backward_fragment_count);
@@ -161,16 +184,41 @@ void get_best_chain(char* read_seq, int seq_len, int kmer_size, chain_t& forward
 	chain_seeds_n2(backward_fragments, backward_fragment_count, backward_best_chain);
 }
 
+//void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t>& forward_best_chain, vector<chain_t>& backward_best_chain) {
+//void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t>& forward_best_chain, vector<chain_t>& backward_best_chain, FragmentList& forward_frag_ll) {
+void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t>& best_chain, FragmentList& frag_ll) {
+	int kmer_count = ceil(seq_len / kmer_size);
+	int forward_fragment_count, backward_fragment_count;
+
+	MatchedKmer* ll_head = frag_ll.get_head();
+	split_match_hash(read_seq, seq_len, kmer_size, ll_head);
+
+	//vafprintf(2, stderr, "Forward sorting & chaining\n");
+	//frag_ll.sort_lists();
+	//forward_frag_ll.print();
+	chain_seeds_sorted_kbest(frag_ll, best_chain);
+
+	//vafprintf(2, stderr, "Forward#: %d\n", forward_fragment_count);
+	//for (int i = 0; i < forward_fragment_count; i++)
+	//	vafprintf(2, stderr, "rpos: %lu, qpos: %d, len: %lu", forward_fragments[i].rpos, forward_fragments[i].qpos, forward_fragments[i].len);
+	//vafprintf(2, stderr, "\n");
+	//vafprintf(2, stderr, "Backward#: %d\n", backward_fragment_count);
+	//for (int i = 0; i < backward_fragment_count; i++)
+	//	vafprintf(2, stderr, "rpos: %lu, qpos: %d, len: %lu", backward_fragments[i].rpos, backward_fragments[i].qpos, backward_fragments[i].len);
+	//vafprintf(2, stderr, "\n");
+
+	//chain_seeds_n2_kbest(frag_ll, best_chain);
+}
+
 void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t>& forward_best_chain, vector<chain_t>& backward_best_chain) {
 	int kmer_count = ceil(seq_len / kmer_size);
 	int forward_fragment_count, backward_fragment_count;
 
 	FragmentList forward_frag_ll;
-	FragmentList backward_frag_ll;
-	split_match_ll(read_seq, seq_len, kmer_size, forward_frag_ll, backward_frag_ll);
+	//FragmentList backward_frag_ll;
+	//split_match_ll(read_seq, seq_len, kmer_size, forward_frag_ll, backward_frag_ll);
+	//split_match_hash(read_seq, seq_len, kmer_size, forward_frag_ll);
 
-	//return;
-	
 	//vector <fragment_t> forward_fragments(FRAGLIM * kmer_count);
 	//vector <fragment_t> backward_fragments(FRAGLIM * kmer_count);
 	//split_match(read_seq, seq_len, kmer_size, forward_fragments, forward_fragment_count, backward_fragments, backward_fragment_count);
@@ -187,14 +235,14 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t
 	//vafprintf(2, stderr, "\n");
 
 	//vafprintf(2, stderr, "Forward sorting & chaining\n");
-	forward_frag_ll.sort_lists();
+	//forward_frag_ll.sort_lists();
 	//forward_frag_ll.print();
 	chain_seeds_sorted_kbest(forward_frag_ll, forward_best_chain);
 
 	//vafprintf(2, stderr, "Backward sorting & chaining\n");
-	backward_frag_ll.sort_lists();
+	//backward_frag_ll.sort_lists();
 	//backward_frag_ll.print();
-	chain_seeds_sorted_kbest(backward_frag_ll, backward_best_chain);
+	//chain_seeds_sorted_kbest(backward_frag_ll, backward_best_chain);
 
 	//chain_seeds_n2_kbest(forward_frag_ll, forward_best_chain);
 	//chain_seeds_n2_kbest(backward_frag_ll, backward_best_chain);
@@ -207,21 +255,18 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, vector <chain_t
 // 0 is successfully extended
 // 3 if not successful from at least one direction
 // 5 if orphan (chain length = 1)
-int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
+int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int dir) {
 	mr.is_concord = false;
 	if (ch.chain_len <= 0) {
 		mr.type = 5;
 		return 5;
 	}
 
-	if (is_concord(ch, seq_len, mr))
+	if (is_concord(ch, seq_len, mr)) {
+		mr.dir = dir;
 		return 0;
+	}
 
-	char* chr_name;
-	int32_t chr_len;
-	uint32_t chr_beg;
-	uint32_t chr_end;
-	
 	bool left_ok = true;
 	bool right_ok = true;
 
@@ -234,78 +279,78 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr) {
 	uint32_t lm_pos = ch.frags[0].rpos;
 	int remain_beg = (ch.frags[0].qpos >= 0) ? (ch.frags[0].qpos) : (seq_len - 1 + ch.frags[0].qpos);	// based on forward or reverse strand mapping
 	
-	//left_ok = (remain_beg <= 0);
+	left_ok = (remain_beg <= 0);
 	
-	char* remain_str_beg = (char*) malloc(remain_beg+5);
-	if (remain_beg > 0) {
-		get_reference_chunk_left(lm_pos, remain_beg, remain_str_beg);
-		//get_reference_chunk(lm_pos, -1 * remain_beg, remain_str_beg);
-		//vafprintf(1, stderr, "On Ref : %s\n", remain_str_beg);
-		//vafprintf(1, stderr, "On Read: %s\n", seq);
-		
-		if (strlen(remain_str_beg) < remain_beg)
-			left_ok = false;
-		else {
-			//ed = alignment(remain_str_beg, remain_beg, seq, remain_beg, 1, 1);
-			
-			//loc_align align = alignment.local_alignment_reverse(remain_str_beg, remain_beg, seq, remain_beg, match_score, mm_pen, gap_pen);
-			//lm_pos -= align.r_matched;
-			//ed = alignment.alignment(remain_str_beg + remain_beg - align.r_matched, align.r_matched, seq + remain_beg - align.q_matched, align.q_matched, 1, 1);
-			//vafprintf(1, stderr, "Score: %d, Edit dist: %d\n", align.score, ed);
-			//if (remain_beg - align.q_matched > SOFTCLIPTH or ed > EDTH)
-			
-			//ed = alignment.hamming_distance_left(remain_str_beg, remain_beg, seq, remain_beg, SOFTCLIPTH);
-			//vafprintf(1, stderr, "Hamming dist: %d\n", ed);
-			//if (ed > EDTH)
-			//	left_ok = false;
-			left_ok = alignment.hamming_match_left(remain_str_beg, remain_beg, seq, remain_beg);
-		}
-	}
+	//char* remain_str_beg = (char*) malloc(remain_beg+5);
+	//if (remain_beg > 0) {
+	//	get_reference_chunk_left(lm_pos, remain_beg, remain_str_beg);
+	//	//get_reference_chunk(lm_pos, -1 * remain_beg, remain_str_beg);
+	//	//vafprintf(1, stderr, "On Ref : %s\n", remain_str_beg);
+	//	//vafprintf(1, stderr, "On Read: %s\n", seq);
+	//	
+	//	if (strlen(remain_str_beg) < remain_beg)
+	//		left_ok = false;
+	//	else {
+	//		//ed = alignment(remain_str_beg, remain_beg, seq, remain_beg, 1, 1);
+	//		
+	//		//loc_align align = alignment.local_alignment_reverse(remain_str_beg, remain_beg, seq, remain_beg, match_score, mm_pen, gap_pen);
+	//		//lm_pos -= align.r_matched;
+	//		//ed = alignment.alignment(remain_str_beg + remain_beg - align.r_matched, align.r_matched, seq + remain_beg - align.q_matched, align.q_matched, 1, 1);
+	//		//vafprintf(1, stderr, "Score: %d, Edit dist: %d\n", align.score, ed);
+	//		//if (remain_beg - align.q_matched > SOFTCLIPTH or ed > EDTH)
+	//		
+	//		//ed = alignment.hamming_distance_left(remain_str_beg, remain_beg, seq, remain_beg, SOFTCLIPTH);
+	//		//vafprintf(1, stderr, "Hamming dist: %d\n", ed);
+	//		//if (ed > EDTH)
+	//		//	left_ok = false;
+	//		left_ok = alignment.hamming_match_left(remain_str_beg, remain_beg, seq, remain_beg);
+	//	}
+	//}
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
 	int remain_end = (ch.frags[0].qpos >= 0) ? (seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len)) : (1 - (ch.frags[ch.chain_len-1].len + ch.frags[ch.chain_len-1].qpos));
 
-	//right_ok = (remain_end <= 0);
+	right_ok = (remain_end <= 0);
 
-	char* remain_str_end = (char*) malloc(remain_end+5);
-	if (remain_end > 0) {
-		get_reference_chunk_right(rm_pos, remain_end, remain_str_end);
-		//get_reference_chunk(rm_pos, remain_end, remain_str_end);
-		//vafprintf(1, stderr, "On Ref : %s\n", remain_str_end);
-		//vafprintf(1, stderr, "On Read: %s\n", seq + seq_len - remain_end);
-		
-		if (strlen(remain_str_end) < remain_end)
-			right_ok = false;
-		else {
-			//ed = alignment(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, 1, 1);
-			
-			//loc_align align = alignment.local_alignment(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, match_score, mm_pen, gap_pen);
-			//rm_pos += align.r_matched;
-			//ed = alignment.alignment(remain_str_end, align.r_matched, seq + seq_len - remain_end, align.q_matched, 1, 1);
-			//vafprintf(1, stderr, "Score: %d, Edit dist: %d\n", align.score, ed);
-			//vafprintf(1, stderr, "Q matched: %d, R matched: %d\n", align.q_matched, align.r_matched);
-			//if (remain_end - align.q_matched > SOFTCLIPTH or ed > EDTH)
-			
-			//ed = alignment.hamming_distance_right(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, SOFTCLIPTH);
-			//vafprintf(1, stderr, "Hamming dist: %d\n", ed);
-			//if (ed > EDTH)
-			//	right_ok = false;
-			right_ok = alignment.hamming_match_right(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end);
-		}
-	}
+	//char* remain_str_end = (char*) malloc(remain_end+5);
+	//if (remain_end > 0) {
+	//	get_reference_chunk_right(rm_pos, remain_end, remain_str_end);
+	//	//get_reference_chunk(rm_pos, remain_end, remain_str_end);
+	//	//vafprintf(1, stderr, "On Ref : %s\n", remain_str_end);
+	//	//vafprintf(1, stderr, "On Read: %s\n", seq + seq_len - remain_end);
+	//	
+	//	if (strlen(remain_str_end) < remain_end)
+	//		right_ok = false;
+	//	else {
+	//		//ed = alignment(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, 1, 1);
+	//		
+	//		//loc_align align = alignment.local_alignment(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, match_score, mm_pen, gap_pen);
+	//		//rm_pos += align.r_matched;
+	//		//ed = alignment.alignment(remain_str_end, align.r_matched, seq + seq_len - remain_end, align.q_matched, 1, 1);
+	//		//vafprintf(1, stderr, "Score: %d, Edit dist: %d\n", align.score, ed);
+	//		//vafprintf(1, stderr, "Q matched: %d, R matched: %d\n", align.q_matched, align.r_matched);
+	//		//if (remain_end - align.q_matched > SOFTCLIPTH or ed > EDTH)
+	//		
+	//		//ed = alignment.hamming_distance_right(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end, SOFTCLIPTH);
+	//		//vafprintf(1, stderr, "Hamming dist: %d\n", ed);
+	//		//if (ed > EDTH)
+	//		//	right_ok = false;
+	//		right_ok = alignment.hamming_match_right(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end);
+	//	}
+	//}
 
-	free(remain_str_beg);
-	free(remain_str_end);
+	//free(remain_str_beg);
+	//free(remain_str_end);
 
 	if (left_ok and right_ok) {
 		mr.is_concord = true;
 		mr.type = 0;
-		bwt_get_intv_info((bwtint_t) lm_pos, (bwtint_t) rm_pos, &chr_name, &chr_len, &chr_beg, &chr_end);
-		mr.chr = chr_name;
-		mr.start_pos = chr_beg;
-		mr.end_pos = chr_end;
+		//mr.chr = chr_name;
+		mr.chr = "1";
+		mr.start_pos = lm_pos;
+		mr.end_pos = rm_pos;
 		mr.matched_len = rm_pos - lm_pos + 1;
-		mr.dir = (ch.frags[0].qpos >= 0) ? 1 : -1;
+		mr.dir = dir;
 	}
 	else if (left_ok or right_ok)
 		mr.type = 3;
@@ -351,7 +396,7 @@ int process_mates(const vector <chain_t>& forward_chain, const Record* record1, 
 	int min_ret2 = 5;
 	for (int i = 0; i < max_len; i++) {
 		if (i < fc_size) {
-			ex_ret = extend_chain(forward_chain[i], record1->seq, record1->seq_len, forward_mrl[fmrl_count]); 
+			ex_ret = extend_chain(forward_chain[i], record1->seq, record1->seq_len, forward_mrl[fmrl_count], 1); 
 			if (ex_ret == 0) {
 				if (are_concordant(backward_mrl, bmrl_count, forward_mrl[fmrl_count])) {
 					//vafprintf(1, stderr, "----Concordant\n");
@@ -363,7 +408,7 @@ int process_mates(const vector <chain_t>& forward_chain, const Record* record1, 
 		}
 
 		if (i < bc_size) {
-			ex_ret = extend_chain(backward_chain[i], record2->rcseq, record2->seq_len, backward_mrl[bmrl_count]); 
+			ex_ret = extend_chain(backward_chain[i], record2->rcseq, record2->seq_len, backward_mrl[bmrl_count], -1); 
 			if (ex_ret == 0) {
 				if (are_concordant(forward_mrl, fmrl_count, backward_mrl[bmrl_count])) {
 					//vafprintf(1, stderr, "----Concordant\n");
@@ -506,6 +551,100 @@ int FilterRead::process_read_chain (Record* current_record1, Record* current_rec
 	//}
 
 	//return 3;
+}
+
+int FilterRead::process_read_chain_hash (Record* current_record1, Record* current_record2, int kmer_size, FragmentList& fl, FragmentList& bl) {
+	int max_frag_count = current_record1->seq_len / kmer_size + 1;
+	
+	// R1
+	vafprintf(1, stderr, "R1/%s", current_record1->rname);
+	vector <chain_t> forward_best_chain_r1(BESTCHAINLIM);
+	vector <chain_t> backward_best_chain_r1(BESTCHAINLIM);
+	for (int i = 0; i < BESTCHAINLIM; i++) {
+		forward_best_chain_r1[i].frags.resize(max_frag_count + 1);
+		backward_best_chain_r1[i].frags.resize(max_frag_count + 1);
+	}
+
+	get_best_chains(current_record1->seq, current_record1->seq_len, kmer_size, forward_best_chain_r1, fl);
+	return 1;
+	get_best_chains(current_record1->rcseq, current_record1->seq_len, kmer_size, backward_best_chain_r1, bl);
+
+	vafprintf(1, stderr, "R1/%s", current_record1->rname);
+	vafprintf(1, stderr, "R1 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r1[0].score, (unsigned long)forward_best_chain_r1.size());
+	for (int j = 0; j < forward_best_chain_r1.size(); j++)
+		for (int i = 0; i < forward_best_chain_r1[j].chain_len; i++) {
+			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, forward_best_chain_r1[j].frags[i].rpos, forward_best_chain_r1[j].frags[i].qpos, forward_best_chain_r1[j].frags[i].len);
+		}
+
+	vafprintf(1, stderr, "R1 Reverse score:%.4f,\t len: %lu\n", backward_best_chain_r1[0].score, (unsigned long)backward_best_chain_r1.size());
+	for (int j = 0; j < backward_best_chain_r1.size(); j++)
+		for (int i = 0; i < backward_best_chain_r1[j].chain_len; i++) {
+			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, backward_best_chain_r1[j].frags[i].rpos, backward_best_chain_r1[j].frags[i].qpos, backward_best_chain_r1[j].frags[i].len);
+		}
+
+	// R2
+	vafprintf(1, stderr, "R2/%s", current_record2->rname);
+	vector <chain_t> forward_best_chain_r2(BESTCHAINLIM);
+	vector <chain_t> backward_best_chain_r2(BESTCHAINLIM);
+	for (int i = 0; i < BESTCHAINLIM; i++) {
+		forward_best_chain_r2[i].frags.resize(max_frag_count + 1);
+		backward_best_chain_r2[i].frags.resize(max_frag_count + 1);
+	}
+
+	get_best_chains(current_record2->seq, current_record2->seq_len, kmer_size, forward_best_chain_r2, fl);
+	get_best_chains(current_record2->rcseq, current_record2->seq_len, kmer_size, backward_best_chain_r2, bl);
+
+	vafprintf(1, stderr, "R2/%s", current_record2->rname);
+	vafprintf(1, stderr, "R2 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r2[0].score, (unsigned long)forward_best_chain_r2.size());
+	for (int j = 0; j < forward_best_chain_r2.size(); j++)
+		for (int i = 0; i < forward_best_chain_r2[j].chain_len; i++) {
+			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, forward_best_chain_r2[j].frags[i].rpos, forward_best_chain_r2[j].frags[i].qpos, forward_best_chain_r2[j].frags[i].len);
+		}
+
+	vafprintf(1, stderr, "R2 Reverse score:%.4f,\t len: %lu\n", backward_best_chain_r2[0].score, (unsigned long)backward_best_chain_r2.size());
+	for (int j = 0; j < backward_best_chain_r2.size(); j++)
+		for (int i = 0; i < backward_best_chain_r2[j].chain_len; i++) {
+			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, backward_best_chain_r2[j].frags[i].rpos, backward_best_chain_r2[j].frags[i].qpos, backward_best_chain_r2[j].frags[i].len);
+		}
+
+	// Orphan / OEA
+	if (forward_best_chain_r1.size() + backward_best_chain_r1.size() + forward_best_chain_r2.size() + backward_best_chain_r2.size() <= 0)
+		return 5;
+	if ((forward_best_chain_r1.size() + backward_best_chain_r1.size() <= 0) or (forward_best_chain_r2.size() + backward_best_chain_r2.size() <= 0))
+		return 4;
+
+	// checking read concordancy
+	// any concordancy evidence/explanation ?
+	float fc_score_r1 = forward_best_chain_r1[0].score;
+	float bc_score_r1 = backward_best_chain_r1[0].score;
+	float fc_score_r2 = forward_best_chain_r2[0].score;
+	float bc_score_r2 = backward_best_chain_r2[0].score;
+	vafprintf(2, stderr, "Scores: fc1=%f, bc1=%f, fc2=%f, bc2=%f\n", fc_score_r1, bc_score_r1, fc_score_r2, bc_score_r2);
+	int attempt1, attempt2;
+	if (fc_score_r1 + bc_score_r2 >= fc_score_r2 + bc_score_r1) {
+		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
+		attempt1 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2);
+		if (attempt1 == 0)
+			return 0;
+
+		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
+		attempt2 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1);
+		if (attempt2 == 0)
+			return 0;
+		return (attempt1 < attempt2) ? attempt1 : attempt2;
+	}
+	else {
+		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
+		attempt1 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1);
+		if (attempt1 == 0)
+			return 0;
+
+		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
+		attempt2 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2);
+		if (attempt2 == 0)
+			return 0;
+		return (attempt1 < attempt2) ? attempt1 : attempt2;
+	}
 }
 
 // write reads SE mode

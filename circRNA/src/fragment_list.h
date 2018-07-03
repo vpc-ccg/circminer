@@ -32,6 +32,7 @@ private:
 
 public:
 	FragmentList(void);
+	FragmentList(int flen);
 	~FragmentList(void);
 
 	MatchedKmer* get_head(void);

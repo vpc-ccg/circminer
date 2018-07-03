@@ -43,7 +43,7 @@ typedef struct {
 	int end_ind;
 } ExtendMatch;
 
-typedef struct ExactMatchRes{
+typedef struct ExactMatchRes {
 	bwtint_t sp;
 	bwtint_t ep;
 	int q_ind;
@@ -54,6 +54,13 @@ typedef struct ExactMatchRes{
 		return occ < mr.occ;
 	}
 } ExactMatchRes;
+
+typedef struct {
+	uint32_t* locs;
+	int q_ind;
+	int matched_len;
+	int occ;
+} ExactMatchHash;
 
 //typedef struct {
 //	MatchedRead* match_list;
@@ -84,6 +91,8 @@ int check_concordant_mates_expand(const Record* m1, const Record* m2, int kmer_s
 int chop_read_match(const char* rseq, int rseq_len, int kmer_size, int shift, bool recursive, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count);
 int split_match(const char* rseq, int rseq_len, int kmer_size, vector<fragment_t>& forward_fragments, int& forward_fragment_count, vector<fragment_t>& backward_fragments, int& backward_fragment_count);
 int split_match_ll(const char* rseq, int rseq_len, int kmer_size, FragmentList& forward_fragments, FragmentList&  backward_fragments);
+int split_match_hash(char* rseq, int rseq_len, int kmer_size, FragmentList& forward_fragments);
+int split_match_hash(char* rseq, int rseq_len, int kmer_size, MatchedKmer* start);
 
 void get_reference_chunk_left(uint32_t pos, int len, char* res_str);
 void get_reference_chunk_right(uint32_t pos, int len, char* res_str);

@@ -1,15 +1,16 @@
 all: build
-build: bwalib circRNA clean
+build: bwalib mrsfast circRNA cleanobj
 
 CC          ?= gcc
 CXX         ?= g++
 
 SRCDIR      := src
 BWADIR      := $(SRCDIR)/bwa
+MRSDIR      := $(SRCDIR)/mrsfast
 
 INCS        := -I$(BWADIR)
-LIBS        := -lz
-#LIBS        := -lz -lm -lpthread
+#LIBS        := -lz
+LIBS        := -lz -lm -lpthread
 CFLAGS      := -w -O3 
 CXXFLAGS    := -w -O3 $(INCS)
 LDFLAGS     := 
@@ -27,13 +28,21 @@ MYOBJ        = $(SRCDIR)/circRNA.o \
 			   $(SRCDIR)/common.o
 
 BWAOBJ       = $(BWADIR)/*.o
+#MRSOBJ       = $(MRSDIR)/*.o
+MRSOBJ       = $(MRSDIR)/[!base]*.o
 
 circRNA: $(MYOBJ)
-	$(CXX) -w $(MYOBJ) $(BWAOBJ) -o $@ ${LDFLAGS} ${LIBS}
+	$(CXX) -w $(MYOBJ) $(BWAOBJ) $(MRSOBJ) -o $@ ${LDFLAGS} ${LIBS}
 
 bwalib:
 	@$(MAKE) -C $(BWADIR)
 
-clean:
+mrsfast:
+	@$(MAKE) -C $(MRSDIR)
+
+cleanobj:
 	@rm -f $(MYOBJ)
+
+clean:
+	@rm -f $(MYOBJ) $(BWAOBJ) $(MRSOBJ)
 
