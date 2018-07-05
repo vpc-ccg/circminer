@@ -28,10 +28,16 @@ typedef struct fragment_t{
 } fragment_t;
 
 typedef struct {
-	std::vector<fragment_t> frags;
+	//std::vector<fragment_t> frags;
+	fragment_t* frags;
 	uint32_t chain_len;
 	float score;
 } chain_t;
+
+typedef struct {
+	chain_t* chains;
+	int best_chain_count;
+} chain_list;
 
 extern bool pairedEnd;
 

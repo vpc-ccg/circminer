@@ -260,8 +260,8 @@ int parseCommandLine (int argc, char *argv[])
 
 	if ( indexingMode )
 	{
-		CONTIG_SIZE		= 300000000;
-		CONTIG_MAX_SIZE	= 300000000;
+		CONTIG_SIZE		= 1200000000;
+		CONTIG_MAX_SIZE	= 1300000000;
 
 		if (fastaFile == NULL)
 		{
@@ -287,8 +287,8 @@ int parseCommandLine (int argc, char *argv[])
 
 	if ( searchingMode )
 	{
-		CONTIG_SIZE		= 300000000;
-		CONTIG_MAX_SIZE	= 300000000;
+		CONTIG_SIZE		= 1200000000;
+		CONTIG_MAX_SIZE	= 1300000000;
 
 		if ( cropSize && tailCropSize)
 		{

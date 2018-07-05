@@ -3,6 +3,11 @@
 
 #include "common.h"
 
+extern "C" {
+#include "mrsfast/Common.h"
+#include "mrsfast/HashTable.h"
+}
+
 class MatchedKmer {
 public:
 	MatchedKmer() 
@@ -22,6 +27,12 @@ public:
 	MatchedKmer* next;
 	MatchedKmer* prev;
 };
+
+typedef struct {
+	GeneralIndex* frags;	// array of locations
+	uint32_t frag_count;
+	int32_t qpos;
+} GIMatchedKmer;
 
 class FragmentList {
 private:

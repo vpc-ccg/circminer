@@ -28,10 +28,10 @@ GTFParser gtf_parser;
 Alignment alignment;
 
 int main(int argc, char **argv) {
-	//if (argc < 4) {
-	//	fprintf(stderr, "Usage: %s <FASTA> <FASTQ> <OUT> [--pe]\n", argv[0]);
-	//	return 1;
-	//}
+	time_t pre_time, curr_time;
+	double diff_time;
+	time(&pre_time);
+
 	
 	int exit_c = parse_command( argc, argv );
 	if (exit_c == 1)
@@ -85,10 +85,14 @@ int main(int argc, char **argv) {
 	if (!initLoadingHashTable(index_file))
 		return 1;
 	
-	fprintf(stdout,"Started loading index\n");
+	fprintf(stdout, "Started loading index...\n");
 	flag = loadHashTable ( &tmpTime );  			// Reading a fragment
-	fprintf(stdout,"Loaded index\n");
 
+	time(&curr_time);
+	diff_time = difftime(curr_time, pre_time);
+	pre_time = curr_time;
+
+	fprintf(stdout, "[P] Loaded genome index successfully in %.2f sec\n", diff_time);
 	fprintf(stdout, "Winodw size: %d\nChecksum Len: %d\n", WINDOW_SIZE, checkSumLength);
 
 	/***********************/
@@ -113,15 +117,43 @@ int main(int argc, char **argv) {
 
 	FilterRead filter_read(outputFilename, is_pe);
 
+	//FragmentList fl(7);
+	//FragmentList bl(7);
+	GIMatchedKmer* fl = (GIMatchedKmer*) malloc(7 * sizeof(GIMatchedKmer));
+	GIMatchedKmer* bl = (GIMatchedKmer*) malloc(7 * sizeof(GIMatchedKmer));
+	for (int i = 0; i < 7; i++) {
+		fl[i].frag_count = 0;
+		fl[i].frags = (GeneralIndex*) malloc(FRAGLIM * sizeof(GeneralIndex));
+		fl[i].qpos = -1;
+		bl[i].frag_count = 0;
+		bl[i].frags = (GeneralIndex*) malloc(FRAGLIM * sizeof(GeneralIndex));
+		bl[i].qpos = -1;
+	}
+
+	chain_list fbc_r1;
+	chain_list bbc_r1;
+	chain_list fbc_r2;
+	chain_list bbc_r2;
+	fbc_r1.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+	bbc_r1.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+	fbc_r2.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+	bbc_r2.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+	int max_frag_count = 7 + 1;
+	for (int i = 0; i < BESTCHAINLIM; i++) {
+		fbc_r1.chains[i].frags = (fragment_t*) malloc(max_frag_count * sizeof(fragment_t));
+		bbc_r1.chains[i].frags = (fragment_t*) malloc(max_frag_count * sizeof(fragment_t));
+		fbc_r2.chains[i].frags = (fragment_t*) malloc(max_frag_count * sizeof(fragment_t));
+		bbc_r2.chains[i].frags = (fragment_t*) malloc(max_frag_count * sizeof(fragment_t));
+	}
+
+	time(&curr_time);
+	diff_time = difftime(curr_time, pre_time);
+	fprintf(stdout, "[P] Loaded GTF in %.2f sec\n", diff_time);
+	pre_time = curr_time;
+	time_t fq_start_t = curr_time;
+
 	fprintf(stdout, "Started reading FASTQ file...\n");
 	int line = 0;
-
-	time_t pre_time, curr_time;
-	double diff_time;
-	time(&pre_time);
-
-	FragmentList fl(7);
-	FragmentList bl(7);
 
 	while ( fq_parser1.has_next() ) { // go line by line on fastq file
 		current_record1 = fq_parser1.get_next();
@@ -152,7 +184,7 @@ int main(int argc, char **argv) {
 			//is_chimeric = filter_read.process_read(current_record1, current_record2, kmer);
 			
 			//is_chimeric = filter_read.process_read_chain(current_record1, current_record2, kmer);
-			is_chimeric = filter_read.process_read_chain_hash(current_record1, current_record2, kmer, fl, bl);
+			is_chimeric = filter_read.process_read_chain_hash(current_record1, current_record2, kmer, fl, bl, fbc_r1, bbc_r1, fbc_r2, bbc_r2);
 			filter_read.write_read3(current_record1, current_record2, is_chimeric);
 		}
 		else {
@@ -160,6 +192,13 @@ int main(int argc, char **argv) {
 			filter_read.write_read(current_record1, is_chimeric);
 		}
 	}
+
+	time(&curr_time);
+	diff_time = difftime(curr_time, fq_start_t);
+	fprintf(stdout, "[P] Mapping in %.2f sec\n", diff_time);
+
+	free(fl);
+	free(bl);
 
 	return 0;
 }

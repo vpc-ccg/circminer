@@ -45,7 +45,11 @@ public:
 	int process_read (Record* current_record1, Record* current_record2, int kmer_size);
 	int process_read_chain (Record* current_record1, Record* current_record2, int kmer_size);
 	int process_read_chain_hash (Record* current_record1, Record* current_record2, int kmer_size);
-	int process_read_chain_hash (Record* current_record1, Record* current_record2, int kmer_size, FragmentList& fl, FragmentList& bl);
+	//int process_read_chain_hash (Record* current_record1, Record* current_record2, int kmer_size, FragmentList& fl, FragmentList& bl);
+	//int process_read_chain_hash (Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer*& fl, GIMatchedKmer*& bl);
+	int process_read_chain_hash (Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer*& fl, GIMatchedKmer*& bl, 
+								 chain_list& forward_best_chain_r1, chain_list& backward_best_chain_r1, 
+								 chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2);
 
 	void write_read (Record* current_record, int is_chimeric);
 	void write_read (Record* current_record1, Record* current_record2, int is_chimeric);
