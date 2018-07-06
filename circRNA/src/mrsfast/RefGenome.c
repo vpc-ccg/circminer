@@ -42,10 +42,12 @@
 #include "RefGenome.h"
 
 FILE *_rg_fp;
+FILE *_rg_fp_packed;
 char *_rg_gen;
 char *_rg_name;
 int _rg_offset;
 int _rg_contGen;		// false if this segment is the first contig
+unsigned int *_rg_chrLen;
 
 int getGenomeMetaInfo(char*, char*, int*);
 
@@ -53,9 +55,20 @@ int getGenomeMetaInfo(char*, char*, int*);
 int initLoadingRefGenome(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoLength)
 {
 	_rg_fp = fileOpen (fileName, "r");
+	_rg_chrLen = getMem(sizeof(unsigned int) * 10000);
+
+	char packedName[FILE_NAME_LENGTH];
+	sprintf(packedName, "%s.packed", fileName);
+	_rg_fp_packed = fileOpen(packedName, "w");
 	
 	if (!getGenomeMetaInfo(fileName, genomeMetaInfo, genomeMetaInfoLength))
 		return 0;
+
+	/*********/
+	fclose(_rg_fp);
+	fclose(_rg_fp_packed);
+	_rg_fp = fileOpen(packedName, "r");
+	/**********/
 
 	char ch;
 	fscanf(_rg_fp, "%c", &ch);		// '>'
@@ -71,6 +84,7 @@ void finalizeLoadingRefGenome()
 	freeMem(_rg_gen, CONTIG_MAX_SIZE + 21);
 	freeMem(_rg_name, CONTIG_NAME_SIZE); 
 	fclose(_rg_fp);
+	//fclose(_rg_fp_packed);
 }
 /**********************************************/
 int loadRefGenome(char **refGen, char **refGenName, int *refGenOff, int *refGenLen)
@@ -168,6 +182,9 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 	// n bytes (name): chromosome name
 	// 4 bytes (genSize): length of the chromosome in characters
 	
+	int minContigSize = 1000000000;
+	//int minContigSize = 400;
+	int charInLineLim = 50;
 	char ch, *tmp;
 	int *nameLen, *genSize, *numOfChrs = (int *)genomeMetaInfo;
 	*numOfChrs = 0;
@@ -187,12 +204,36 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 	rewind(_rg_fp);
 
 	fprintf(stdout, "Scanning the fasta file: ");
+
+	//uint32_t genSizeTot = minContigSize;
+	uint32_t genSizeTot = 0;
+	int currContig = 1;
+	int charInLine = 0;
+	fprintf(_rg_fp_packed, ">%d\n", currContig);
+	
 	while( fscanf(_rg_fp, "%c", &ch) > 0 )
 	{
 		if (!isspace(ch))
 		{
 			if (ch == '>')
 			{
+				// making a new contig if necessary
+				if (*numOfChrs > 0) {
+					genSizeTot += *genSize;
+					if (genSizeTot >= minContigSize) {
+						fprintf(_rg_fp_packed, "\n>%d\n", ++currContig);
+						genSizeTot = 0;
+						charInLine = 0;
+					}
+					else {
+						fprintf(_rg_fp_packed, "N");
+						charInLine++;
+						if (charInLine == charInLineLim) {
+							fprintf(_rg_fp_packed, "\n");
+							charInLine = 0;
+						}
+					}
+				}
 				(*numOfChrs)++;
 				nameLen = (int *)(genomeMetaInfo + i);
 				*nameLen = 0;
@@ -212,11 +253,24 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 			else
 			{
 				(*genSize)++;
+	
+				_rg_chrLen[*numOfChrs-1] = *genSize;
+				fprintf(_rg_fp_packed, "%c", toupper(ch));
+				charInLine++;
+				if (charInLine == charInLineLim) {
+					fprintf(_rg_fp_packed, "\n");
+					charInLine = 0;
+				}
 			}
 		}
 	}
+	fprintf(_rg_fp_packed, "\n");
 	fprintf(stdout, "\n");
 	*genomeMetaInfoLength = i;
+
+	for (i = 0; i < *numOfChrs; i++) {
+		fprintf(stderr, "Len: %lu\n", _rg_chrLen[i]);
+	}
 
 	rewind(_rg_fp);
 	return 1;
