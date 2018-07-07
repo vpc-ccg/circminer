@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <cmath>
 
 #include "common.h"
 #include "commandline_parser.h"
@@ -12,11 +13,7 @@
 
 extern "C" {
 #include "mrsfast/Common.h"
-//#include "mrsfast/CommandLineParser.h"
-//#include "mrsfast/Reads.h"
-//#include "mrsfast/Output.h"
 #include "mrsfast/HashTable.h"
-//#include "mrsfast/MrsFAST.h"
 }
 
 char versionNumberMajor[10] = "0";
@@ -39,7 +36,6 @@ int main(int argc, char **argv) {
 
 	char* ref_file = referenceFilename;
 	char index_file [FILE_NAME_LENGTH];
-	//sprintf(index_file, "%s.index", ref_file);
 	strcpy(index_file, ref_file);
 	strcat(index_file, ".index");
 
@@ -50,21 +46,6 @@ int main(int argc, char **argv) {
 		get_mate_name(fq_file1, fq_file2);
 	}
 	
-	/*
-	if (bwt_load(ref_file)) {
-		fprintf(stdout, "Index not found!\n");
-		//if (bwt_index(ref_file)) {
-		//	fprintf(stderr, "Indexing failed!\n");
-		//	return 1;
-		//}
-		//else
-		//	fprintf(stderr, "Indexed successfully!\n");
-	}
-	else
-		fprintf(stdout, "Index file successfully loaded!\n");
-	
-	*/
-
 	/**********************/
 	/**LOADING HASH TABLE**/
 	int	flag;
@@ -77,7 +58,6 @@ int main(int argc, char **argv) {
 	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
 	for (int i = 0; i < 255; i++)
 		THREAD_ID[i] = i;
-
 
 	if (!checkHashTable(index_file))
 		return 1;
@@ -97,8 +77,9 @@ int main(int argc, char **argv) {
 
 	/***********************/
 	
-	gtf_parser.init(gtfFilename);
 	alignment.init();
+
+	gtf_parser.init(gtfFilename);
 	if (! gtf_parser.load_gtf()) {
 		fprintf(stderr, "Error in reading GTF file.\n");
 		exit(1);
@@ -117,11 +98,11 @@ int main(int argc, char **argv) {
 
 	FilterRead filter_read(outputFilename, is_pe);
 
-	//FragmentList fl(7);
-	//FragmentList bl(7);
-	GIMatchedKmer* fl = (GIMatchedKmer*) malloc(7 * sizeof(GIMatchedKmer));
-	GIMatchedKmer* bl = (GIMatchedKmer*) malloc(7 * sizeof(GIMatchedKmer));
-	for (int i = 0; i < 7; i++) {
+	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer)) - 1;	// considering both overlapping and non-overlapping kmers
+
+	GIMatchedKmer* fl = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
+	GIMatchedKmer* bl = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
+	for (int i = 0; i < max_seg_cnt; i++) {
 		fl[i].frag_count = 0;
 		fl[i].frags = (GeneralIndex*) malloc(FRAGLIM * sizeof(GeneralIndex));
 		fl[i].qpos = -1;
@@ -138,12 +119,12 @@ int main(int argc, char **argv) {
 	bbc_r1.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
 	fbc_r2.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
 	bbc_r2.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-	int max_frag_count = 7 + 1;
+	
 	for (int i = 0; i < BESTCHAINLIM; i++) {
-		fbc_r1.chains[i].frags = (fragment_t*) malloc(max_frag_count * sizeof(fragment_t));
-		bbc_r1.chains[i].frags = (fragment_t*) malloc(max_frag_count * sizeof(fragment_t));
-		fbc_r2.chains[i].frags = (fragment_t*) malloc(max_frag_count * sizeof(fragment_t));
-		bbc_r2.chains[i].frags = (fragment_t*) malloc(max_frag_count * sizeof(fragment_t));
+		fbc_r1.chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+		bbc_r1.chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+		fbc_r2.chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+		bbc_r2.chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
 	}
 
 	time(&curr_time);
@@ -155,41 +136,28 @@ int main(int argc, char **argv) {
 	fprintf(stdout, "Started reading FASTQ file...\n");
 	int line = 0;
 
-	while ( fq_parser1.has_next() ) { // go line by line on fastq file
-		current_record1 = fq_parser1.get_next();
+	while ( (current_record1 = fq_parser1.get_next()) != NULL ) { // go line by line on fastq file
 		if (is_pe)
 			current_record2 = fq_parser2.get_next();
 		if (current_record1 == NULL)	// no new line
 			break;
 
 		line++;
-		if (line % 100000 == 0) {
+		if (line % LINELOG == 0) {
 			time(&curr_time);
 			diff_time = difftime(curr_time, pre_time);
 			pre_time = curr_time;
 			fprintf(stdout, "[P] %d reads in %.2f sec\n", line, diff_time);
 		}
 
-		//fprintf(stderr, "Seq: %s, len: %d\n", current_record1->seq, current_record1->seq_len);
-		//fprintf(stderr, "RC Seq: %s, len: %d\n", current_record->rcseq, current_record->seq_len);
-		//int occ = find_exact_positions(current_record->seq, current_record->seq_len, find_len);
-
-		int is_chimeric;
+		int state;
 		if (is_pe) {
-			//unsigned long long occ1 = find_occ_sum(current_record1->seq, current_record1->seq_len, kmer);
-			//unsigned long long occ2 = find_occ_sum(current_record2->seq, current_record2->seq_len, kmer);
-			//continue;
-
-			//is_chimeric = check_concordant_mates(current_record1, current_record2);
-			//is_chimeric = filter_read.process_read(current_record1, current_record2, kmer);
-			
-			//is_chimeric = filter_read.process_read_chain(current_record1, current_record2, kmer);
-			is_chimeric = filter_read.process_read_chain_hash(current_record1, current_record2, kmer, fl, bl, fbc_r1, bbc_r1, fbc_r2, bbc_r2);
-			filter_read.write_read3(current_record1, current_record2, is_chimeric);
+			state = filter_read.process_read(current_record1, current_record2, kmer, fl, bl, fbc_r1, bbc_r1, fbc_r2, bbc_r2);
+			filter_read.write_read_category(current_record1, current_record2, state);
 		}
 		else {
-			is_chimeric = filter_read.process_read(current_record1);
-			filter_read.write_read(current_record1, is_chimeric);
+			state = filter_read.process_read(current_record1, kmer, fl, bl, fbc_r1, bbc_r1);
+			filter_read.write_read_category(current_record1, state);
 		}
 	}
 

@@ -3,7 +3,8 @@
 using namespace std;
 
 bool pairedEnd = false;
-int kmer = 23;
+int kmer = 19;
+int maxReadLength = 76;
 int verboseMode = 0;
 char gtfFilename[FILE_NAME_LENGTH];
 char referenceFilename[FILE_NAME_LENGTH];
@@ -32,23 +33,22 @@ int parse_command( int argc, char *argv[] )
 		{"gtf", required_argument, 0, 'g'},
 		{"pe", no_argument, 0, 'p'},
 		{"kmer", required_argument, 0, 'k'},
+		{"rlen", required_argument, 0, 'l'},
 		{"output", required_argument, 0, 'o'},
 		{"verbose", required_argument, 0, 'd'},
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:o:d:", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:l:o:d:", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
 			case 'h':
 				printHELP();
 				return 1;
-				break;
 			case 'v':
 				fprintf(stdout, "%s.%s\n", versionNumberMajor, versionNumberMinor);
 				return 1;
-				break;
 			case 'f':
 				strncpy(fastqFilename, optarg, FILE_NAME_LENGTH );
 				break;
@@ -64,6 +64,9 @@ int parse_command( int argc, char *argv[] )
 				break;
 			case 'k':
 				kmer = atoi(optarg);
+				break;
+			case 'l':
+				maxReadLength = atoi(optarg);
 				break;
 			case 'o': {
 				strncpy(outputFilename, optarg, FILE_NAME_LENGTH);
@@ -101,7 +104,8 @@ void printHELP()
 	
 	fprintf(stdout, "\nAdvanced Options:\n");
 	fprintf(stdout, "-p|--pe:\tPaired end.\n");
-	fprintf(stdout, "-k|--kmer:\tKmer size (default = 23).\n");
+	fprintf(stdout, "-k|--kmer:\tKmer size (default = 19).\n");
+	fprintf(stdout, "-l|--rlen:\tMax read length (default = 76).\n");
 	fprintf(stdout, "-o|--output:\tOutput file (default = output).\n");
 	fprintf(stdout, "-d|--verbose:\tVerbose mode: 0 to 1. Higher values output more information (default = 0).\n");
 	

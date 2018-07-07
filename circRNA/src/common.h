@@ -2,8 +2,10 @@
 #define __COMMON_H__
 
 #define FILE_NAME_LENGTH 1000
+#define LINELOG	100000
+#define ASCISIZE 128
+
 #define GENETHRESH 5000
-#define FLGENETH 2000000
 #define MINKMER 15
 #define FRAGLIM 5000
 
@@ -11,11 +13,15 @@
 #define EDTH 3
 #define SOFTCLIPTH 7
 
-#include <vector>
 #include <stdint.h>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+
+extern "C" {
+#include "mrsfast/Common.h"
+#include "mrsfast/HashTable.h"
+}
 
 typedef struct fragment_t{
 	uint32_t rpos;
@@ -28,7 +34,6 @@ typedef struct fragment_t{
 } fragment_t;
 
 typedef struct {
-	//std::vector<fragment_t> frags;
 	fragment_t* frags;
 	uint32_t chain_len;
 	float score;
@@ -39,9 +44,16 @@ typedef struct {
 	int best_chain_count;
 } chain_list;
 
+typedef struct {
+	GeneralIndex* frags;	// array of locations
+	uint32_t frag_count;
+	int32_t qpos;
+} GIMatchedKmer;
+
 extern bool pairedEnd;
 
 extern int kmer;
+extern int maxReadLength;
 extern int verboseMode;
 
 extern char gtfFilename[FILE_NAME_LENGTH];
@@ -55,7 +67,10 @@ extern FILE* outputJuncFile;
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];
 
+FILE* open_file(char* filename, char* mode);
+void close_file(FILE* fp);
+
 // verbose-aware fprintf
 void vafprintf(int verbosity, FILE *stream, const char *format, ...);
 
-#endif
+#endif	//__COMMON_H__

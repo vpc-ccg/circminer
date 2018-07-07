@@ -13,4 +13,4 @@
 int parse_command( int argc, char *argv[] );
 void printHELP();
 
-#endif
+#endif	//__COMMANDLINEPARSER_H__

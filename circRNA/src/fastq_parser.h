@@ -6,6 +6,8 @@
 #include <cassert>
 #include <cstring>
 
+#include "common.h"
+
 typedef struct {
 	char *rname;
 	char *seq;
@@ -20,13 +22,13 @@ typedef struct {
 class FASTQParser {
 private:
 	FILE* input;
-	size_t file_size;
+	char comp[ASCISIZE];
 
 	Record* current_record;
 	size_t max_line_size;
 	int size;
 
-	short comp[30];
+	bool has_next (void);
 
 public:
 	FASTQParser ();
@@ -35,13 +37,11 @@ public:
 
 	void init (char* filename);
 	Record* get_next (void);
-	bool has_next (void);
 	bool read_next (void);
 
 	void set_reverse_comp (void);
 
 	void set_comp (void);
-	char get_comp (char nt);
 };
 
 #endif	//__FASTQPARSER_H__

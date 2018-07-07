@@ -27,10 +27,6 @@ void GTFParser::init(char* filename) {
 		exit(1);
 	}
 
-	//fseek(input, 0L, SEEK_END);
-	//file_size = ftell(input);
-	//fseek(input, 0L, SEEK_SET);
-
 	max_line_size = MAXLINESIZE;
 	line = (char*) malloc(max_line_size);
 
