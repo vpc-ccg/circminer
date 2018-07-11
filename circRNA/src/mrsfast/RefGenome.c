@@ -182,9 +182,7 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 	// n bytes (name): chromosome name
 	// 4 bytes (genSize): length of the chromosome in characters
 	
-	int minContigSize = 1000000000;
 	//int minContigSize = 400;
-	int charInLineLim = 50;
 	char ch, *tmp;
 	int *nameLen, *genSize, *numOfChrs = (int *)genomeMetaInfo;
 	*numOfChrs = 0;
@@ -205,7 +203,6 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 
 	fprintf(stdout, "Scanning the fasta file: ");
 
-	//uint32_t genSizeTot = minContigSize;
 	uint32_t genSizeTot = 0;
 	int currContig = 1;
 	int charInLine = 0;
@@ -220,7 +217,7 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 				// making a new contig if necessary
 				if (*numOfChrs > 0) {
 					genSizeTot += *genSize;
-					if (genSizeTot >= minContigSize) {
+					if (genSizeTot >= MIN_CONTIG_SIZE) {
 						fprintf(_rg_fp_packed, "\n>%d\n", ++currContig);
 						genSizeTot = 0;
 						charInLine = 0;
@@ -228,7 +225,7 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 					else {
 						fprintf(_rg_fp_packed, "N");
 						charInLine++;
-						if (charInLine == charInLineLim) {
+						if (charInLine == CHAR_IN_FASTA_LINE) {
 							fprintf(_rg_fp_packed, "\n");
 							charInLine = 0;
 						}
@@ -257,7 +254,7 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 				_rg_chrLen[*numOfChrs-1] = *genSize;
 				fprintf(_rg_fp_packed, "%c", toupper(ch));
 				charInLine++;
-				if (charInLine == charInLineLim) {
+				if (charInLine == CHAR_IN_FASTA_LINE) {
 					fprintf(_rg_fp_packed, "\n");
 					charInLine = 0;
 				}

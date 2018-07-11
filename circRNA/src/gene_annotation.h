@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <map>
 
+#include "common.h"
+
 using namespace std;
 
 typedef struct {
@@ -33,6 +35,10 @@ typedef struct GTFRecord {
 	}
 } GTFRecord;
 
+typedef struct {
+	string contig;
+	uint32_t shift;
+} ConShift;
 
 class GTFParser {
 private:
@@ -46,13 +52,17 @@ private:
 	GTFRecord* current_record;
 	vector <GTFRecord> records;
 	map <string, vector <ExonSeg> > wt_exons;
+	
+	map <string, ConShift> chr2con;
+
+	void set_contig_shift(const ContigLen* contig_len, int contig_count);
 
 public:
 	GTFParser (void);
-	GTFParser (char* filename);
+	GTFParser (char* filename, const ContigLen* contig_len, int contig_count);
 	~GTFParser (void);
 
-	void init (char* filename);
+	void init (char* filename, const ContigLen* contig_len, int contig_count);
 	bool get_next (void);
 	bool has_next (void);
 	bool read_next (void);

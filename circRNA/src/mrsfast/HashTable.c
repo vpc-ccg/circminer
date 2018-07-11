@@ -334,6 +334,100 @@ int checkHashTable(char *fileName)
 }
 
 /**********************************************/
+int initLoadingHashTableMeta(char *fileName, ContigLen **contig_len, int *contig_cnt)
+{
+	// file header:
+	// 1 byte (magicNumber): Magic number of HashTable (0: <v3, 1: bisulfite <v1.26.4, 2: >v3)
+	// 1 byte (WINDOW_SIZE): Windows Size of indexing
+	// 4 bytes (_ih_hsahTableMemSize): HashTbleMemSize: maximum number of elements that can be saved.
+	// 4 bytes (_ih_IOBufferSize): memory required for reading hash table. In case the value is changed for loading.
+	// 4 bytes (CONTIG_MAX_SIZE): maximum number of characters that can be in a contig. In case the value is changed for loading
+	// n bytes (genomeMetaInfo): number of chromosomes, their names and lengths
+
+	if (_ih_fp == NULL)		// first time
+		_ih_fp = fileOpen(fileName, "r");
+	else
+		rewind(_ih_fp);			// rewind for mapping the next chunk of reads
+
+	int i, numOfChrs, nameLen;
+	unsigned char magicNumber;
+	int tmp;
+
+	_ih_threads = getMem(sizeof(pthread_t) * THREAD_COUNT);
+
+	tmp = fread(&magicNumber, sizeof(magicNumber), 1, _ih_fp);
+	tmp = fread(&WINDOW_SIZE, sizeof(WINDOW_SIZE), 1, _ih_fp);
+	tmp = fread(&_ih_hashTableMemSize, sizeof(_ih_hashTableMemSize), 1, _ih_fp);
+
+	_ih_hashTableMem = getMem(_ih_hashTableMemSize*sizeof(GeneralIndex));
+
+	tmp = fread(&_ih_IOBufferSize, sizeof(_ih_IOBufferSize), 1, _ih_fp);
+	_ih_IOBuffer = getMem(_ih_IOBufferSize);
+
+	tmp = fread(&CONTIG_MAX_SIZE, sizeof(CONTIG_MAX_SIZE), 1, _ih_fp);
+
+	// Reading Meta
+	char *strtmp = getMem(2*CONTIG_NAME_SIZE);
+	tmp = fread(&_ih_chrCnt, sizeof(int), 1, _ih_fp);
+	_ih_chrNames = getMem(_ih_chrCnt * sizeof(char *));
+
+	//***//
+	*contig_cnt = _ih_chrCnt;
+	*contig_len = (ContigLen *) malloc(_ih_chrCnt * sizeof(ContigLen *));
+	//***//
+
+	for (i = 0; i < _ih_chrCnt; i++)
+	{
+		_ih_chrNames[i] = getMem(CONTIG_NAME_SIZE);
+		tmp = fread(&nameLen, sizeof(int), 1, _ih_fp);
+
+		//***//
+		(*contig_len)[i].name = (char *) malloc(nameLen * sizeof(char *));
+		//***//
+
+		tmp = fread(_ih_chrNames[i], sizeof(char), nameLen, _ih_fp);
+		_ih_chrNames[i][nameLen] = '\0';
+		tmp = fread(&_ih_refGenLen, sizeof(int), 1, _ih_fp);
+		
+		sprintf(strtmp,"@SQ\tSN:%s\tLN:%d%c", _ih_chrNames[i], _ih_refGenLen, '\0');
+		
+		//***//
+		strcpy((*contig_len)[i].name, _ih_chrNames[i]);
+		(*contig_len)[i].len = _ih_refGenLen;
+		//***//
+
+//		outputMeta(strtmp);
+	
+		if (_ih_refGenLen > _ih_maxChrLength)
+			_ih_maxChrLength = _ih_refGenLen;
+	}
+
+	freeMem(strtmp, 2*CONTIG_NAME_SIZE);
+	// Reading Meta End
+
+	if (pairedEndMode)
+	{
+		_ih_crefGenOrigin = getMem((calculateCompressedLen(_ih_maxChrLength)+1) * sizeof(CompressedSeq));
+		_ih_crefGen = _ih_crefGenOrigin; 
+	}
+	else
+	{
+		_ih_crefGen = getMem((calculateCompressedLen(CONTIG_MAX_SIZE)+1) * sizeof(CompressedSeq));
+	}
+	_ih_maxHashTableSize = pow(4, WINDOW_SIZE);
+
+	_ih_hashTable = getMem (sizeof(IHashTable) * _ih_maxHashTableSize);
+	memset(_ih_hashTable, 0, _ih_maxHashTableSize * sizeof(IHashTable));
+	_ih_refGenName = getMem(CONTIG_NAME_SIZE);
+	_ih_refGenName[0] = '\0';
+	if (!SNPMode)
+		_ih_alphCnt = getMem(CONTIG_MAX_SIZE * 4);
+
+	_ih_contigStartPos = ftell(_ih_fp);
+
+	return 1;
+}
+/**********************************************/
 int initLoadingHashTable(char *fileName)
 {
 	// file header:

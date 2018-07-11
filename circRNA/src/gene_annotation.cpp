@@ -1,7 +1,9 @@
-#include "gene_annotation.h"
 #include <cstring>
+#include <sstream>
 #include <algorithm>
 #include <iostream>
+
+#include "gene_annotation.h"
 
 #define MAXLINESIZE 10000
 #define MAXGTFATTR 50
@@ -11,27 +13,25 @@ GTFParser::GTFParser(void) {
 	input = NULL;
 }
 
-GTFParser::GTFParser(char* filename) {
-	init(filename);
+GTFParser::GTFParser(char* filename, const ContigLen* contig_len, int contig_count) {
+	init(filename, contig_len, contig_count);
 }
 
 GTFParser::~GTFParser(void) {
-	if (input != NULL)
-		fclose(input);
+	close_file(input);
+	free(line);
+	delete current_record;
 }
 
-void GTFParser::init(char* filename) {
-	input = fopen(filename, "r");
-	if (input == NULL) {
-		fprintf(stderr, "Could not open %s\n", filename);
-		exit(1);
-	}
+void GTFParser::init(char* filename, const ContigLen* contig_len, int contig_count) {
+	input = open_file(filename, "r");
 
 	max_line_size = MAXLINESIZE;
 	line = (char*) malloc(max_line_size);
 
 	current_record = new GTFRecord;
 	//records.reserve(INITGTFREC);
+	set_contig_shift(contig_len, contig_count);
 }
 
 bool GTFParser::get_next(void) {
@@ -54,7 +54,7 @@ bool GTFParser::read_next(void) {
 	return true;
 }
 
-inline bool is_delim(char c, const string& delim) {
+bool is_delim(char c, const string& delim) {
 	for (int i = 0; i < delim.size(); i++)
 		if (c == delim[i])
 			return true;
@@ -97,13 +97,6 @@ bool GTFParser::parse_gtf_rec(char* line, int len) {
 		char attr_str[MAXLINESIZE];
 		strcpy(attr_str, gtf_fields[8].c_str());
 		tokenize(attr_str, gtf_fields[8].length(), minor_delim, gtf_attr);
-
-		//for (int i = 0; i < gtf_fields.size(); i++)
-		//	cout << gtf_fields[i] << "--";
-		//cout << endl;
-		//for (int i = 0; i < gtf_attr.size(); i++)
-		//	cout << gtf_attr[i] << "=";
-		//cout << endl;
 
 		current_record->chr = gtf_fields[0];
 		current_record->source = gtf_fields[1];
@@ -156,6 +149,11 @@ void GTFParser::set_wild_type(void) {
 	wt_exon.end = records[0].end;
 	for (int i = 1; i < records.size(); i++) {
 		if (records[i].chr != wt_exon.chr or records[i].start > wt_exon.end) {
+			if (chr2con.find(wt_exon.chr) != chr2con.end()) {	// chr in genome
+				wt_exon.start += chr2con[wt_exon.chr].shift;
+				wt_exon.end += chr2con[wt_exon.chr].shift;
+				wt_exon.chr = chr2con[wt_exon.chr].contig;
+			}
 			wt_exons[wt_exon.chr].push_back(wt_exon);
 
 			wt_exon.gene_id = records[i].gene_id;
@@ -167,6 +165,11 @@ void GTFParser::set_wild_type(void) {
 		else if (records[i].end > wt_exon.end){
 			wt_exon.end = records[i].end;
 		}
+	}
+	if (chr2con.find(wt_exon.chr) != chr2con.end()) {	// chr in genome
+		wt_exon.start += chr2con[wt_exon.chr].shift;
+		wt_exon.end += chr2con[wt_exon.chr].shift;
+		wt_exon.chr = chr2con[wt_exon.chr].contig;
 	}
 	wt_exons[wt_exon.chr].push_back(wt_exon);
 }
@@ -218,5 +221,24 @@ void GTFParser::print_records(void) {
 	for (int i = 0; i < records.size(); i++) {
 		fprintf(stderr, "%d: ", i);
 		print_record(records[i]);
+	}
+}
+
+void GTFParser::set_contig_shift(const ContigLen* contig_len, int contig_count) {
+	int curr_contig = 1;
+	uint32_t sum_size = 0;
+	ConShift con_shift;
+	for (int i = 0; i < contig_count; i++) {
+		ostringstream oss;
+		oss << curr_contig;
+		con_shift.contig = oss.str();
+		con_shift.shift = sum_size;
+		chr2con[contig_len[i].name] = con_shift;
+
+		sum_size += contig_len[i].len + 1;	// +1 because of N at the end of each chr
+		if (sum_size >= MIN_CONTIG_SIZE) {
+			sum_size = 0;
+			curr_contig++;
+		}
 	}
 }

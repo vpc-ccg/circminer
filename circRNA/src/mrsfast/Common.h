@@ -50,6 +50,8 @@
 #define CONTIG_NAME_SIZE	200			// Contig name max size
 #define FILE_NAME_LENGTH	500			// Filename Max Length
 #define MAX_SNP_PER_CHR		100000000
+#define MIN_CONTIG_SIZE		1000000000
+#define CHAR_IN_FASTA_LINE	50
 
 
 typedef uint64_t CompressedSeq;
@@ -127,6 +129,12 @@ typedef struct
 	int locCnt;
 	SNPLoc *snpLocs;
 } ChrSNPs;
+
+typedef struct
+{
+	char* name;
+	uint32_t len;
+} ContigLen;
 
 FILE	* fileOpen(char *fileName, char *mode);
 gzFile	fileOpenGZ(char *fileName, char *mode);

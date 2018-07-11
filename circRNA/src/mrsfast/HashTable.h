@@ -37,6 +37,8 @@
 #ifndef __HASH_TABLE__
 #define __HASH_TABLE__
 
+#include "Common.h"
+
 typedef struct HashTable
 {
 	long long hv;
@@ -55,6 +57,7 @@ CompressedSeq	*getCmpRefGenome();
 CompressedSeq	*getCmpRefGenOrigin();
 int				getRefGenLength();
 int				getCmpRefGenLength();
+int				initLoadingHashTableMeta(char*, ContigLen**, int*);
 int				initLoadingHashTable(char*);
 HashTable		*getHashTable();
 GeneralIndex	*getCandidates(int hv);

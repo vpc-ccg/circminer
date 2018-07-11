@@ -160,7 +160,8 @@ void get_reference_chunk_left(uint32_t pos, int len, char* res_str) {
 	uint32_t chr_beg;
 	uint32_t chr_end;
 	
-	string chr = "1";
+	//string chr = "1";
+	string chr = getRefGenomeName();
 	chr_beg = pos - len;
 	chr_end = pos;
 	chr_len = len;
@@ -207,7 +208,8 @@ void get_reference_chunk_right(uint32_t pos, int len, char* res_str) {
 	uint32_t chr_beg;
 	uint32_t chr_end;
 	
-	string chr = "1";
+	//string chr = "1";
+	string chr = getRefGenomeName();
 	chr_beg = pos;
 	chr_end = pos + len;
 	chr_len = len;

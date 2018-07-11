@@ -28,7 +28,6 @@ int main(int argc, char **argv) {
 	time_t pre_time, curr_time;
 	double diff_time;
 	time(&pre_time);
-
 	
 	int exit_c = parse_command( argc, argv );
 	if (exit_c == 1)
@@ -46,57 +45,11 @@ int main(int argc, char **argv) {
 		get_mate_name(fq_file1, fq_file2);
 	}
 	
-	/**********************/
-	/**LOADING HASH TABLE**/
-	int	flag;
-	double tmpTime;
-	checkSumLength = 5;
-
-	initCommon();
-	
-	THREAD_COUNT = 8;
-	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
-	for (int i = 0; i < 255; i++)
-		THREAD_ID[i] = i;
-
-	if (!checkHashTable(index_file))
-		return 1;
-
-	if (!initLoadingHashTable(index_file))
-		return 1;
-	
-	fprintf(stdout, "Started loading index...\n");
-	flag = loadHashTable ( &tmpTime );  			// Reading a fragment
-
-	time(&curr_time);
-	diff_time = difftime(curr_time, pre_time);
-	pre_time = curr_time;
-
-	fprintf(stdout, "[P] Loaded genome index successfully in %.2f sec\n", diff_time);
-	fprintf(stdout, "Winodw size: %d\nChecksum Len: %d\n", WINDOW_SIZE, checkSumLength);
-
-	/***********************/
-	
 	alignment.init();
 
-	gtf_parser.init(gtfFilename);
-	if (! gtf_parser.load_gtf()) {
-		fprintf(stderr, "Error in reading GTF file.\n");
-		exit(1);
-	}
-	else 
-		fprintf(stdout, "GTF file successfully loaded!\n");
-
-	FASTQParser fq_parser1(fq_file1);
-	Record* current_record1;
-
-	FASTQParser fq_parser2;
-	Record* current_record2;
-	if (is_pe) {
-		fq_parser2.init(fq_file2);
-	}
-
-	FilterRead filter_read(outputFilename, is_pe);
+	/*********************/
+	/**Memory Allocation**/
+	/*********************/
 
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer)) - 1;	// considering both overlapping and non-overlapping kmers
 
@@ -127,46 +80,138 @@ int main(int argc, char **argv) {
 		bbc_r2.chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
 	}
 
+	/**********************/
+	/**Loading Hash Table**/
+	/**********************/
+
+	int	flag;
+	double tmpTime;
+	checkSumLength = 5;
+
+	initCommon();
+	
+	THREAD_COUNT = 8;
+	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
+	for (int i = 0; i < 255; i++)
+		THREAD_ID[i] = i;
+
+	if (!checkHashTable(index_file))
+		return 1;
+
+	ContigLen* orig_contig_len;
+	int contig_cnt;
+	if (!initLoadingHashTableMeta(index_file, &orig_contig_len, &contig_cnt))
+		return 1;
+
+	/*******************/
+	/**GTF Parser Init**/
+	/*******************/
+
+	gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
+	if (! gtf_parser.load_gtf()) {
+		fprintf(stderr, "Error in reading GTF file.\n");
+		exit(1);
+	}
+	else 
+		fprintf(stdout, "GTF file successfully loaded!\n");
+
+	for (int i = 0; i < contig_cnt; i++) 
+		free(orig_contig_len[i].name);
+	//free(orig_contig_len);
+
 	time(&curr_time);
 	diff_time = difftime(curr_time, pre_time);
 	fprintf(stdout, "[P] Loaded GTF in %.2f sec\n", diff_time);
 	pre_time = curr_time;
-	time_t fq_start_t = curr_time;
 
-	fprintf(stdout, "Started reading FASTQ file...\n");
-	int line = 0;
+	/*****************/
+	/**Mapping Reads**/
+	/*****************/
 
-	while ( (current_record1 = fq_parser1.get_next()) != NULL ) { // go line by line on fastq file
-		if (is_pe)
-			current_record2 = fq_parser2.get_next();
-		if (current_record1 == NULL)	// no new line
-			break;
+	char* contig_name;
+	int cat_count;
+	do {
+		fprintf(stdout, "Started loading index...\n");
+	
+		flag = loadHashTable ( &tmpTime );  			// Reading a fragment
 
-		line++;
-		if (line % LINELOG == 0) {
-			time(&curr_time);
-			diff_time = difftime(curr_time, pre_time);
-			pre_time = curr_time;
-			fprintf(stdout, "[P] %d reads in %.2f sec\n", line, diff_time);
-		}
+		time(&curr_time);
+		diff_time = difftime(curr_time, pre_time);
+		pre_time = curr_time;
+		time_t fq_start_t = curr_time;
 
-		int state;
+		fprintf(stdout, "[P] Loaded genome index successfully in %.2f sec\n", diff_time);
+		fprintf(stdout, "Winodw size: %d\nChecksum Len: %d\n", WINDOW_SIZE, checkSumLength);
+
+		fprintf(stderr, "Contig: %s\n", getRefGenomeName());
+		contig_name = getRefGenomeName();
+		
+		FASTQParser fq_parser1(fq_file1);
+		Record* current_record1;
+
+		FASTQParser fq_parser2;
+		Record* current_record2;
 		if (is_pe) {
-			state = filter_read.process_read(current_record1, current_record2, kmer, fl, bl, fbc_r1, bbc_r1, fbc_r2, bbc_r2);
-			filter_read.write_read_category(current_record1, current_record2, state);
+			fq_parser2.init(fq_file2);
 		}
-		else {
-			state = filter_read.process_read(current_record1, kmer, fl, bl, fbc_r1, bbc_r1);
-			filter_read.write_read_category(current_record1, state);
+
+		cat_count = (flag) ? 2 : CATNUM;		// 2 category output unless this is the last contig
+		FilterRead filter_read(outputFilename, is_pe, contig_name, cat_count, fq_file1, fq_file2);
+
+		fprintf(stdout, "Started reading FASTQ file...\n");
+		int line = 0;
+
+		while ( (current_record1 = fq_parser1.get_next()) != NULL ) { // go line by line on fastq file
+			if (is_pe)
+				current_record2 = fq_parser2.get_next();
+			if (current_record1 == NULL)	// no new line
+				break;
+
+			line++;
+			if (line % LINELOG == 0) {
+				time(&curr_time);
+				diff_time = difftime(curr_time, pre_time);
+				pre_time = curr_time;
+				fprintf(stdout, "[P] %d reads in %.2f sec\n", line, diff_time);
+			}
+
+			int state;
+			if (is_pe) {
+				state = filter_read.process_read(current_record1, current_record2, kmer, fl, bl, fbc_r1, bbc_r1, fbc_r2, bbc_r2);
+				filter_read.write_read_category(current_record1, current_record2, state);
+			}
+			else {
+				state = filter_read.process_read(current_record1, kmer, fl, bl, fbc_r1, bbc_r1);
+				filter_read.write_read_category(current_record1, state);
+			}
 		}
-	}
 
-	time(&curr_time);
-	diff_time = difftime(curr_time, fq_start_t);
-	fprintf(stdout, "[P] Mapping in %.2f sec\n", diff_time);
+		time(&curr_time);
+		diff_time = difftime(curr_time, fq_start_t);
+		fprintf(stdout, "[P] Mapping in %.2f sec\n", diff_time);
 
+	} while (flag);
+
+	/*************************/
+	/**Free Allocated Memory**/
+	/*************************/
+
+	//for (int i = 0; i < max_seg_cnt; i++) {
+	//	free(fl[i].frags);
+	//	free(bl[i].frags);
+	//}
 	free(fl);
 	free(bl);
+	//for (int i = 0; i < BESTCHAINLIM; i++) {
+	//	free(fbc_r1.chains[i].frags);
+	//	free(bbc_r1.chains[i].frags);
+	//	free(fbc_r2.chains[i].frags);
+	//	free(bbc_r2.chains[i].frags);
+	//}
+	free(fbc_r1.chains);
+	free(bbc_r1.chains);
+	free(fbc_r2.chains);
+	free(bbc_r2.chains);
 
 	return 0;
 }
