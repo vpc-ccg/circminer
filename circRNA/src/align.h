@@ -1,9 +1,6 @@
 #ifndef __ALIGN_H__
 #define __ALIGN_H__
 
-#define maxM(A,B) (((A) > (B)) ? (A) : (B))
-#define minM(A,B) (((A) < (B)) ? (A) : (B))
-
 #define MAXSTRSIZE 100
 
 #include "common.h"

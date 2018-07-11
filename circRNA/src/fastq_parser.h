@@ -16,6 +16,7 @@ typedef struct {
 	char *qual;
 
 	int seq_len;
+	int state;
 } Record;
 
 
@@ -27,12 +28,13 @@ private:
 	Record* current_record;
 	size_t max_line_size;
 	int size;
+	bool read_state;
 
 	bool has_next (void);
 
 public:
-	FASTQParser ();
-	FASTQParser (char* filename);
+	FASTQParser (bool read_state);
+	FASTQParser (char* filename, bool read_state);
 	~FASTQParser (void);
 
 	void init (char* filename);

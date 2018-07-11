@@ -1,6 +1,19 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#include <stdint.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+
+extern "C" {
+#include "mrsfast/Common.h"
+#include "mrsfast/HashTable.h"
+}
+
+#define maxM(A,B) (((A) > (B)) ? (A) : (B))
+#define minM(A,B) (((A) < (B)) ? (A) : (B))
+
 #define FILE_NAME_LENGTH 1000
 #define LINELOG	100000
 #define ASCISIZE 128
@@ -12,16 +25,6 @@
 #define BESTCHAINLIM 30
 #define EDTH 3
 #define SOFTCLIPTH 7
-
-#include <stdint.h>
-#include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
-
-extern "C" {
-#include "mrsfast/Common.h"
-#include "mrsfast/HashTable.h"
-}
 
 typedef struct fragment_t{
 	uint32_t rpos;

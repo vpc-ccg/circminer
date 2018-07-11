@@ -130,6 +130,7 @@ int main(int argc, char **argv) {
 
 	char* contig_name;
 	int cat_count;
+	bool is_first = true;
 	do {
 		fprintf(stdout, "Started loading index...\n");
 	
@@ -146,15 +147,16 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Contig: %s\n", getRefGenomeName());
 		contig_name = getRefGenomeName();
 		
-		FASTQParser fq_parser1(fq_file1);
+		FASTQParser fq_parser1(fq_file1, !is_first);
 		Record* current_record1;
 
-		FASTQParser fq_parser2;
+		FASTQParser fq_parser2(!is_first);
 		Record* current_record2;
 		if (is_pe) {
 			fq_parser2.init(fq_file2);
 		}
 
+		is_first = false;
 		cat_count = (flag) ? 2 : CATNUM;		// 2 category output unless this is the last contig
 		FilterRead filter_read(outputFilename, is_pe, contig_name, cat_count, fq_file1, fq_file2);
 

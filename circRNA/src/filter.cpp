@@ -176,17 +176,17 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 
 // write reads SE mode
 void FilterRead::write_read_category (Record* current_record, int state) {
-	if (state >= cat_count)
-		state = CANDID;
-	fprintf(cat_file_r1[state], "%s%s%s%s", current_record->rname, current_record->seq, current_record->comment, current_record->qual);
+	state = minM(state, current_record->state);
+	int cat = (state >= cat_count) ? CANDID : state;
+	fprintf(cat_file_r1[cat], "%s%s%s%d\n%s", current_record->rname, current_record->seq, current_record->comment, state, current_record->qual);
 }
 
 // write reads PE mode
 void FilterRead::write_read_category (Record* current_record1, Record* current_record2, int state) {
-	if (state >= cat_count)
-		state = CANDID;
-	fprintf(cat_file_r1[state], "%s%s%s%s", current_record1->rname, current_record1->seq, current_record1->comment, current_record1->qual);
-	fprintf(cat_file_r2[state], "%s%s%s%s", current_record2->rname, current_record2->seq, current_record2->comment, current_record2->qual);
+	state = minM(state, current_record1->state);
+	int cat = (state >= cat_count) ? CANDID : state;
+	fprintf(cat_file_r1[cat], "%s%s%s%d\n%s", current_record1->rname, current_record1->seq, current_record1->comment, state, current_record1->qual);
+	fprintf(cat_file_r2[cat], "%s%s%s%d\n%s", current_record2->rname, current_record2->seq, current_record2->comment, state, current_record2->qual);
 }
 
 

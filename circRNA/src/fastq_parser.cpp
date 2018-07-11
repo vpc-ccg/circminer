@@ -2,11 +2,11 @@
 
 #define MAXLINESIZE 400
 
-FASTQParser::FASTQParser () { 
+FASTQParser::FASTQParser (bool read_state) : read_state(read_state) { 
 	input = NULL; 
 }
 
-FASTQParser::FASTQParser (char* filename) {
+FASTQParser::FASTQParser (char* filename, bool read_state) : read_state(read_state) {
 	init(filename);
 }
 
@@ -50,11 +50,17 @@ bool FASTQParser::read_next (void) {
 
 	getline(&skip_at, &max_line_size, input);
 	getline(&current_record->seq, &max_line_size, input);
-	getline(&current_record->comment, &max_line_size, input);
+	int comment_len = getline(&current_record->comment, &max_line_size, input);
 	getline(&current_record->qual, &max_line_size, input);
 	
+	/** read state from comment **/
 	assert(current_record->comment[0] == '+');
-	
+	if (read_state and comment_len > 2) {
+		current_record->state = current_record->comment[1] - '0';
+	}
+	current_record->comment[1] = '\0';
+	/****/
+
 	current_record->seq_len = strlen(current_record->seq) - 1;	// skipping newline at the end
 	//current_record->seq[current_record->seq_len] = '\0';
 
