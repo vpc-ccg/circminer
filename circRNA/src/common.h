@@ -18,7 +18,8 @@ extern "C" {
 #define LINELOG	100000
 #define ASCISIZE 128
 
-#define GENETHRESH 5000
+#define GENETHRESH 20000
+//#define GENETHRESH 5000
 #define MINKMER 15
 #define FRAGLIM 5000
 

@@ -253,15 +253,20 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int
 	
 	left_ok = (remain_beg <= 0);
 	
-	//char* remain_str_beg = (char*) malloc(remain_beg+5);
-	//if (remain_beg > 0) {
-	//	get_reference_chunk_left(lm_pos, remain_beg, remain_str_beg);
-	//	
-	//	if (strlen(remain_str_beg) < remain_beg)
-	//		left_ok = false;
-	//	else
-	//		left_ok = alignment.hamming_match_left(remain_str_beg, remain_beg, seq, remain_beg);
-	//}
+	//char* remain_str_beg = (char*) malloc(remain_beg+6);
+	char remain_str_beg[remain_beg+5];
+	if (remain_beg > 0) {
+		get_reference_chunk_left(lm_pos, remain_beg, remain_str_beg);
+		
+		if (strlen(remain_str_beg) < remain_beg)
+			left_ok = false;
+		else
+		{
+			left_ok = alignment.hamming_match_left(remain_str_beg, remain_beg, seq, remain_beg);
+			//fprintf(stderr, "lmpos: %lu\textend len: %d\n", lm_pos, remain_beg);
+			//fprintf(stderr, "Str beg str:  %s\nRead beg str: %s\nleft ok? %d\n", remain_str_beg, seq, left_ok);
+		}
+	}
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
 	int remain_end = seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len);
@@ -269,14 +274,19 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int
 	right_ok = (remain_end <= 0);
 
 	//char* remain_str_end = (char*) malloc(remain_end+5);
-	//if (remain_end > 0) {
-	//	get_reference_chunk_right(rm_pos, remain_end, remain_str_end);
-	//	
-	//	if (strlen(remain_str_end) < remain_end)
-	//		right_ok = false;
-	//	else
-	//		right_ok = alignment.hamming_match_right(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end);
-	//}
+	char remain_str_end[remain_end+5];
+	if (remain_end > 0) {
+		get_reference_chunk_right(rm_pos, remain_end, remain_str_end);
+		
+		if (strlen(remain_str_end) < remain_end)
+			right_ok = false;
+		else 
+		{
+			right_ok = alignment.hamming_match_right(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end);
+			//fprintf(stderr, "rmpos: %lu\textend len: %d\n", rm_pos, remain_end);
+			//fprintf(stderr, "Str end str:  %s\nRead end str: %s\nright ok? %d\n", remain_str_end, seq + seq_len - remain_end, right_ok);
+		}
+	}
 
 	//free(remain_str_beg);
 	//free(remain_str_end);
@@ -284,8 +294,6 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int
 	if (left_ok and right_ok) {
 		mr.is_concord = true;
 		mr.type = CONCRD;
-		//mr.chr = chr_name;
-		//mr.chr = "1";
 		mr.chr = getRefGenomeName();
 		mr.start_pos = lm_pos;
 		mr.end_pos = rm_pos;
