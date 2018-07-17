@@ -58,6 +58,8 @@ bool FASTQParser::read_next (void) {
 	if (read_state and comment_len > 2) {
 		current_record->state = current_record->comment[1] - '0';
 	}
+	else 
+		current_record->state = ORPHAN;
 	current_record->comment[1] = '\0';
 	/****/
 

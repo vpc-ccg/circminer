@@ -23,12 +23,18 @@ typedef struct {
 typedef struct GTFRecord {
 	string chr;
 	string source;
-	uint32_t start;
-	uint32_t end;
+	string type;
 	string gene_id;
 	string trans_id;
-	int exon_num;
+	string exon_num;
 	string gene_name;
+	uint32_t start;
+	uint32_t end;
+	int exon_num_int;
+	bool forward_strand;
+
+	uint32_t next_start;
+	uint32_t prev_end;
 
 	bool operator < (const GTFRecord& r) const {
 		return (chr == r.chr) ? (start < r.start) : (chr < r.chr);
@@ -39,6 +45,31 @@ typedef struct {
 	string contig;
 	uint32_t shift;
 } ConShift;
+
+typedef struct UniqSeg {
+	string gene_id;
+	uint32_t start;
+	uint32_t end;
+	uint32_t next_exon_beg;
+	uint32_t prev_exon_end;
+
+	bool operator < (const UniqSeg& r) const {
+		if (start != r.start)
+			return start < r.start;
+		if (end != r.end)
+			return end < r.end;
+		if (gene_id != r.gene_id)
+			return gene_id < r.gene_id;
+		if (next_exon_beg != r.next_exon_beg)
+			return next_exon_beg > r.next_exon_beg;		// for backward move after binary search
+		return prev_exon_end < r.prev_exon_end;
+	}
+} UniqSeg;
+
+typedef struct {
+	uint32_t remain;
+	uint32_t next;
+}ExonRemain;
 
 class GTFParser {
 private:
@@ -55,7 +86,13 @@ private:
 	
 	map <string, ConShift> chr2con;
 
+	map <string, int> level;
+	map <UniqSeg, string> merged_exons; 
+
+	vector <UniqSeg> merged_exons_arr;
+
 	void set_contig_shift(const ContigLen* contig_len, int contig_count);
+	void chrloc2conloc(string& chr, uint32_t& start, uint32_t& end);
 
 public:
 	GTFParser (void);
@@ -73,12 +110,16 @@ public:
 	void set_wild_type(void);
 
 	int binary_search(const vector <ExonSeg>& seg, int beg, int end, bool on_start, uint32_t target);
+	int binary_search(int beg, int end, uint32_t target);
 	int search_loc(const string& chr, bool on_start, uint32_t target);
 
 	uint32_t get_start(const string& chr, int seg_ind);
 	uint32_t get_end(const string& chr, int seg_ind);
 	void get_gene_id(const string& chr, int seg_ind, string& gene_id);
 	bool is_last_exonic_region(const string& chr, int seg_ind);
+
+	uint32_t get_upper_bound(uint32_t loc, int len);
+	void get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap);
 
 	void print_record(const GTFRecord& r);
 	void print_records(void);

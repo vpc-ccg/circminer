@@ -145,6 +145,8 @@ int main(int argc, char **argv) {
 		fprintf(stdout, "Winodw size: %d\nChecksum Len: %d\n", WINDOW_SIZE, checkSumLength);
 
 		fprintf(stderr, "Contig: %s\n", getRefGenomeName());
+		//if (getRefGenomeName() != "2")
+		//	continue;
 		contig_name = getRefGenomeName();
 		
 		FASTQParser fq_parser1(fq_file1, !is_first);

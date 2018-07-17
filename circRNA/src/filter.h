@@ -14,14 +14,6 @@ using namespace std;
 
 #define CATNUM 4	// number of output categories
 
-// the order matters:
-#define CONCRD 0
-#define CANDID 1
-#define OEANCH 2
-#define ORPHAN 3
-#define CHIBSJ 4
-#define CHIFUS 5
-
 class FilterRead {
 private:
 	FILE* cat_file_r1[CATNUM];

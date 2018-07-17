@@ -27,6 +27,15 @@ extern "C" {
 #define EDTH 3
 #define SOFTCLIPTH 7
 
+// ouput categories
+// the order matters:
+#define CONCRD 0
+#define CANDID 1
+#define OEANCH 2
+#define ORPHAN 3
+#define CHIBSJ 4
+#define CHIFUS 5
+
 typedef struct fragment_t{
 	uint32_t rpos;
 	int32_t qpos;

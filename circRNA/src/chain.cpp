@@ -1,18 +1,21 @@
 #include <cstdio>
 
 #include "chain.h"
+#include "gene_annotation.h"
 
 #define INF 100000
+#define REWARD_COEF		2e6
+#define PENALTY_COEF	0.1
 
 inline double score_beta(int distr, int distt, int frag_len) {
 	int maxd = distr < distt ? distt : distr;
 	int mind = distr < distt ? distr : distt;
 
-	return 0.15 * (maxd - mind);
+	return 0.1 * (maxd - mind);
 }
 
 inline double score_alpha(int distr, int distl, int frag_len) {
-	return 7.0 * frag_len;
+	return 2e6 * frag_len;
 }
 
 bool compare_frag(fragment_t a, fragment_t b) {
@@ -44,8 +47,11 @@ void chain_seeds_sorted_kbest(GIMatchedKmer*& fragment_list, chain_list& best_ch
 	GIMatchedKmer* pc_mk;	// previously calculated matched kmer
 	int ii;
 	int jj;
-	int max_rpos_lim;
+	uint32_t max_rpos_lim;
 	int pre_start_ind;
+	uint32_t read_remain;
+	uint32_t seg_end;
+	uint32_t ub;
 	for (ii = kmer_cnt - 1; ii >= 0; ii--) {
 		cur_mk = fragment_list + ii;
 		for (i = 0; i < cur_mk->frag_count; i++) {
@@ -61,8 +67,13 @@ void chain_seeds_sorted_kbest(GIMatchedKmer*& fragment_list, chain_list& best_ch
 
 			pre_start_ind = 0;
 			for (i = 0; i < cur_mk->frag_count; i++) {
-				max_rpos_lim = cur_mk->frags[i].info + GENETHRESH;
-				if (max_rpos_lim < pc_mk->frags[pre_start_ind].info)
+				read_remain = 76 - cur_mk->qpos - kmer;
+				seg_end = cur_mk->frags[i].info + kmer - 1;
+				ub = gtf_parser.get_upper_bound(seg_end, read_remain);	// ub = 0 means not found
+				max_rpos_lim = (ub == 0) ? seg_end + read_remain : ub + read_remain;
+				//fprintf(stderr, "Upper bound: %u\n", max_rpos_lim);
+				//max_rpos_lim = cur_mk->frags[i].info + GENETHRESH;
+				if (max_rpos_lim <= pc_mk->frags[pre_start_ind].info)
 					continue;
 
 				while ((pre_start_ind < pc_mk->frag_count) and (pc_mk->frags[pre_start_ind].info <= cur_mk->frags[i].info))	// skip out of range

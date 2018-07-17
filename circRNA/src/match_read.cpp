@@ -8,6 +8,8 @@ extern "C" {
 #include "mrsfast/HashTable.h"
 }
 
+void print_hits(GIMatchedKmer*, int);
+
 void get_mate_name(char* fq1, char* fq2) {
 	strcpy(fq2, fq1);
 	int i = strlen(fq1) - 1;
@@ -147,6 +149,8 @@ int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* sta
 	
 	vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
 
+	//print_hits(starting_node, 7);
+
 	return valid_nonov_kmer + valid_ov_kmer;
 }
 
@@ -241,11 +245,12 @@ void get_reference_chunk_right(uint32_t pos, int len, char* res_str) {
 	if (chr == "")
 		return; 
 
-	//fprintf(stderr, "Going for %lu - %lu\n", pos+1, pos+len);
+	vafprintf(2, stderr, "Going for %lu - %lu\n", pos+1, pos+len);
 	int seg_ind = gtf_parser.search_loc(chr, false, chr_beg);
 	//fprintf(stderr, "Index found: %d\n", seg_ind);
 	uint32_t seg_end = gtf_parser.get_end(chr, seg_ind);
-	//fprintf(stderr, "End of exon: %lu\nChr end: %lu\n", seg_end, chr_end);
+	//uint32_t seg_start = gtf_parser.get_start(chr, seg_ind);
+	//vafprintf(2, stderr, "Start of exon: %lu\nEnd of exon: %lu\nChr end: %lu\n", seg_start, seg_end, chr_end);
 	if (seg_end >= chr_end) {	
 		pac2char(pos + 1, len, res_str);
 		return;
@@ -259,13 +264,21 @@ void get_reference_chunk_right(uint32_t pos, int len, char* res_str) {
 		}
 
 		uint32_t next_start = gtf_parser.get_start(chr, seg_ind + 1);
-		//uint32_t next_integrated_pos = pos + covered_len + (next_start - seg_end);
-		//fprintf(stderr, "next start: %lu, %lu\n", next_start, next_integrated_pos);
-		//char* remain_str = (char*) malloc(len+5);
+		uint32_t next_integrated_pos = pos + covered_len + (next_start - seg_end);
+		//vafprintf(2, stderr, "next start: %lu, %lu\n", next_start, next_integrated_pos);
 		char remain_str[len+5];
 		get_reference_chunk_right(next_start-1, remain_len, remain_str);
 		strncat(res_str, remain_str, remain_len);
-		//free(remain_str);
 		return;
+	}
+}
+
+void print_hits(GIMatchedKmer* frag_l, int cnt) {
+	for (int i = 0; i < cnt; i+=2) {
+		fprintf(stderr, "Frag cnt: %lu\n", (frag_l+i)->frag_count);
+		for (int j = 0; j < (frag_l+i)->frag_count; j++) {
+			fprintf(stderr, "%lu\t", (frag_l+i)->frags[j].info);
+		}
+		fprintf(stderr, "\n");
 	}
 }

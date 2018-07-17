@@ -15,6 +15,8 @@ extern "C" {
 void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l);
 int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int dir);
 int process_mates(const chain_list& forward_chain, const Record* record1, const chain_list& backward_chain, const Record* record2);
+bool extend_right(char* seq, uint32_t pos, int len);
+bool extend_left(char* seq, uint32_t pos, int len);
 
 // updates next fq file to be read if need be (keep file)
 FilterRead::FilterRead (char* save_fname, bool pe, char* filter_temp_name, int num_files, char* fq_file1, char* fq_file2) {
@@ -253,19 +255,19 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int
 	
 	left_ok = (remain_beg <= 0);
 	
-	//char* remain_str_beg = (char*) malloc(remain_beg+6);
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		get_reference_chunk_left(lm_pos, remain_beg, remain_str_beg);
-		
-		if (strlen(remain_str_beg) < remain_beg)
-			left_ok = false;
-		else
-		{
-			left_ok = alignment.hamming_match_left(remain_str_beg, remain_beg, seq, remain_beg);
-			//fprintf(stderr, "lmpos: %lu\textend len: %d\n", lm_pos, remain_beg);
-			//fprintf(stderr, "Str beg str:  %s\nRead beg str: %s\nleft ok? %d\n", remain_str_beg, seq, left_ok);
-		}
+		left_ok = extend_left(seq, lm_pos, remain_beg);
+		//get_reference_chunk_left(lm_pos, remain_beg, remain_str_beg);
+		//
+		//if (strlen(remain_str_beg) < remain_beg)
+		//	left_ok = false;
+		//else
+		//{
+		//	left_ok = alignment.hamming_match_left(remain_str_beg, remain_beg, seq, remain_beg);
+		//	//fprintf(stderr, "lmpos: %lu\textend len: %d\n", lm_pos, remain_beg);
+		//	//fprintf(stderr, "Str beg str:  %s\nRead beg str: %s\nleft ok? %d\n", remain_str_beg, seq, left_ok);
+		//}
 	}
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
@@ -273,19 +275,19 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int
 
 	right_ok = (remain_end <= 0);
 
-	//char* remain_str_end = (char*) malloc(remain_end+5);
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
-		get_reference_chunk_right(rm_pos, remain_end, remain_str_end);
-		
-		if (strlen(remain_str_end) < remain_end)
-			right_ok = false;
-		else 
-		{
-			right_ok = alignment.hamming_match_right(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end);
-			//fprintf(stderr, "rmpos: %lu\textend len: %d\n", rm_pos, remain_end);
-			//fprintf(stderr, "Str end str:  %s\nRead end str: %s\nright ok? %d\n", remain_str_end, seq + seq_len - remain_end, right_ok);
-		}
+		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end);
+		//get_reference_chunk_right(rm_pos, remain_end, remain_str_end);
+		//
+		//if (strlen(remain_str_end) < remain_end)
+		//	right_ok = false;
+		//else 
+		//{
+		//	right_ok = alignment.hamming_match_right(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end);
+		//	fprintf(stderr, "rmpos: %lu\textend len: %d\n", rm_pos, remain_end);
+		//	fprintf(stderr, "Str end str:  %s\nRead end str: %s\nright ok? %d\n", remain_str_end, seq + seq_len - remain_end, right_ok);
+		//}
 	}
 
 	//free(remain_str_beg);
@@ -315,10 +317,16 @@ bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const Matched
 	for (int i = 0; i < mrs_size; i++) {
 		vafprintf(2, stderr, "MR[%d]: %s: %d - %d\n", i, mr.chr, mr.start_pos, mr.end_pos);
 		MatchedRead omr = mrs[i];
-		if (mr.dir == 1 and strcmp(mr.chr, omr.chr) == 0 and mr.start_pos <= omr.start_pos and omr.end_pos <= mr.start_pos + GENETHRESH)
+		if (mr.dir == 1 and strcmp(mr.chr, omr.chr) == 0 and mr.start_pos <= omr.start_pos and omr.end_pos <= mr.start_pos + GENETHRESH) {
+			vafprintf(2, stderr, "Mapped\n");
+			vafprintf(2, stderr, "MR[%d]: %s: %d - %d\n", i, omr.chr, omr.start_pos, omr.end_pos);
 			return true;
-		if (mr.dir == -1 and strcmp(mr.chr, omr.chr) == 0 and omr.start_pos <= mr.start_pos and mr.end_pos <= omr.start_pos + GENETHRESH)
+		}
+		if (mr.dir == -1 and strcmp(mr.chr, omr.chr) == 0 and omr.start_pos <= mr.start_pos and mr.end_pos <= omr.start_pos + GENETHRESH) {
+			vafprintf(2, stderr, "Mapped\n");
+			vafprintf(2, stderr, "MR[%d]: %s: %d - %d\n", i, omr.chr, omr.start_pos, omr.end_pos);
 			return true;
+		}
 	}
 	return false;
 }
@@ -364,5 +372,102 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 	return 	((min_ret1 == ORPHAN) and (min_ret2 == ORPHAN)) ? ORPHAN 
 			: (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
 			: CANDID;
+}
+
+// pos is exclusive
+// [ pos+1, pos+len ]
+bool extend_right(char* seq, uint32_t pos, int len) {
+	char res_str[len+5];
+	bool right_ok = false;
+	
+	string chr = getRefGenomeName();
+	if (chr == "")
+		return false; 
+
+	vafprintf(2, stderr, "Going for %lu - %lu\n", pos+1, pos+len);
+	
+	vector <UniqSeg> overlapped_exon;
+	gtf_parser.get_location_overlap(pos, overlapped_exon);
+
+	UniqSeg seg;
+	uint32_t exon_remain;
+	for (int i = 0; i < overlapped_exon.size(); i++) {
+		res_str[0] = 0;
+		exon_remain = overlapped_exon[i].end - pos;
+		if (exon_remain >= len) {	
+			pac2char(pos + 1, len, res_str);
+		}
+		else {
+			//er = overlapped_exon[i];
+			//int covered = 0;
+			if (overlapped_exon[i].next_exon_beg == 0)	// should not be the last exon and partially mappable
+				continue;
+			else {
+				pac2char(pos + 1, exon_remain, res_str);
+				int remain_len = len - exon_remain;
+				//er = ...
+				pac2char(overlapped_exon[i].next_exon_beg, remain_len, res_str + exon_remain);
+			}
+		}
+		right_ok = alignment.hamming_match_right(res_str, len, seq, len);
+		vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", pos, len);
+		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nright ok? %d\n", res_str, seq, right_ok);
+		if (right_ok)
+			return true;
+	}
+
+	pac2char(pos + 1, len, res_str);	// intron retentaion
+	right_ok = alignment.hamming_match_right(res_str, len, seq, len);
+	vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", pos, len);
+	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nright ok? %d\n", res_str, seq, right_ok);
+
+	return right_ok;
+}
+
+// pos is exclusive
+// [ pos-len, pos-1 ]
+bool extend_left(char* seq, uint32_t pos, int len) {
+	char res_str[len+5];
+	bool left_ok = false;
+	
+	string chr = getRefGenomeName();
+	if (chr == "")
+		return false; 
+
+	vafprintf(2, stderr, "Going for %lu - %lu\n", pos-len, pos-1);
+	
+	vector <UniqSeg> overlapped_exon;
+	gtf_parser.get_location_overlap(pos, overlapped_exon);
+
+	UniqSeg seg;
+	uint32_t exon_remain;
+	for (int i = 0; i < overlapped_exon.size(); i++) {
+		res_str[0] = 0;
+		exon_remain = pos - overlapped_exon[i].start;
+		if (exon_remain >= len) {	
+			pac2char(pos - len, len, res_str);
+		}
+		else {
+			if (overlapped_exon[i].prev_exon_end == 0)	// should not be the first exon and partially mappable
+				continue;
+			else {
+				int remain_len = len - exon_remain;
+				pac2char(overlapped_exon[i].prev_exon_end - remain_len + 1, remain_len, res_str);
+				pac2char(overlapped_exon[i].start, exon_remain, res_str + remain_len);
+			}
+		}
+		left_ok = alignment.hamming_match_left(res_str, len, seq, len);
+		vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", pos, len);
+		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nleft ok? %d\n", res_str, seq, left_ok);
+		if (left_ok)
+			return true;
+	}
+
+	pac2char(pos - len , len, res_str);	// intron retentaion
+	left_ok = alignment.hamming_match_left(res_str, len, seq, len);
+	vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", pos, len);
+	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nleft ok? %d\n", res_str, seq, left_ok);
+
+	return left_ok;
 }
 

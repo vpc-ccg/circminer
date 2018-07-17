@@ -48,7 +48,7 @@ bool Alignment::hamming_match_right(char* s, int n, char* t, int m) {
 	for (int i = mid_range; i < min_len; i++)
 		side_dist += diff_ch[s[i]][t[i]];
 
-	return (side_dist > mm_th) ? true : ((mid_dist + side_dist) <= EDTH);
+	return (side_dist >= mm_th) ? true : ((mid_dist + side_dist) <= EDTH);
 }
 
 // dir < 0
@@ -67,7 +67,7 @@ bool Alignment::hamming_match_left(char* s, int n, char* t, int m) {
 	for (int i = 0; i < SOFTCLIPTH; i++)
 		side_dist += diff_ch[s[i]][t[i]];
 
-	return (side_dist > mm_th) ? true : ((mid_dist + side_dist) <= EDTH);
+	return (side_dist >= mm_th) ? true : ((mid_dist + side_dist) <= EDTH);
 }
 
 // dir > 0
