@@ -77,6 +77,8 @@ extern char outputDir[FILE_NAME_LENGTH];
 
 extern FILE* outputJuncFile;
 
+extern char* contigName;
+
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];
 

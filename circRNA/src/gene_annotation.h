@@ -87,9 +87,11 @@ private:
 	map <string, ConShift> chr2con;
 
 	map <string, int> level;
-	map <UniqSeg, string> merged_exons; 
+	//map <UniqSeg, string> merged_exons; 
+	map <string, map <UniqSeg, string> > merged_exons; 
 
-	vector <UniqSeg> merged_exons_arr;
+	//vector <UniqSeg> merged_exons_arr;
+	map <string, vector <UniqSeg> > merged_exons_arr;
 
 	void set_contig_shift(const ContigLen* contig_len, int contig_count);
 	void chrloc2conloc(string& chr, uint32_t& start, uint32_t& end);

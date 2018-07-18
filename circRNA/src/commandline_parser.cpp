@@ -14,6 +14,8 @@ char outputDir[FILE_NAME_LENGTH] = "./";
 
 FILE *outputJuncFile; 
 
+char* contigName;
+
 /**********************************************/
 // return:
 // 0: normal execution

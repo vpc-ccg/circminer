@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
 	/**Mapping Reads**/
 	/*****************/
 
-	char* contig_name;
+	//char* contig_name;
 	int cat_count;
 	bool is_first = true;
 	do {
@@ -144,10 +144,8 @@ int main(int argc, char **argv) {
 		fprintf(stdout, "[P] Loaded genome index successfully in %.2f sec\n", diff_time);
 		fprintf(stdout, "Winodw size: %d\nChecksum Len: %d\n", WINDOW_SIZE, checkSumLength);
 
-		fprintf(stderr, "Contig: %s\n", getRefGenomeName());
-		//if (getRefGenomeName() != "2")
-		//	continue;
-		contig_name = getRefGenomeName();
+		fprintf(stdout, "Contig: %s\n", getRefGenomeName());
+		contigName = getRefGenomeName();
 		
 		FASTQParser fq_parser1(fq_file1, !is_first);
 		Record* current_record1;
@@ -160,7 +158,7 @@ int main(int argc, char **argv) {
 
 		is_first = false;
 		cat_count = (flag) ? 2 : CATNUM;		// 2 category output unless this is the last contig
-		FilterRead filter_read(outputFilename, is_pe, contig_name, cat_count, fq_file1, fq_file2);
+		FilterRead filter_read(outputFilename, is_pe, contigName, cat_count, fq_file1, fq_file2);
 
 		fprintf(stdout, "Started reading FASTQ file...\n");
 		int line = 0;

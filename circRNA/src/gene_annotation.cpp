@@ -5,6 +5,9 @@
 
 #include "gene_annotation.h"
 
+#include <boost/icl/discrete_interval.hpp>
+#include <boost/icl/interval_map.hpp>
+
 #define MAXLINESIZE 10000
 #define MAXGTFATTR 50
 #define INITGTFREC 3e6
@@ -130,6 +133,7 @@ bool GTFParser::parse_gtf_rec(char* line, int len) {
 }
 
 void copy_seg(GTFRecord* a, GTFRecord* b) {
+	a->chr = b->chr;
 	a->type = b->type;
 	a->start = b->start;
 	a->end = b->end;
@@ -162,7 +166,7 @@ bool GTFParser::load_gtf(void) {
 		found = parse_gtf_rec(line, len);
 		if (!found) continue;
 
-		//chrloc2conloc(current_record->chr, current_record->start, current_record->end);
+		chrloc2conloc(current_record->chr, current_record->start, current_record->end);
 		//if (current_record->chr != "2")		// work on chr 2 for now
 		//	continue;
 
@@ -194,11 +198,11 @@ bool GTFParser::load_gtf(void) {
 
 				//fprintf(stdout, "%d [%s: %d-%d] %d\n", seg.prev_exon_end, seg.gene_id.c_str(), seg.start, seg.end, seg.next_exon_beg);
 
-				if (merged_exons.find(seg) != merged_exons.end()) {	// found seg
-					merged_exons[seg] += "\t" + prev_record->trans_id + "-" + prev_record->exon_num;
+				if (merged_exons[prev_record->chr].find(seg) != merged_exons[prev_record->chr].end()) {	// found seg
+					merged_exons[prev_record->chr][seg] += "\t" + prev_record->trans_id + "-" + prev_record->exon_num;
 				}
 				else {
-					merged_exons[seg] = prev_record->trans_id + "-" + prev_record->exon_num;
+					merged_exons[prev_record->chr][seg] = prev_record->trans_id + "-" + prev_record->exon_num;
 				}
 				//prev_record = current_record;
 				copy_seg(prev_record, current_record);
@@ -220,11 +224,11 @@ bool GTFParser::load_gtf(void) {
 
 			//fprintf(stdout, "%d [%s: %d-%d] %d\n", seg.prev_exon_end, seg.gene_id.c_str(), seg.start, seg.end, seg.next_exon_beg);
 
-			if (merged_exons.find(seg) != merged_exons.end()) {	// found seg
-				merged_exons[seg] += "\t" + prev_record->trans_id + "-" + prev_record->exon_num;
+			if (merged_exons[prev_record->chr].find(seg) != merged_exons[prev_record->chr].end()) {	// found seg
+				merged_exons[prev_record->chr][seg] += "\t" + prev_record->trans_id + "-" + prev_record->exon_num;
 			}
 			else {
-				merged_exons[seg] = prev_record->trans_id + "-" + prev_record->exon_num;
+				merged_exons[prev_record->chr][seg] = prev_record->trans_id + "-" + prev_record->exon_num;
 			}
 
 			prev_record->type = "";
@@ -248,23 +252,26 @@ bool GTFParser::load_gtf(void) {
 
 		//fprintf(stdout, "%d [%s: %d-%d] %d\n", seg.prev_exon_end, seg.gene_id.c_str(), seg.start, seg.end, seg.next_exon_beg);
 
-		if (merged_exons.find(seg) != merged_exons.end()) {	// found seg
-			merged_exons[seg] += "\t" + prev_record->trans_id + "-" + prev_record->exon_num;
+		if (merged_exons[prev_record->chr].find(seg) != merged_exons[prev_record->chr].end()) {	// found seg
+			merged_exons[prev_record->chr][seg] += "\t" + prev_record->trans_id + "-" + prev_record->exon_num;
 		}
 		else {
-			merged_exons[seg] = prev_record->trans_id + "-" + prev_record->exon_num;
+			merged_exons[prev_record->chr][seg] = prev_record->trans_id + "-" + prev_record->exon_num;
 		}
 		//map <UniqSeg, string>:: iterator it = merged_exons.find(seg);
 		//fprintf(stdout, "Next beg: %u\n", (it->first).next_exon_beg);
 	}
 	//////
 
+	map <string, map <UniqSeg, string> >:: iterator con_it;
 	map <UniqSeg, string>:: iterator it;
-	for (it = merged_exons.begin(); it != merged_exons.end(); it++) {
-		merged_exons_arr.push_back(it->first);
-		//fprintf(stdout, "%10u [%s:%10u%10u] %10u = Val: %s\n", it->first.prev_exon_end, it->first.gene_id.c_str(), it->first.start, it->first.end, (it->first).next_exon_beg, it->second.c_str());
-		//int n = merged_exons_arr.size() - 1;
-		//fprintf(stdout, "%10u [%s:%10u%10u] %10u = Val: %s\n", merged_exons_arr[n].prev_exon_end, merged_exons_arr[n].gene_id.c_str(), merged_exons_arr[n].start, merged_exons_arr[n].end, merged_exons_arr[n].next_exon_beg);
+	for (con_it = merged_exons.begin(); con_it != merged_exons.end(); con_it++) {
+		for (it = con_it->second.begin(); it != con_it->second.end(); it++) {
+			merged_exons_arr[con_it->first].push_back(it->first);
+			//fprintf(stdout, "%s -> %10u [%s:%10u%10u] %10u = Val: %s\n", con_it->first.c_str(), it->first.prev_exon_end, it->first.gene_id.c_str(), it->first.start, it->first.end, (it->first).next_exon_beg, it->second.c_str());
+			//int n = merged_exons_arr[con_it->first].size() - 1;
+			//fprintf(stdout, "%10u [%s:%10u%10u] %10u\n", merged_exons_arr[con_it->first][n].prev_exon_end, merged_exons_arr[con_it->first][n].gene_id.c_str(), merged_exons_arr[con_it->first][n].start, merged_exons_arr[con_it->first][n].end, merged_exons_arr[con_it->first][n].next_exon_beg);
+		}
 	}
 
 	set_wild_type();
@@ -322,7 +329,7 @@ int GTFParser::binary_search(int beg, int end, uint32_t target) {
 	
 	int mid = (beg + end) / 2;
 
-	if (target < merged_exons_arr[mid].start)
+	if (target < merged_exons_arr[contigName][mid].start)
 		return binary_search(beg, mid, target);
 	else
 		return binary_search(mid, end, target);
@@ -405,13 +412,13 @@ uint32_t GTFParser::get_upper_bound(uint32_t loc, int len) {
 	uint32_t max_end = 0;
 	uint32_t min_end = 1e9;
 	uint32_t max_next_exon = 0;
-	int i = binary_search(0, merged_exons_arr.size(), loc) - 1;
+	int i = binary_search(0, merged_exons_arr[contigName].size(), loc) - 1;
 	
 	while (i >= 0) {
-		if (merged_exons_arr[i].end >= loc) {
-			max_end = maxM(max_end, merged_exons_arr[i].end);
-			min_end = minM(min_end, merged_exons_arr[i].end);
-			max_next_exon = maxM(max_next_exon, merged_exons_arr[i].next_exon_beg);
+		if (merged_exons_arr[contigName][i].end >= loc) {
+			max_end = maxM(max_end, merged_exons_arr[contigName][i].end);
+			min_end = minM(min_end, merged_exons_arr[contigName][i].end);
+			max_next_exon = maxM(max_next_exon, merged_exons_arr[contigName][i].next_exon_beg);
 			//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
 		}
 		i--;
@@ -434,25 +441,25 @@ uint32_t GTFParser::get_upper_bound(uint32_t loc, int len) {
 // mlen: Matched LENgth
 // rlen: the lenght of the read remained to be matched (Rmained LENgth)
 uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end) {
-	
 	uint32_t epos = spos + mlen - 1;
 
 	bool partial_overlap = false;
 	max_end = 0;
 	uint32_t min_end = 1e9;
 	uint32_t max_next_exon = 0;
-	int i = binary_search(0, merged_exons_arr.size(), spos) - 1;
+
+	int i = binary_search(0, merged_exons_arr[contigName].size(), spos) - 1;
 	int j = i + 1;
 
-	while (i >= 0) {
-		if (merged_exons_arr[i].end >= epos) {
-			max_end = maxM(max_end, merged_exons_arr[i].end);
-			min_end = minM(min_end, merged_exons_arr[i].end);
-			max_next_exon = maxM(max_next_exon, merged_exons_arr[i].next_exon_beg);
+	while (i >= 0 and j - i < 1000) {
+		if (merged_exons_arr[contigName][i].end >= epos) {
+			max_end = maxM(max_end, merged_exons_arr[contigName][i].end);
+			min_end = minM(min_end, merged_exons_arr[contigName][i].end);
+			max_next_exon = maxM(max_next_exon, merged_exons_arr[contigName][i].next_exon_beg);
 			//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
-			//fprintf(stderr, "Exon: [%d-%d]\n", merged_exons_arr[i].start, merged_exons_arr[i].end);
+			//fprintf(stderr, "Exon: [%d-%d]\n", merged_exons_arr[contigName][i].start, merged_exons_arr[contigName][i].end);
 		}
-		else if (merged_exons_arr[i].end >= spos)
+		else if (merged_exons_arr[contigName][i].end >= spos)
 			partial_overlap = true;
 		i--;
 	}
@@ -469,7 +476,7 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	}
 
 	else {
-		if (j < merged_exons_arr.size() and merged_exons_arr[j].start <= epos)
+		if (j < merged_exons_arr[contigName].size() and merged_exons_arr[contigName][j].start <= epos)
 			partial_overlap = true;
 
 		if (partial_overlap)
@@ -485,11 +492,12 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 void GTFParser::get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap) {
 	overlap.clear();
 
-	int i = binary_search(0, merged_exons_arr.size(), loc) - 1;
-	
-	while (i >= 0) {
-		if (merged_exons_arr[i].end >= loc) {
-			overlap.push_back(merged_exons_arr[i]);
+	int i = binary_search(0, merged_exons_arr[contigName].size(), loc) - 1;
+	int j = i + 1;
+
+	while (i >= 0 and j - i < 1000) {
+		if (merged_exons_arr[contigName][i].end >= loc) {
+			overlap.push_back(merged_exons_arr[contigName][i]);
 		}
 		i--;
 	}
