@@ -428,6 +428,58 @@ uint32_t GTFParser::get_upper_bound(uint32_t loc, int len) {
 
 }
 
+// match an interval:
+// [ spos, spos + mlen )
+// spos: Start POSition of matched region
+// mlen: Matched LENgth
+// rlen: the lenght of the read remained to be matched (Rmained LENgth)
+uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end) {
+	
+	uint32_t epos = spos + mlen - 1;
+
+	bool partial_overlap = false;
+	max_end = 0;
+	uint32_t min_end = 1e9;
+	uint32_t max_next_exon = 0;
+	int i = binary_search(0, merged_exons_arr.size(), spos) - 1;
+	int j = i + 1;
+
+	while (i >= 0) {
+		if (merged_exons_arr[i].end >= epos) {
+			max_end = maxM(max_end, merged_exons_arr[i].end);
+			min_end = minM(min_end, merged_exons_arr[i].end);
+			max_next_exon = maxM(max_next_exon, merged_exons_arr[i].next_exon_beg);
+			//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
+			//fprintf(stderr, "Exon: [%d-%d]\n", merged_exons_arr[i].start, merged_exons_arr[i].end);
+		}
+		else if (merged_exons_arr[i].end >= spos)
+			partial_overlap = true;
+		i--;
+	}
+
+	if (max_end > 0) {	// exonic	
+		// loc excluded
+		int32_t min2end = min_end - epos;
+
+		if (min2end >= rlen)		// no junction is allowed
+			return max_end - mlen + 1;
+
+		else
+			return max_next_exon + mlen - 1;
+	}
+
+	else {
+		if (j < merged_exons_arr.size() and merged_exons_arr[j].start <= epos)
+			partial_overlap = true;
+
+		if (partial_overlap)
+			return 0;
+		else
+			return epos + rlen - mlen + 1;
+	}
+
+}
+
 // returns intervals overlapping with: loc
 // remain lenght does not include loc itself (starting from next location)
 void GTFParser::get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap) {

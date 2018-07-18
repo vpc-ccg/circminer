@@ -119,6 +119,7 @@ public:
 	bool is_last_exonic_region(const string& chr, int seg_ind);
 
 	uint32_t get_upper_bound(uint32_t loc, int len);
+	uint32_t get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end);
 	void get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap);
 
 	void print_record(const GTFRecord& r);

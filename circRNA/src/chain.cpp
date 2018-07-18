@@ -50,8 +50,11 @@ void chain_seeds_sorted_kbest(GIMatchedKmer*& fragment_list, chain_list& best_ch
 	uint32_t max_rpos_lim;
 	int pre_start_ind;
 	uint32_t read_remain;
+	uint32_t seg_start;
 	uint32_t seg_end;
 	uint32_t ub;
+	uint32_t max_exon_end;
+
 	for (ii = kmer_cnt - 1; ii >= 0; ii--) {
 		cur_mk = fragment_list + ii;
 		for (i = 0; i < cur_mk->frag_count; i++) {
@@ -68,12 +71,13 @@ void chain_seeds_sorted_kbest(GIMatchedKmer*& fragment_list, chain_list& best_ch
 			pre_start_ind = 0;
 			for (i = 0; i < cur_mk->frag_count; i++) {
 				read_remain = 76 - cur_mk->qpos - kmer;
+				seg_start = cur_mk->frags[i].info;
 				seg_end = cur_mk->frags[i].info + kmer - 1;
-				ub = gtf_parser.get_upper_bound(seg_end, read_remain);	// ub = 0 means not found
-				max_rpos_lim = (ub == 0) ? seg_end + read_remain : ub + read_remain;
-				//fprintf(stderr, "Upper bound: %u\n", max_rpos_lim);
-				//max_rpos_lim = cur_mk->frags[i].info + GENETHRESH;
-				if (max_rpos_lim <= pc_mk->frags[pre_start_ind].info)
+				
+				max_rpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end);	// ub = 0 means not found
+				//max_rpos_lim = (ub == 0) ? seg_end + read_remain : ub + read_remain;
+				//vafprintf(2, stderr, "[%d-%d] -> upper bound: %u\n", seg_start, seg_end, max_rpos_lim);
+				if (max_rpos_lim < pc_mk->frags[pre_start_ind].info)
 					continue;
 
 				while ((pre_start_ind < pc_mk->frag_count) and (pc_mk->frags[pre_start_ind].info <= cur_mk->frags[i].info))	// skip out of range
@@ -85,6 +89,10 @@ void chain_seeds_sorted_kbest(GIMatchedKmer*& fragment_list, chain_list& best_ch
 				j = pre_start_ind;
 
 				while ((j < pc_mk->frag_count) and (pc_mk->frags[j].info <= max_rpos_lim)) {
+					if (max_exon_end != 0 and (pc_mk->frags[j].info <= max_exon_end) and (pc_mk->frags[j].info + kmer - 1) > max_exon_end) {
+						j++;
+						continue;
+					}
 					distr = pc_mk->qpos - cur_mk->qpos;
 
 					distt = pc_mk->frags[j].info - cur_mk->frags[i].info;
