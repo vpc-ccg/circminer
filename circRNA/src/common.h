@@ -5,11 +5,17 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+#include <string>
+#include <vector>
+
+#include <boost/icl/interval_map.hpp>
 
 extern "C" {
 #include "mrsfast/Common.h"
 #include "mrsfast/HashTable.h"
 }
+
+using namespace std;
 
 #define maxM(A,B) (((A) > (B)) ? (A) : (B))
 #define minM(A,B) (((A) < (B)) ? (A) : (B))
@@ -63,6 +69,57 @@ typedef struct {
 	int32_t qpos;
 } GIMatchedKmer;
 
+typedef struct UniqSeg {
+	string gene_id;
+	uint32_t start;
+	uint32_t end;
+	uint32_t next_exon_beg;
+	uint32_t prev_exon_end;
+
+	bool operator < (const UniqSeg& r) const {
+		if (start != r.start)
+			return start < r.start;
+		if (end != r.end)
+			return end < r.end;
+		if (gene_id != r.gene_id)
+			return gene_id < r.gene_id;
+		if (next_exon_beg != r.next_exon_beg)
+			return next_exon_beg > r.next_exon_beg;		// for backward move after binary search
+		return prev_exon_end < r.prev_exon_end;
+	}
+	
+	bool operator == (const UniqSeg& r) const {
+		return (start == r.start and end == r.end and gene_id == r.gene_id and next_exon_beg == r.next_exon_beg and prev_exon_end == r.prev_exon_end);
+	}
+
+} UniqSeg;
+
+typedef struct UniqSegList {
+	vector <UniqSeg> seg_list;
+	
+	bool operator == (const UniqSegList& r) const {
+		if (seg_list.size() != r.seg_list.size())
+			return false;
+
+		for (int i = 0; i < seg_list.size(); i++)
+			if (!(seg_list[i] == r.seg_list[i]))
+				return false;
+
+		return true;
+	}
+
+	UniqSegList& operator += (const UniqSeg& r) {
+		seg_list.push_back(r);
+		return *this;
+	}
+	
+	UniqSegList& operator += (const UniqSegList& r) {
+		for (int i = 0; i < r.seg_list.size(); i++)
+			seg_list.push_back(r.seg_list[i]);
+		return *this;
+	}
+} UniqSegList;
+
 extern bool pairedEnd;
 
 extern int kmer;
@@ -78,6 +135,12 @@ extern char outputDir[FILE_NAME_LENGTH];
 extern FILE* outputJuncFile;
 
 extern char* contigName;
+
+extern uint32_t lookup_cnt;
+
+//typedef boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator interval_it;
+//extern boost::icl::interval_map<uint32_t, UniqSegList>::const_iterator lookup_arr[100000000];
+extern boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator* lookup_arr;
 
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];

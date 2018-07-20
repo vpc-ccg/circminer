@@ -8,6 +8,9 @@
 #include <stdint.h>
 #include <map>
 
+#include <boost/icl/discrete_interval.hpp>
+#include <boost/icl/interval_map.hpp>
+
 #include "common.h"
 
 using namespace std;
@@ -46,30 +49,10 @@ typedef struct {
 	uint32_t shift;
 } ConShift;
 
-typedef struct UniqSeg {
-	string gene_id;
-	uint32_t start;
-	uint32_t end;
-	uint32_t next_exon_beg;
-	uint32_t prev_exon_end;
-
-	bool operator < (const UniqSeg& r) const {
-		if (start != r.start)
-			return start < r.start;
-		if (end != r.end)
-			return end < r.end;
-		if (gene_id != r.gene_id)
-			return gene_id < r.gene_id;
-		if (next_exon_beg != r.next_exon_beg)
-			return next_exon_beg > r.next_exon_beg;		// for backward move after binary search
-		return prev_exon_end < r.prev_exon_end;
-	}
-} UniqSeg;
-
 typedef struct {
 	uint32_t remain;
 	uint32_t next;
-}ExonRemain;
+} ExonRemain;
 
 class GTFParser {
 private:
@@ -87,16 +70,18 @@ private:
 	map <string, ConShift> chr2con;
 
 	map <string, int> level;
-	//map <UniqSeg, string> merged_exons; 
-	map <string, map <UniqSeg, string> > merged_exons; 
 
-	//vector <UniqSeg> merged_exons_arr;
+	map <string, map <UniqSeg, string> > merged_exons; 
 	map <string, vector <UniqSeg> > merged_exons_arr;
+
 
 	void set_contig_shift(const ContigLen* contig_len, int contig_count);
 	void chrloc2conloc(string& chr, uint32_t& start, uint32_t& end);
 
 public:
+	map <string, boost::icl::interval_map <uint32_t, UniqSegList > > exons_int_map;
+	//boost::icl::interval_map <uint32_t, UniqSegList > exons_int_map2;
+
 	GTFParser (void);
 	GTFParser (char* filename, const ContigLen* contig_len, int contig_count);
 	~GTFParser (void);

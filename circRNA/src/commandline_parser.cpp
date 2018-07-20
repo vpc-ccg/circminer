@@ -1,4 +1,5 @@
 #include "commandline_parser.h"
+#include <boost/icl/interval_map.hpp>
 
 using namespace std;
 
@@ -15,6 +16,10 @@ char outputDir[FILE_NAME_LENGTH] = "./";
 FILE *outputJuncFile; 
 
 char* contigName;
+
+uint32_t lookup_cnt;
+//boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator lookup_arr[100000000];
+boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator* lookup_arr;
 
 /**********************************************/
 // return:

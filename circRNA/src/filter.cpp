@@ -221,7 +221,8 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& bes
 	int forward_fragment_count, backward_fragment_count;
 
 	split_match_hash(read_seq, seq_len, kmer_size, frag_l);
-	chain_seeds_sorted_kbest(frag_l, best_chain);
+	chain_seeds_sorted_kbest(seq_len, frag_l, best_chain);
+	//chain_seeds_sorted_kbest_old(frag_l, best_chain);
 }
 
 // return:
@@ -258,6 +259,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
 		left_ok = extend_left(seq, lm_pos, remain_beg);
+		
 		//get_reference_chunk_left(lm_pos, remain_beg, remain_str_beg);
 		//
 		//if (strlen(remain_str_beg) < remain_beg)
@@ -278,6 +280,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
 		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end);
+		
 		//get_reference_chunk_right(rm_pos, remain_end, remain_str_end);
 		//
 		//if (strlen(remain_str_end) < remain_end)
