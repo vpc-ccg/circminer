@@ -86,7 +86,6 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 					
 			//max_lpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end);	// = 0 means not found
 			max_lpos_lim = -1;
-			//vafprintf(2, stderr, "[%d-%d] -> upper bound: %u\n", seg_start, seg_end, max_lpos_lim);
 
 			for (jj = ii+1; jj < kmer_cnt; jj++) {
 				pc_mk = fragment_list + jj;
@@ -108,7 +107,10 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 				j = lb_ind[jj];
 
 				if (max_lpos_lim == -1)
+				{
 					max_lpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end);	// = 0 means not found
+					//vafprintf(2, stderr, "[%d-%d] -> upper bound: %u\n", seg_start, seg_end, max_lpos_lim);
+				}
 
 				distr = pc_mk->qpos - cur_mk->qpos;
 				while ((j < pc_mk->frag_count) and (pc_mk->frags[j].info <= max_lpos_lim)) {

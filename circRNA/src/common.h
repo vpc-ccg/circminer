@@ -137,10 +137,7 @@ extern FILE* outputJuncFile;
 extern char* contigName;
 
 extern uint32_t lookup_cnt;
-
-//typedef boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator interval_it;
-//extern boost::icl::interval_map<uint32_t, UniqSegList>::const_iterator lookup_arr[100000000];
-extern boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator* lookup_arr;
+extern bool* is_exon[3];
 
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];

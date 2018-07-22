@@ -25,23 +25,6 @@ GTFParser gtf_parser;
 Alignment alignment;
 
 int main(int argc, char **argv) {
-	/// Avoid lookup
-	//
-	uint32_t max_contig_size = CONTIG_SIZE;
-	fprintf(stdout, "size of interval iterator: %d\n", sizeof(boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator));
-	void* temp_pointer = malloc(1200000000 * sizeof(boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator));
-
-	if (temp_pointer == NULL) {
-		fprintf(stdout, "Malloc failed\n");
-		return 1;
-	}
-
-	lookup_arr = (boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator*) temp_pointer;
-	
-	//
-	////
-
-
 	time_t pre_time, curr_time;
 	double diff_time;
 	time(&pre_time);
@@ -156,7 +139,7 @@ int main(int argc, char **argv) {
 		time(&curr_time);
 		diff_time = difftime(curr_time, pre_time);
 		pre_time = curr_time;
-		//time_t fq_start_t = curr_time;
+		time_t fq_start_t = curr_time;
 
 		fprintf(stdout, "[P] Loaded genome index successfully in %.2f sec\n", diff_time);
 		fprintf(stdout, "Winodw size: %d\nChecksum Len: %d\n", WINDOW_SIZE, checkSumLength);
@@ -164,34 +147,6 @@ int main(int argc, char **argv) {
 		fprintf(stdout, "Contig: %s\n", getRefGenomeName());
 		contigName = getRefGenomeName();
 
-		/// Load lookups
-		//
-		fprintf(stdout, "Contig size: %u\n", getRefGenLength());
-		int k;
-		int cnt = 0;
-		boost::icl::discrete_interval <uint32_t> pos_int;
-		boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
-		for (k = 0; k <= getRefGenLength(); k++) {
-			pos_int = boost::icl::discrete_interval <uint32_t>::closed(k, k);
-			//fit 			= gtf_parser.exons_int_map[contigName].find(pos_int);
-			lookup_arr[k]	= gtf_parser.exons_int_map[contigName].find(pos_int);
-			//lookup_arr[k]	= gtf_parser.exons_int_map2.find(pos_int);
-			//lookup_arr[k] = fit;
-			if (lookup_arr[k] != gtf_parser.exons_int_map[contigName].end())
-				cnt++;
-			if (k % (LINELOG*10) == 0)
-				fprintf(stdout, "%d of %d found\n", cnt, k);
-		}
-
-		time(&curr_time);
-		diff_time = difftime(curr_time, pre_time);
-		pre_time = curr_time;
-		time_t fq_start_t = curr_time;
-		
-		fprintf(stdout, "%u lookups finished in %.2f sec\n", k, diff_time);
-		//
-		/// 
-		
 		FASTQParser fq_parser1(fq_file1, !is_first);
 		Record* current_record1;
 

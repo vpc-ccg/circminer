@@ -18,8 +18,8 @@ FILE *outputJuncFile;
 char* contigName;
 
 uint32_t lookup_cnt;
-//boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator lookup_arr[100000000];
-boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator* lookup_arr;
+
+bool* is_exon[3];
 
 /**********************************************/
 // return:

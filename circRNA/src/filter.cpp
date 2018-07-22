@@ -259,17 +259,6 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
 		left_ok = extend_left(seq, lm_pos, remain_beg);
-		
-		//get_reference_chunk_left(lm_pos, remain_beg, remain_str_beg);
-		//
-		//if (strlen(remain_str_beg) < remain_beg)
-		//	left_ok = false;
-		//else
-		//{
-		//	left_ok = alignment.hamming_match_left(remain_str_beg, remain_beg, seq, remain_beg);
-		//	//fprintf(stderr, "lmpos: %lu\textend len: %d\n", lm_pos, remain_beg);
-		//	//fprintf(stderr, "Str beg str:  %s\nRead beg str: %s\nleft ok? %d\n", remain_str_beg, seq, left_ok);
-		//}
 	}
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
@@ -280,17 +269,6 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
 		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end);
-		
-		//get_reference_chunk_right(rm_pos, remain_end, remain_str_end);
-		//
-		//if (strlen(remain_str_end) < remain_end)
-		//	right_ok = false;
-		//else 
-		//{
-		//	right_ok = alignment.hamming_match_right(remain_str_end, remain_end, seq + seq_len - remain_end, remain_end);
-		//	fprintf(stderr, "rmpos: %lu\textend len: %d\n", rm_pos, remain_end);
-		//	fprintf(stderr, "Str end str:  %s\nRead end str: %s\nright ok? %d\n", remain_str_end, seq + seq_len - remain_end, right_ok);
-		//}
 	}
 
 	//free(remain_str_beg);
