@@ -107,7 +107,7 @@ public:
 
 	uint32_t get_upper_bound(uint32_t loc, int len);
 	uint32_t get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end);
-	void get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap);
+	void get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap, bool use_mask);
 
 	void print_record(const GTFRecord& r);
 	void print_records(void);

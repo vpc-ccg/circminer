@@ -368,7 +368,7 @@ bool extend_right(char* seq, uint32_t pos, int len) {
 	vafprintf(2, stderr, "Going for %lu - %lu\n", pos+1, pos+len);
 	
 	vector <UniqSeg> overlapped_exon;
-	gtf_parser.get_location_overlap(pos, overlapped_exon);
+	gtf_parser.get_location_overlap(pos, overlapped_exon, true);
 
 	UniqSeg seg;
 	uint32_t exon_remain;
@@ -418,7 +418,7 @@ bool extend_left(char* seq, uint32_t pos, int len) {
 	vafprintf(2, stderr, "Going for %lu - %lu\n", pos-len, pos-1);
 	
 	vector <UniqSeg> overlapped_exon;
-	gtf_parser.get_location_overlap(pos, overlapped_exon);
+	gtf_parser.get_location_overlap(pos, overlapped_exon, false);
 
 	UniqSeg seg;
 	uint32_t exon_remain;

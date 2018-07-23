@@ -142,6 +142,7 @@ void copy_seg(GTFRecord* a, GTFRecord* b) {
 	a->prev_end = b->prev_end;
 	a->trans_id = b->trans_id;
 	a->exon_num = b->exon_num;
+	a->forward_strand = b->forward_strand;
 }
 
 void GTFParser::chrloc2conloc(string& chr, uint32_t& start, uint32_t& end) {
@@ -189,12 +190,13 @@ bool GTFParser::load_gtf(void) {
 			///
 			//
 			int con = current_record->chr[0]-'1';
-			if (con >= 0 and con < 3)
+			if (con >= 0 and con < 3) {
 				//for (int k = current_record->start - kmer; k < current_record->end + kmer; k++)
 				for (int k = maxM(0, current_record->start - maxReadLength); k < current_record->start; k++)
 					is_exon[current_record->chr[0]-'1'][k] = true;
 				for (int k = maxM(0, current_record->end - maxReadLength + 1); k <= current_record->end; k++)
 					is_exon[current_record->chr[0]-'1'][k] = true;
+			}
 			//
 			///
 			if (prev_record->type != "exon") {
@@ -205,7 +207,7 @@ bool GTFParser::load_gtf(void) {
 				continue;
 			}
 			else {
-				if (current_record->forward_strand) {
+				if (prev_record->forward_strand) {
 					prev_record->next_start = current_record->start;
 					current_record->prev_end = prev_record->end;
 				}
@@ -231,7 +233,7 @@ bool GTFParser::load_gtf(void) {
 			}
 		}
 		else if (prev_record->type == "exon") {
-			if (current_record->forward_strand) {
+			if (prev_record->forward_strand) {
 				prev_record->next_start = 0;
 			}
 			else {
@@ -257,7 +259,7 @@ bool GTFParser::load_gtf(void) {
 	///////
 	
 	if (prev_record->type == "exon") {
-		if (current_record->forward_strand) {
+		if (prev_record->forward_strand) {
 			prev_record->next_start = 0;
 		}
 		else {
@@ -447,7 +449,7 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 
 	if (!is_exon[contigName[0]-'1'][spos])		// intronic
 	{
-		//fprintf(stdout, "skip lookup\n");
+		//fprintf(stderr, "skip lookup\n");
 		return spos + rlen + EDTH;	// allowing deletion of size at most "EDTH"
 	}
 
@@ -455,8 +457,19 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
 	fit = exons_int_map[contigName].find(spos_int);
 
-	if (fit == exons_int_map[contigName].end())	// not found => intronic
-		return epos + rlen - mlen + 1;
+	if (fit == exons_int_map[contigName].end()) {	// not found => intronic
+		// find end of intron
+		// To be modified
+		max_end = spos;
+		while (is_exon[contigName[0]-'1'][max_end])
+			max_end++;
+		max_end--;
+
+		if (max_end - spos + 1 < mlen)	// => crossing the boundry
+			return 0;
+		else
+			return spos + rlen + EDTH;
+	}
 
 	for (int i = 0; i < fit->second.seg_list.size(); i++) {
 		if (fit->second.seg_list[i].end >= epos) {	// => exonic
@@ -484,11 +497,12 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 
 // returns intervals overlapping with: loc
 // remain lenght does not include loc itself (starting from next location)
-void GTFParser::get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap) {
+void GTFParser::get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap, bool use_mask) {
 	overlap.clear();
 
-	if (!is_exon[contigName[0]-'1'][len]) {		// intronic
-		//fprintf(stdout, "skip lookup\n");
+	// do not use mask if extending left
+	if (use_mask and !is_exon[contigName[0]-'1'][loc]) {		// intronic
+		//fprintf(stderr, "skip lookup\n");
 		return;
 	}
 
