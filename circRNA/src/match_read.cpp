@@ -149,7 +149,7 @@ int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* sta
 	
 	vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
 
-	//print_hits(starting_node, 7);
+//	print_hits(starting_node, 7);
 
 	return valid_nonov_kmer + valid_ov_kmer;
 }

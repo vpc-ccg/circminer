@@ -441,7 +441,6 @@ void GTFParser::set_contig_shift(const ContigLen* contig_len, int contig_count) 
 // mlen: Matched LENgth
 // rlen: the lenght of the read remained to be matched (Rmained LENgth)
 uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end) {
-	lookup_cnt++;
 	max_end = 0;
 	uint32_t min_end = 1e9;
 	uint32_t max_next_exon = 0;
@@ -453,6 +452,7 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 		return spos + rlen + EDTH;	// allowing deletion of size at most "EDTH"
 	}
 
+	lookup_cnt++;
 	boost::icl::discrete_interval <uint32_t> spos_int = boost::icl::discrete_interval <uint32_t>::closed(spos, spos);
 	boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
 	fit = exons_int_map[contigName].find(spos_int);
