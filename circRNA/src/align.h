@@ -21,8 +21,8 @@ public:
 	bool hamming_match_right(char* s, int n, char* t, int m);
 	bool hamming_match_left (char* s, int n, char* t, int m);
 
-	int  hamming_distance_right(char* s, int n, char* t, int m, int max_sc);
-	int  hamming_distance_left (char* s, int n, char* t, int m, int max_sc);
+	int  hamming_distance_right(char* s, int n, char* t, int m, int& sc_len);
+	int  hamming_distance_left (char* s, int n, char* t, int m, int& sc_len);
 	
 	int alignment(char* s, int n, char* t, int m, int gap_pen, int mm_pen);
 	
