@@ -176,6 +176,7 @@ int main(int argc, char **argv) {
 				diff_time = difftime(curr_time, pre_time);
 				pre_time = curr_time;
 				fprintf(stdout, "[P] %d reads in %.2f sec\t Look ups: %u\n", line, diff_time, lookup_cnt);
+				fflush(stdout);
 				lookup_cnt = 0;
 			}
 

@@ -185,7 +185,7 @@ void pac2char(uint32_t start, int len, char* str) {
 			crdata <<= 3;
 		}
 	}
-	str[i] = '\0';
+	//str[i] = '\0';
 }
 
 // pos is exclusive

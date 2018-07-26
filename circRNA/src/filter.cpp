@@ -296,12 +296,12 @@ bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const Matched
 		
 		omr.matched_len = omr.end_pos - omr.start_pos + 1;
 
-		//vafprintf(0, stderr, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d", mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1);
+		//vafprintf(0, stderr, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\n", mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1);
 		
 		if (mr.dir == 1 and mr.start_pos <= omr.start_pos) {
 			// 2 * 76 + int(omr.start_pos) - mr.end_pos - 1 <= MAXTLEN
 			if (2 * 76 + omr.start_pos <= mr.end_pos + 1 + MAXTLEN) {
-				vafprintf(2, stderr, "Mapped\n");
+				//vafprintf(2, stderr, "Mapped\n");
 				//vafprintf(0, stderr, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d", mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1);
 				return true;
 			}
@@ -312,7 +312,7 @@ bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const Matched
 		if (mr.dir == -1 and omr.start_pos <= mr.start_pos) {
 			// 2 * 76 + int(mr.start_pos) - omr.end_pos - 1;
 			if (2 * 76 + mr.start_pos <= omr.end_pos + 1 + MAXTLEN) {
-				vafprintf(2, stderr, "Mapped\n");
+				//vafprintf(2, stderr, "Mapped\n");
 				//vafprintf(0, stderr, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d", omr.chr, omr.start_pos, omr.end_pos, omr.matched_len, mr.start_pos, mr.end_pos, mr.matched_len, mr.end_pos - omr.start_pos + 1);
 				return true;
 			}
@@ -342,7 +342,7 @@ bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const Matched
 					if ((r1_exons_f[j].next_exon_beg == r2_exons_f[k].start) and (r2_exons_f[k].prev_exon_end == r1_exons_f[j].end) 
 						and (2 * 76 + omr.start_pos <=  mr.end_pos + 1 + (r2_exons_f[k].start - r1_exons_f[j].end) + MAXTLEN)) {	// on two consecutive exons
 						
-						vafprintf(2, stderr, "Mapped\n");
+						//vafprintf(2, stderr, "Mapped\n");
 						//vafprintf(0, stderr, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d", 
 						//					mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1);
 						return true;
@@ -357,7 +357,7 @@ bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const Matched
 					if (r1_exons_r[j].next_exon_beg == r2_exons_r[k].start and r2_exons_r[k].prev_exon_end == r1_exons_r[j].end 
 						and (2 * 76 + mr.start_pos <= omr.end_pos + 1 + (r2_exons_r[k].start - r1_exons_r[j].end) + MAXTLEN)) {	// on two consecutive exons
 						
-						vafprintf(2, stderr, "Mapped\n");
+						//vafprintf(2, stderr, "Mapped\n");
 						//vafprintf(0, stderr, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d", 
 						//					omr.chr, omr.start_pos, omr.end_pos, omr.matched_len, mr.start_pos, mr.end_pos, mr.matched_len, mr.end_pos - omr.start_pos + 1);
 						return true;
@@ -414,6 +414,74 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 
 // pos is exclusive
 // [ pos+1, pos+len ]
+void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int remain, int& min_ed, int& sclen_best, uint32_t& rmpos_best) {
+	int len;
+	int sclen;
+	int edit_dist;
+	uint32_t new_rmpos;
+	uint32_t exon_remain;
+
+	// if covered > 0 -> pos = (next_exon_beg - 1) = > search on (pos + 1)
+	uint32_t search_pos = (covered == 0) ? pos : pos + 1;
+	vector <UniqSeg> overlapped_exon;
+	gtf_parser.get_location_overlap(search_pos, overlapped_exon, true);
+
+	if (overlapped_exon.size() == 0) { // there is enough distance to the end of exon / intron
+		//vafprintf(2, stderr, "Going for %lu - %lu\n", pos + 1, pos + remain);
+		
+		pac2char(pos + 1, remain, res_str);
+		new_rmpos = pos + remain;
+
+		len = covered + remain;
+		edit_dist = alignment.hamming_distance_right(res_str - covered, len, seq, len, sclen);
+		
+		//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", pos, len);
+		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d\n", res_str - covered, seq, edit_dist);
+		
+		if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
+			min_ed = edit_dist;
+			sclen_best = sclen;
+			rmpos_best = new_rmpos;
+		}
+	}
+
+	for (int i = 0; i < overlapped_exon.size(); i++) {
+		//vafprintf(2, stderr, "This exon: [%u-%u] -> %u\n", overlapped_exon[i].start, overlapped_exon[i].end, overlapped_exon[i].next_exon_beg);
+		if (covered > 0 and overlapped_exon[i].start != search_pos)	// when jump to the next exon
+			continue;
+
+		exon_remain = overlapped_exon[i].end - pos;
+		vafprintf(2, stderr, "Remain on exon: %u\n", exon_remain);
+		if (exon_remain >= remain) {	// exonic	
+			//vafprintf(2, stderr, "Going for %lu - %lu\n", pos + 1, pos + remain);
+			
+			pac2char(pos + 1, remain, res_str);
+			new_rmpos = pos + remain;
+
+			len = covered + remain;
+			edit_dist = alignment.hamming_distance_right(res_str - covered, len, seq, len, sclen);
+			
+			//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", pos, len);
+			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d\n", res_str - covered, seq, edit_dist);
+			
+			if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
+				min_ed = edit_dist;
+				sclen_best = sclen;
+				rmpos_best = new_rmpos;
+			}
+		}
+		else {		// junction
+			if (overlapped_exon[i].next_exon_beg == 0)	// should not be the last exon and partially mappable
+				continue;
+			
+			pac2char(pos + 1, exon_remain, res_str);
+			get_seq_right(res_str + exon_remain, seq, overlapped_exon[i].next_exon_beg - 1, covered + exon_remain, remain - exon_remain, min_ed, sclen_best, rmpos_best);
+		}
+	}
+}
+
+// pos is exclusive
+// [ pos+1, pos+len ]
 bool extend_right(char* seq, uint32_t& pos, int len) {
 	char res_str[len+5];
 	bool right_ok = false;
@@ -422,44 +490,22 @@ bool extend_right(char* seq, uint32_t& pos, int len) {
 	string chr = getRefGenomeName();
 	if (chr == "")
 		return false; 
-
-	vafprintf(2, stderr, "Going for %lu - %lu\n", pos+1, pos+len);
 	
-	vector <UniqSeg> overlapped_exon;
-	gtf_parser.get_location_overlap(pos, overlapped_exon, true);
+	int min_ed = EDTH + 1;
+	int sclen_best = SOFTCLIPTH;
+	uint32_t best_rmpos = 0;
+	
+	res_str[len] = '\0';
+	get_seq_right(res_str, seq, pos, 0, len, min_ed, sclen_best, best_rmpos);
 
-	UniqSeg seg;
-	uint32_t exon_remain;
-	for (int i = 0; i < overlapped_exon.size(); i++) {
-		res_str[0] = 0;
-		exon_remain = overlapped_exon[i].end - pos;
-		if (exon_remain >= len) {	
-			pac2char(pos + 1, len, res_str);
-			new_rmpos = pos + len;
-		}
-		else {
-			//er = overlapped_exon[i];
-			//int covered = 0;
-			if (overlapped_exon[i].next_exon_beg == 0)	// should not be the last exon and partially mappable
-				continue;
-			else {
-				pac2char(pos + 1, exon_remain, res_str);
-				int remain_len = len - exon_remain;
-				//er = ...
-				pac2char(overlapped_exon[i].next_exon_beg, remain_len, res_str + exon_remain);
-				new_rmpos = overlapped_exon[i].next_exon_beg + remain_len - 1;
-			}
-		}
-		right_ok = alignment.hamming_match_right(res_str, len, seq, len);
-		vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", pos, len);
-		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nright ok? %d\n", res_str, seq, right_ok);
-		if (right_ok) {
-			pos = new_rmpos;
-			return true;
-		}
+	if (min_ed <= EDTH) {
+		pos = best_rmpos;
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, best_rmpos);
+		return true;
 	}
-
-	pac2char(pos + 1, len, res_str);	// intron retentaion
+	
+	// intron retentaion
+	pac2char(pos + 1, len, res_str);	
 	new_rmpos = pos + len;
 	right_ok = alignment.hamming_match_right(res_str, len, seq, len);
 	vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", pos, len);
@@ -473,6 +519,74 @@ bool extend_right(char* seq, uint32_t& pos, int len) {
 
 // pos is exclusive
 // [ pos-len, pos-1 ]
+bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remain, int& min_ed, int& sclen_best, uint32_t& lmpos_best) {
+	int len;
+	int sclen;
+	int edit_dist;
+	uint32_t new_lmpos;
+	uint32_t exon_remain;
+	
+	// if covered > 0 -> pos = (prev_exon_end + 1) = > search on (pos - 1)
+	uint32_t search_pos = (covered == 0) ? pos : pos - 1;
+	vector <UniqSeg> overlapped_exon;
+	gtf_parser.get_location_overlap(search_pos, overlapped_exon, false);
+
+	if (overlapped_exon.size() == 0) {
+		//vafprintf(2, stderr, "Going for %lu - %lu\n", pos - remain, pos - 1);
+
+		new_lmpos = pos - remain;
+		pac2char(new_lmpos, remain, res_str);
+
+		len = covered + remain;
+		edit_dist = alignment.hamming_distance_left(res_str, len, seq, len, sclen);
+
+		//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", pos, len);
+		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeftedit dist: %d\n", res_str, seq, edit_dist);
+
+		if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
+			min_ed = edit_dist;
+			sclen_best = sclen;
+			lmpos_best = new_lmpos;
+		}
+	}
+
+	for (int i = 0; i < overlapped_exon.size(); i++) {
+		//vafprintf(2, stderr, "%u <- This exon: [%u-%u]\n", overlapped_exon[i].prev_exon_end, overlapped_exon[i].start, overlapped_exon[i].end);
+		if (covered > 0 and overlapped_exon[i].end != search_pos)	// when jump to prev exon
+			continue;
+
+		exon_remain = pos - overlapped_exon[i].start;
+		vafprintf(2, stderr, "Remain on exon: %u\n", exon_remain);
+		if (exon_remain >= remain) {
+			//vafprintf(2, stderr, "Going for %lu - %lu\n", pos - remain, pos - 1);
+
+			new_lmpos = pos - remain;
+			pac2char(new_lmpos, remain, res_str);
+
+			len = covered + remain;
+			edit_dist = alignment.hamming_distance_left(res_str, len, seq, len, sclen);
+
+			//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", pos, len);
+			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeft edit dist: %d\n", res_str, seq, edit_dist);
+
+			if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
+				min_ed = edit_dist;
+				sclen_best = sclen;
+				lmpos_best = new_lmpos;
+			}
+		}
+		else {		// junction
+			if (overlapped_exon[i].prev_exon_end == 0)	// should not be the first exon and partially mappable
+				continue;
+
+			pac2char(overlapped_exon[i].start, exon_remain, res_str + remain - exon_remain);
+			get_seq_left(res_str, seq, overlapped_exon[i].prev_exon_end + 1, covered + exon_remain, remain - exon_remain, min_ed, sclen_best, lmpos_best);
+		}
+	}
+}
+
+// pos is exclusive
+// [ pos-len, pos-1 ]
 bool extend_left(char* seq, uint32_t& pos, int len) {
 	char res_str[len+5];
 	bool left_ok = false;
@@ -482,42 +596,24 @@ bool extend_left(char* seq, uint32_t& pos, int len) {
 	if (chr == "")
 		return false; 
 
-	vafprintf(2, stderr, "Going for %lu - %lu\n", pos-len, pos-1);
-	
-	vector <UniqSeg> overlapped_exon;
-	gtf_parser.get_location_overlap(pos, overlapped_exon, false);
+	int min_ed = EDTH + 1;
+	int sclen_best = SOFTCLIPTH;
+	uint32_t lmpos_best = 0;
 
-	UniqSeg seg;
-	uint32_t exon_remain;
-	for (int i = 0; i < overlapped_exon.size(); i++) {
-		res_str[0] = 0;
-		exon_remain = pos - overlapped_exon[i].start;
-		if (exon_remain >= len) {	
-			new_lmpos = pos - len;
-			pac2char(new_lmpos, len, res_str);
-		}
-		else {
-			if (overlapped_exon[i].prev_exon_end == 0)	// should not be the first exon and partially mappable
-				continue;
-			else {
-				int remain_len = len - exon_remain;
-				new_lmpos = overlapped_exon[i].prev_exon_end - remain_len + 1;
-				pac2char(new_lmpos, remain_len, res_str);
-				pac2char(overlapped_exon[i].start, exon_remain, res_str + remain_len);
-			}
-		}
-		left_ok = alignment.hamming_match_left(res_str, len, seq, len);
-		vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", pos, len);
-		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nleft ok? %d\n", res_str, seq, left_ok);
-		if (left_ok) {
-			pos = new_lmpos;
-			return true;
-		}
+	res_str[len] = '\0';
+	get_seq_left(res_str, seq, pos, 0, len, min_ed, sclen_best, lmpos_best);
+	
+	if (min_ed <= EDTH) {
+		pos = lmpos_best;
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
+		return true;
 	}
 
+	// intron retentaion
 	new_lmpos = pos - len;
-	pac2char(new_lmpos , len, res_str);	// intron retentaion
+	pac2char(new_lmpos , len, res_str);	
 	left_ok = alignment.hamming_match_left(res_str, len, seq, len);
+	
 	vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", pos, len);
 	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nleft ok? %d\n", res_str, seq, left_ok);
 
