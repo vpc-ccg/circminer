@@ -41,11 +41,14 @@ def parse_cigar(cigar):
 
 sam_fname = sys.argv[1]
 
-dist = [[ 0 for x in range(76) ] for y in range(76) ]
+dist = [[[ 0 for x in range(76) ] for y in range(76) ] for z in range(76) ]
 
 line = 0
 mate_sc = 0
 mate_err = 0
+mate_mm = 0
+mate_indel = 0
+
 with open(sam_fname, 'r') as sf:
 	for l in sf:
 		if l[0] == '@':
@@ -57,10 +60,15 @@ with open(sam_fname, 'r') as sf:
 		if flag > 255:
 			continue
 
-		line += 1
+		tlen = int(ll[8])
+		if not(tlen > 20000 or tlen < -20000):
+		#if tlen > 20000 or tlen < -20000:
+			continue
 		
+		line += 1
 		cigar = ll[5]
 		if cigar == "*":
+			print "bad cigar!!!"
 			continue
 
 		nm = ll[15]
@@ -73,14 +81,22 @@ with open(sam_fname, 'r') as sf:
 		if line % 2 == 1:
 			mate_err = err
 			mate_sc = sc
+			mate_mm = mm
+			mate_indel = indel
 		else:
-			dist[sc+mate_sc][err+mate_err] += 1
-			if sc + mate_sc + err + mate_err == 0:
+			dist[indel+mate_indel][mm+mate_mm][sc+mate_sc] += 1
+			#if (indel + mate_indel == 0) and (mm + mate_mm < 3) and (sc + mate_sc < 3):
+			if (indel + mate_indel == 0) and (mm + mate_mm > 10):
 				print>> sys.stderr, l.strip()
 
-for d in dist[:17]:
-	for e in d[:17]:
+sums = [ ]
+for i in range(76):
+	sums.append(sum(sum(dist[i], [])))
+print "indel > 0: {}".format( sum(sums[1:]) )
+
+for d in dist[0][:21]:
+	for e in d[:21]:
 		print e,
 	print
 
-print sum(sum(dist,[]))
+print sum(sum(dist[0],[]))
