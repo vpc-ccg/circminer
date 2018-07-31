@@ -24,7 +24,7 @@ using namespace std;
 #define LINELOG	100000
 #define ASCISIZE 128
 
-//#define GENETHRESH 20000
+#define GENETHRESH 50000
 #define MAXTLEN 500
 //#define MAXTLEN 500000
 #define MINKMER 15

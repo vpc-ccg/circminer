@@ -290,7 +290,6 @@ bool GTFParser::load_gtf(void) {
 			temp_list += it->first;
 			exons_int_map[con_it->first] += make_pair(boost::icl::discrete_interval <uint32_t>::closed (it->first.start, it->first.end), temp_list);
 
-			merged_exons_arr[con_it->first].push_back(it->first);
 			//fprintf(stderr, "%s -> %10u [%s:%10u%10u] %10u = Val: %s\n", con_it->first.c_str(), it->first.prev_exon_end, it->first.gene_id.c_str(), it->first.start, it->first.end, (it->first).next_exon_beg, it->second.c_str());
 		}
 	}
@@ -353,24 +352,6 @@ void GTFParser::set_wild_type(void) {
 // => 
 // closest Greater than: returned index
 // closest Less than or Equal: returned index - 1
-int GTFParser::binary_search(int beg, int end, uint32_t target) {
-	if (end - beg <= 1)
-		return end;
-	
-	int mid = (beg + end) / 2;
-
-	if (target < merged_exons_arr[contigName][mid].start)
-		return binary_search(beg, mid, target);
-	else
-		return binary_search(mid, end, target);
-}
-
-// assumption: target is not less than list[0]
-// input interval: [, )
-// return: i if target in [i-1, i)
-// => 
-// closest Greater than: returned index
-// closest Less than or Equal: returned index - 1
 int GTFParser::binary_search(const vector <ExonSeg>& seg, int beg, int end, bool on_start, uint32_t target) {
 	if (end - beg <= 1)
 		return end;
@@ -416,23 +397,37 @@ void GTFParser::print_records(void) {
 	}
 }
 
-void GTFParser::set_contig_shift(const ContigLen* contig_len, int contig_count) {
+void GTFParser::set_contig_shift(const ContigLen* chr_info, int contig_count) {
 	int curr_contig = 1;
 	uint32_t sum_size = 0;
 	ConShift con_shift;
+	ConShift chr_shift;
 	for (int i = 0; i < contig_count; i++) {
-		ostringstream oss;
-		oss << curr_contig;
-		con_shift.contig = oss.str();
-		con_shift.shift = sum_size;
-		chr2con[contig_len[i].name] = con_shift;
+		ostringstream con_name;
+		con_name << curr_contig;
 
-		sum_size += contig_len[i].len + 1;	// +1 because of N at the end of each chr
+		con_shift.contig = con_name.str();
+		con_shift.shift = sum_size;
+		chr2con[chr_info[i].name] = con_shift;
+
+		chr_shift.contig = chr_info[i].name;
+		chr_shift.shift = sum_size;
+		con2chr[con_shift.contig].push_back(chr_shift);
+
+		sum_size += chr_info[i].len + 1;	// +1 because of N at the end of each chr
 		if (sum_size >= MIN_CONTIG_SIZE) {
 			sum_size = 0;
 			curr_contig++;
 		}
 	}
+}
+
+ConShift GTFParser::get_shift(const string& contig, uint32_t loc) {
+	int i;
+	for (i = 1; i < con2chr[contig].size(); i++)
+		if (loc < con2chr[contig][i].shift)
+			return con2chr[contig][i-1];
+	return con2chr[contig][i-1];
 }
 
 // match an interval:

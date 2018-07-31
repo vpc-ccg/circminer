@@ -48,7 +48,9 @@ bool FASTQParser::read_next (void) {
 	current_record->rname[0] = '@';	// already read it in has_next()
 	char * skip_at = current_record->rname + 1;
 
-	getline(&skip_at, &max_line_size, input);
+	int rname_len = 1;
+	rname_len += getline(&skip_at, &max_line_size, input);
+
 	getline(&current_record->seq, &max_line_size, input);
 	int comment_len = getline(&current_record->comment, &max_line_size, input);
 	getline(&current_record->qual, &max_line_size, input);
@@ -64,6 +66,7 @@ bool FASTQParser::read_next (void) {
 	/****/
 
 	current_record->seq_len = strlen(current_record->seq) - 1;	// skipping newline at the end
+	current_record->rname[rname_len - 1] = '\0';
 	//current_record->seq[current_record->seq_len] = '\0';
 
 	set_reverse_comp();

@@ -61,7 +61,7 @@ FilterRead::~FilterRead (void) {
 int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedKmer*& fl, GIMatchedKmer*& bl, 
 								chain_list& forward_best_chain, chain_list& backward_best_chain) {
 	
-	vafprintf(1, stderr, "%s", current_record->rname);
+	vafprintf(1, stderr, "%s\n", current_record->rname);
 
 	MatchedRead mr;
 	int ex_ret, min_ret = ORPHAN;
@@ -100,12 +100,12 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 	int max_frag_count = current_record1->seq_len / kmer_size + 1;
 	
 	// R1
-	vafprintf(1, stderr, "R1/%s", current_record1->rname);
+	vafprintf(1, stderr, "R1/%s\n", current_record1->rname);
 
 	get_best_chains(current_record1->seq, current_record1->seq_len, kmer_size, forward_best_chain_r1, fl);
 	get_best_chains(current_record1->rcseq, current_record1->seq_len, kmer_size, backward_best_chain_r1, bl);
 
-	vafprintf(1, stderr, "R1/%s", current_record1->rname);
+	vafprintf(1, stderr, "R1/%s\n", current_record1->rname);
 	vafprintf(1, stderr, "R1 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r1.chains[0].score, (unsigned long)forward_best_chain_r1.best_chain_count);
 	for (int j = 0; j < forward_best_chain_r1.best_chain_count; j++)
 		for (int i = 0; i < forward_best_chain_r1.chains[j].chain_len; i++) {
@@ -119,12 +119,12 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 		}
 
 	// R2
-	vafprintf(1, stderr, "R2/%s", current_record2->rname);
+	vafprintf(1, stderr, "R2/%s\n", current_record2->rname);
 
 	get_best_chains(current_record2->seq, current_record2->seq_len, kmer_size, forward_best_chain_r2, fl);
 	get_best_chains(current_record2->rcseq, current_record2->seq_len, kmer_size, backward_best_chain_r2, bl);
 
-	vafprintf(1, stderr, "R2/%s", current_record2->rname);
+	vafprintf(1, stderr, "R2/%s\n", current_record2->rname);
 	vafprintf(1, stderr, "R2 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r2.chains[0].score, (unsigned long)forward_best_chain_r2.best_chain_count);
 	for (int j = 0; j < forward_best_chain_r2.best_chain_count; j++)
 		for (int i = 0; i < forward_best_chain_r2.chains[j].chain_len; i++) {
@@ -181,15 +181,15 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 void FilterRead::write_read_category (Record* current_record, int state) {
 	state = minM(state, current_record->state);
 	int cat = (state >= cat_count) ? CANDID : state;
-	fprintf(cat_file_r1[cat], "%s%s%s%d\n%s", current_record->rname, current_record->seq, current_record->comment, state, current_record->qual);
+	fprintf(cat_file_r1[cat], "%s\n%s%s%d\n%s", current_record->rname, current_record->seq, current_record->comment, state, current_record->qual);
 }
 
 // write reads PE mode
 void FilterRead::write_read_category (Record* current_record1, Record* current_record2, int state) {
 	state = minM(state, current_record1->state);
 	int cat = (state >= cat_count) ? CANDID : state;
-	fprintf(cat_file_r1[cat], "%s%s%s%d\n%s", current_record1->rname, current_record1->seq, current_record1->comment, state, current_record1->qual);
-	fprintf(cat_file_r2[cat], "%s%s%s%d\n%s", current_record2->rname, current_record2->seq, current_record2->comment, state, current_record2->qual);
+	fprintf(cat_file_r1[cat], "%s\n%s%s%d\n%s", current_record1->rname, current_record1->seq, current_record1->comment, state, current_record1->qual);
+	fprintf(cat_file_r2[cat], "%s\n%s%s%d\n%s", current_record2->rname, current_record2->seq, current_record2->comment, state, current_record2->qual);
 }
 
 
@@ -285,10 +285,12 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedRead& mr, int
 	return mr.type;
 }
 
-bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const MatchedRead& mr) {
+bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const MatchedRead& mr, const char* rname) {
 	if (mrs_size <= 0 or mr.dir * mrs[0].dir == 1)	// empty / same orientation
 		return false;
 
+	ConShift con_shift = gtf_parser.get_shift(contigName, mr.start_pos);
+	uint32_t shift = con_shift.shift;
 	for (int i = 0; i < mrs_size; i++) {
 		MatchedRead omr = mrs[i];
 		if (strcmp(mr.chr, omr.chr) != 0) 
@@ -296,13 +298,16 @@ bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const Matched
 		
 		omr.matched_len = omr.end_pos - omr.start_pos + 1;
 
-		//vafprintf(0, stderr, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\n", mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1);
+		vafprintf(0, stderr, "---%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\n", mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1);
 		
 		if (mr.dir == 1 and mr.start_pos <= omr.start_pos) {
-			// 2 * 76 + int(omr.start_pos) - mr.end_pos - 1 <= MAXTLEN
+			if (mr.start_pos + GENETHRESH >= omr.end_pos)
+				fprintf(outputJuncFile, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\n", rname, con_shift.contig.c_str(), mr.start_pos - shift, mr.end_pos - shift, mr.matched_len, 
+																						omr.start_pos - shift, omr.end_pos - shift, omr.matched_len, omr.end_pos - mr.start_pos + 1);
+			// 2 * 76 + omr.start_pos - mr.end_pos - 1 <= MAXTLEN
 			if (2 * 76 + omr.start_pos <= mr.end_pos + 1 + MAXTLEN) {
 				//vafprintf(2, stderr, "Mapped\n");
-				//vafprintf(0, stderr, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d", mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1);
+				//fprintf(outputJuncFile, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t", mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1);
 				return true;
 			}
 		}
@@ -310,10 +315,13 @@ bool are_concordant(const vector <MatchedRead>& mrs, int mrs_size, const Matched
 		//vafprintf(0, stderr, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d", omr.chr, omr.start_pos, omr.end_pos, omr.matched_len, mr.start_pos, mr.end_pos, mr.matched_len, mr.end_pos - omr.start_pos + 1);
 		
 		if (mr.dir == -1 and omr.start_pos <= mr.start_pos) {
-			// 2 * 76 + int(mr.start_pos) - omr.end_pos - 1;
+			if (omr.start_pos + GENETHRESH >= mr.end_pos)
+				fprintf(outputJuncFile, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\n", rname, con_shift.contig.c_str(), omr.start_pos - shift, omr.end_pos - shift, omr.matched_len, 
+																						mr.start_pos - shift, mr.end_pos - shift, mr.matched_len, mr.end_pos - omr.start_pos + 1);
+			// 2 * 76 + mr.start_pos - omr.end_pos - 1;
 			if (2 * 76 + mr.start_pos <= omr.end_pos + 1 + MAXTLEN) {
 				//vafprintf(2, stderr, "Mapped\n");
-				//vafprintf(0, stderr, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d", omr.chr, omr.start_pos, omr.end_pos, omr.matched_len, mr.start_pos, mr.end_pos, mr.matched_len, mr.end_pos - omr.start_pos + 1);
+				//fprintf(outputJuncFile, "%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t", omr.chr, omr.start_pos, omr.end_pos, omr.matched_len, mr.start_pos, mr.end_pos, mr.matched_len, mr.end_pos - omr.start_pos + 1);
 				return true;
 			}
 		}
@@ -385,8 +393,8 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 		if (i < fc_size) {
 			ex_ret = extend_chain(forward_chain.chains[i], record1->seq, record1->seq_len, forward_mrl[fmrl_count], 1); 
 			if (ex_ret == CONCRD) {
-				if (are_concordant(backward_mrl, bmrl_count, forward_mrl[fmrl_count])) {
-					//vafprintf(0, stderr, "\t%s", record1->rname);
+				if (are_concordant(backward_mrl, bmrl_count, forward_mrl[fmrl_count], record1->rname)) {
+					//vafprintf(0, stderr, "%s", record1->rname);
 					return CONCRD;
 				}
 				fmrl_count++;
@@ -397,8 +405,8 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 		if (i < bc_size) {
 			ex_ret = extend_chain(backward_chain.chains[i], record2->rcseq, record2->seq_len, backward_mrl[bmrl_count], -1); 
 			if (ex_ret == CONCRD) {
-				if (are_concordant(forward_mrl, fmrl_count, backward_mrl[bmrl_count])) {
-					//vafprintf(0, stderr, "\t%s", record1->rname);
+				if (are_concordant(forward_mrl, fmrl_count, backward_mrl[bmrl_count], record1->rname)) {
+					//vafprintf(0, stderr, "%s", record1->rname);
 					return CONCRD;
 				}
 				bmrl_count++;
@@ -407,8 +415,8 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 		}
 	}
 
-	return 	((min_ret1 == ORPHAN) and (min_ret2 == ORPHAN)) ? ORPHAN 
-			: (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
+	return  ((min_ret1 == ORPHAN) and (min_ret2 == ORPHAN)) ? ORPHAN
+			: (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH
 			: CANDID;
 }
 
@@ -540,7 +548,7 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 		len = covered + remain;
 		edit_dist = alignment.hamming_distance_left(res_str, len, seq, len, sclen);
 
-		//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", pos, len);
+		//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", new_lmpos, len);
 		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeftedit dist: %d\n", res_str, seq, edit_dist);
 
 		if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
@@ -556,7 +564,7 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 			continue;
 
 		exon_remain = pos - overlapped_exon[i].start;
-		vafprintf(2, stderr, "Remain on exon: %u\n", exon_remain);
+		//vafprintf(2, stderr, "Remain on exon: %u\n", exon_remain);
 		if (exon_remain >= remain) {
 			//vafprintf(2, stderr, "Going for %lu - %lu\n", pos - remain, pos - 1);
 
@@ -566,7 +574,7 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 			len = covered + remain;
 			edit_dist = alignment.hamming_distance_left(res_str, len, seq, len, sclen);
 
-			//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", pos, len);
+			//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", new_lmpos, len);
 			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeft edit dist: %d\n", res_str, seq, edit_dist);
 
 			if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance

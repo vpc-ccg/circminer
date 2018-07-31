@@ -68,11 +68,11 @@ private:
 	map <string, vector <ExonSeg> > wt_exons;
 	
 	map <string, ConShift> chr2con;
+	map <string, vector<ConShift> > con2chr;
 
 	map <string, int> level;
 
 	map <string, map <UniqSeg, string> > merged_exons; 
-	map <string, vector <UniqSeg> > merged_exons_arr;
 
 
 	void set_contig_shift(const ContigLen* contig_len, int contig_count);
@@ -97,7 +97,6 @@ public:
 	void set_wild_type(void);
 
 	int binary_search(const vector <ExonSeg>& seg, int beg, int end, bool on_start, uint32_t target);
-	int binary_search(int beg, int end, uint32_t target);
 	int search_loc(const string& chr, bool on_start, uint32_t target);
 
 	uint32_t get_start(const string& chr, int seg_ind);
@@ -108,6 +107,8 @@ public:
 	uint32_t get_upper_bound(uint32_t loc, int len);
 	uint32_t get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end);
 	void get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap, bool use_mask);
+
+	ConShift get_shift(const string& contig, uint32_t loc);
 
 	void print_record(const GTFRecord& r);
 	void print_records(void);
