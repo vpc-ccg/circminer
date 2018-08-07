@@ -12,7 +12,7 @@
 
 using namespace std;
 
-#define CATNUM 4	// number of output categories
+#define CATNUM 6	// number of output categories
 
 class FilterRead {
 private:

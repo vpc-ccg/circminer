@@ -144,8 +144,8 @@ int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* sta
 
 	valid_nonov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, 0, kmer_size, 2, starting_node, nonov_em_count);
 
-	//if (valid_nonov_kmer < 2)
-	//	valid_ov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, kmer_size / 2, kmer_size, exact_match_res_ov, ov_em_count);
+	if (valid_nonov_kmer < 2)
+		valid_ov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, kmer_size / 2, kmer_size, 2, starting_node + 1, ov_em_count);
 	
 	vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
 
@@ -186,91 +186,6 @@ void pac2char(uint32_t start, int len, char* str) {
 		}
 	}
 	//str[i] = '\0';
-}
-
-// pos is exclusive
-// [ pos-len, pos-1 ]
-void get_reference_chunk_left(uint32_t pos, int len, char* res_str) {
-	res_str[0] = 0;
-	char* chr_name;
-	uint32_t chr_beg;
-	uint32_t chr_end;
-	
-	string chr = getRefGenomeName();
-	chr_beg = pos - len;
-	chr_end = pos;
-	if (chr == "")
-		return; 
-
-	//fprintf(stderr, "Going for %lu - %lu\n", pos-len, pos-1);
-	int seg_ind = gtf_parser.search_loc(chr, true, chr_end - 1);
-	//fprintf(stderr, "Index found: %d\n", seg_ind);
-	uint32_t seg_start = gtf_parser.get_start(chr, seg_ind);
-	//fprintf(stderr, "Start of exon: %lu\nChr beg: %lu\n", seg_start, chr_beg);
-	if (seg_start <= chr_beg) {	
-		pac2char(pos - len, len, res_str);
-		return;
-	}
-	else {
-		int remain_len = seg_start - chr_beg;
-		int covered_len = len - remain_len;
-		pac2char(pos - covered_len, covered_len, res_str);
-		if (seg_ind == 0) {	// reached first exonic region on chromosome
-			return;
-		}
-
-		uint32_t prev_end = gtf_parser.get_end(chr, seg_ind - 1);
-		//uint32_t prev_integrated_pos = pos - covered_len - (seg_start - prev_end);
-		//char* remain_str = (char*) malloc(len+5);
-		char remain_str[len+5];
-		get_reference_chunk_left(prev_end+1, remain_len, remain_str);
-		strncat(remain_str, res_str, covered_len);
-		strcpy(res_str, remain_str);
-		//free(remain_str);
-		return;
-	}
-}
-
-// pos is exclusive
-// [ pos+1, pos+len ]
-void get_reference_chunk_right(uint32_t pos, int len, char* res_str) {
-	res_str[0] = 0;
-	uint32_t chr_beg;
-	uint32_t chr_end;
-	
-	string chr = getRefGenomeName();
-	chr_beg = pos;
-	chr_end = pos + len;
-
-	if (chr == "")
-		return; 
-
-	vafprintf(2, stderr, "Going for %lu - %lu\n", pos+1, pos+len);
-	int seg_ind = gtf_parser.search_loc(chr, false, chr_beg);
-	//fprintf(stderr, "Index found: %d\n", seg_ind);
-	uint32_t seg_end = gtf_parser.get_end(chr, seg_ind);
-	//uint32_t seg_start = gtf_parser.get_start(chr, seg_ind);
-	//vafprintf(2, stderr, "Start of exon: %lu\nEnd of exon: %lu\nChr end: %lu\n", seg_start, seg_end, chr_end);
-	if (seg_end >= chr_end) {	
-		pac2char(pos + 1, len, res_str);
-		return;
-	}
-	else {
-		int remain_len = chr_end - seg_end;
-		int covered_len = len - remain_len;
-		pac2char(pos + 1, covered_len, res_str);
-		if (gtf_parser.is_last_exonic_region(chr, seg_ind)) {	// reached first exonic region on chromosome
-			return;
-		}
-
-		uint32_t next_start = gtf_parser.get_start(chr, seg_ind + 1);
-		uint32_t next_integrated_pos = pos + covered_len + (next_start - seg_end);
-		//vafprintf(2, stderr, "next start: %lu, %lu\n", next_start, next_integrated_pos);
-		char remain_str[len+5];
-		get_reference_chunk_right(next_start-1, remain_len, remain_str);
-		strncat(res_str, remain_str, remain_len);
-		return;
-	}
 }
 
 void print_hits(GIMatchedKmer* frag_l, int cnt) {

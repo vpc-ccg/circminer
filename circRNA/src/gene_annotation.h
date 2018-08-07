@@ -49,11 +49,6 @@ typedef struct {
 	uint32_t shift;
 } ConShift;
 
-typedef struct {
-	uint32_t remain;
-	uint32_t next;
-} ExonRemain;
-
 class GTFParser {
 private:
 	FILE* input;
@@ -80,7 +75,6 @@ private:
 
 public:
 	map <string, boost::icl::interval_map <uint32_t, UniqSegList > > exons_int_map;
-	//boost::icl::interval_map <uint32_t, UniqSegList > exons_int_map2;
 
 	GTFParser (void);
 	GTFParser (char* filename, const ContigLen* contig_len, int contig_count);
@@ -106,6 +100,8 @@ public:
 
 	uint32_t get_upper_bound(uint32_t loc, int len);
 	uint32_t get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end);
+	
+	const UniqSegList* get_location_overlap(uint32_t loc, bool use_mask);
 	void get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap, bool use_mask);
 
 	ConShift get_shift(const string& contig, uint32_t loc);

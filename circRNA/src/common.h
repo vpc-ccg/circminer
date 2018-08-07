@@ -24,6 +24,8 @@ using namespace std;
 #define LINELOG	100000
 #define ASCISIZE 128
 
+#define INF 1e9
+
 #define GENETHRESH 50000
 #define MAXTLEN 500
 //#define MAXTLEN 500000
@@ -37,11 +39,14 @@ using namespace std;
 // ouput categories
 // the order matters:
 #define CONCRD 0
-#define CANDID 1
-#define OEANCH 2
-#define ORPHAN 3
-#define CHIBSJ 4
-#define CHIFUS 5
+#define DISCRD 1
+#define CHIBSJ 2
+#define CANDID 3
+#define OEANCH 4
+#define ORPHAN 5
+#define CHIFUS 6
+
+//---------- Structures ----------//
 
 typedef struct fragment_t{
 	uint32_t rpos;
@@ -93,6 +98,18 @@ typedef struct UniqSeg {
 		return (start == r.start and end == r.end and gene_id == r.gene_id and next_exon_beg == r.next_exon_beg and prev_exon_end == r.prev_exon_end);
 	}
 
+	bool same_gene(const UniqSeg& r) const {
+		return (gene_id == r.gene_id);
+	}
+
+	bool same_exon(const UniqSeg& r) const {
+		return (start == r.start and end == r.end);
+	}
+
+	bool next_exon(const UniqSeg& r) const {	// is this next exon of r?
+		return (r.next_exon_beg == start and prev_exon_end == r.end);
+	}
+
 } UniqSeg;
 
 typedef struct UniqSegList {
@@ -121,6 +138,68 @@ typedef struct UniqSegList {
 	}
 } UniqSegList;
 
+typedef struct MatchedMate {
+	uint32_t 	start_pos;
+	uint32_t 	end_pos;
+	uint16_t	junc_num;
+	int 		matched_len;
+	int 		dir;
+	int 		type;
+	char* 		chr;
+	bool 		is_concord;
+	
+	bool		looked_up_spos;	// intronic / inter-genic -> looked up but not found (still NULL)
+	bool		looked_up_epos;	// intronic / inter-genic -> looked up but not found (still NULL)
+
+	const UniqSegList* exons_spos;
+	const UniqSegList* exons_epos;
+
+	MatchedMate() : type(ORPHAN), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) {}
+
+} MatchedMate;
+
+typedef struct MatchedRead {
+	uint32_t	spos_r1;
+	uint32_t	spos_r2;
+	uint32_t	epos_r1;
+	uint32_t	epos_r2;
+	int 		mlen_r1;
+	int 		mlen_r2;
+	int 		type;
+	int32_t 	tlen;
+	uint16_t 	junc_num;
+	bool		gm_compatible;
+	string		chr;
+
+	MatchedRead() : type(ORPHAN), tlen(INF), junc_num(-1), gm_compatible(false) {}
+	
+	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type) {
+		if (this->gm_compatible and !gm_compatible)
+			return false;
+		if ((this->gm_compatible == gm_compatible) and (this->tlen < tlen))
+			return false;
+
+		this->type = type;
+		this->chr = chr;
+
+		spos_r1 = r1.start_pos - shift;
+		epos_r1 = r1.end_pos - shift;
+		mlen_r1 = r1.matched_len;
+
+		spos_r2 = r2.start_pos - shift;
+		epos_r2 = r2.end_pos - shift;
+		mlen_r2 = r2.matched_len;
+
+		this->tlen = tlen;
+		this->junc_num = jun_between + r1.junc_num + r2.junc_num;
+		this->gm_compatible = gm_compatible;
+
+		return true;
+	}
+} MatchedRead;
+
+//---------- Global Variables ----------//
+
 extern bool pairedEnd;
 
 extern int kmer;
@@ -143,10 +222,14 @@ extern bool* is_exon[3];
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];
 
+//---------- Functions ----------//
+
 FILE* open_file(char* filename, char* mode);
 void close_file(FILE* fp);
 
 // verbose-aware fprintf
 void vafprintf(int verbosity, FILE *stream, const char *format, ...);
+
+//--------------------------------//
 
 #endif	//__COMMON_H__

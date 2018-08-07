@@ -492,6 +492,23 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 
 // returns intervals overlapping with: loc
 // remain lenght does not include loc itself (starting from next location)
+const UniqSegList* GTFParser::get_location_overlap(uint32_t loc, bool use_mask) {
+	// do not use mask if extending left
+	if (use_mask and !is_exon[contigName[0]-'1'][loc]) {		// intronic
+		//fprintf(stderr, "skip lookup\n");
+		return NULL;
+	}
+
+	boost::icl::discrete_interval <uint32_t> loc_int = boost::icl::discrete_interval <uint32_t>::closed(loc, loc);
+	boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
+	fit = exons_int_map[contigName].find(loc_int);
+
+	if (fit == exons_int_map[contigName].end())	// not found => intronic
+		return NULL;
+
+	return &(fit->second);
+}
+
 void GTFParser::get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap, bool use_mask) {
 	overlap.clear();
 
