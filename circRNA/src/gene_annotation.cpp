@@ -370,10 +370,10 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	uint32_t max_next_exon = 0;
 	uint32_t epos = spos + mlen - 1;
 
-	fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
+	//fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
 	if (!is_exon[contigName[0]-'1'][spos])		// intronic
 	{
-		fprintf(stderr, "skip lookup\n");
+		//fprintf(stderr, "skip lookup\n");
 		return spos + rlen + EDTH;	// allowing deletion of size at most "EDTH"
 	}
 
@@ -401,8 +401,8 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 			max_end = maxM(max_end, fit->second.seg_list[i].end);
 			min_end = minM(min_end, fit->second.seg_list[i].end);
 			max_next_exon = maxM(max_next_exon, fit->second.seg_list[i].next_exon_beg);
-			fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
-			fprintf(stderr, "Exon: [%d-%d]\n", fit->second.seg_list[i].start, fit->second.seg_list[i].end);
+			//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
+			//fprintf(stderr, "Exon: [%d-%d]\n", fit->second.seg_list[i].start, fit->second.seg_list[i].end);
 		}
 	}
 
