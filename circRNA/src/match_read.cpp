@@ -144,8 +144,8 @@ int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* sta
 
 	valid_nonov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, 0, kmer_size, 2, starting_node, nonov_em_count);
 
-	if (valid_nonov_kmer < 2)
-		valid_ov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, kmer_size / 2, kmer_size, 2, starting_node + 1, ov_em_count);
+	//if (valid_nonov_kmer < 2)
+	//	valid_ov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, kmer_size / 2, kmer_size, 2, starting_node + 1, ov_em_count);
 	
 	vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
 

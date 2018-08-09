@@ -27,7 +27,7 @@ FilterRead::FilterRead (char* save_fname, bool pe, char* filter_temp_name, int n
 	is_pe = pe;
 	cat_count = num_files;
 
-	char* output_names[7] = { "concordant", "discordant", "chim_bsj", "keep", "OEA", "orphan", "chim_fus" };
+	char* output_names[8] = { "concordant", "discordant", "circ_RF", "fusion", "circ_bsj", "keep", "OEA", "orphan" };
 	char cat_fname [FILE_NAME_LENGTH];
 	
 	for (int i = 0; i < num_files; i++) {
@@ -196,7 +196,7 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 }
 
 void print_mapping(char* rname, const MatchedRead& mr) {
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIBSJ) {
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
 		fprintf(outputJuncFile, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\n", rname, mr.chr.c_str(), 
 																			mr.spos_r1, mr.epos_r1, mr.mlen_r1, 
 																			mr.spos_r2, mr.epos_r2, mr.mlen_r2, 
@@ -212,7 +212,6 @@ bool is_concord(const chain_t& a, int seq_len, MatchedMate& mr) {
 		mr.is_concord = true;
 		mr.type = CONCRD;
 		
-		mr.chr = getRefGenomeName();
 		mr.start_pos = a.frags[0].rpos;
 		mr.end_pos = a.frags[a.chain_len-1].rpos + a.frags[a.chain_len-1].len - 1;
 		mr.matched_len = a.frags[a.chain_len-1].qpos + a.frags[a.chain_len-1].len - a.frags[0].qpos;
@@ -272,7 +271,6 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 	}
 
 
-	mr.chr = getRefGenomeName();
 	mr.start_pos = lm_pos;
 	mr.end_pos = rm_pos;
 	//mr.matched_len = seq_len - sclen_left - sclen_right;
@@ -312,6 +310,7 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 			mr.update(sm, lm, chr, shift, tlen, 0, false, CONCRD);
 	}
 	else {
+		//fprintf(stderr, "Left Mate [%u-%u] dir=%d, type=%d, Right Mate[%u-%u] dir=%d, type=%d\n", sm.start_pos, sm.end_pos, sm.dir, sm.type, lm.start_pos, lm.end_pos, lm.dir, lm.type);
 	// starts on same exon
 		for (int i = 0; i < sm.exons_spos->seg_list.size(); i++)
 			for (int j = 0; j < lm.exons_spos->seg_list.size(); j++)
@@ -358,32 +357,71 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 		return false;
 }
 
-void check_chimeric(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift) {
+bool check_chimeric(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift) {
 	if (mr.type == CONCRD)
-		return;
+		return false;
 
 	if (sm.exons_spos == NULL or lm.exons_spos == NULL)
-		return;
+		return false;
 
+	//fprintf(stderr, "Left Mate [%u-%u] dir=%d, type=%d, Right Mate[%u-%u] dir=%d, type=%d\n", sm.start_pos, sm.end_pos, sm.dir, sm.type, lm.start_pos, lm.end_pos, lm.dir, lm.type);
 	for (int i = 0; i < sm.exons_spos->seg_list.size(); i++)
 		for (int j = 0; j < lm.exons_spos->seg_list.size(); j++)
 			if (sm.exons_spos->seg_list[i].same_gene(lm.exons_spos->seg_list[j]) and sm.start_pos < lm.start_pos) {
-				mr.update(sm, lm, chr, shift, lm.end_pos - sm.start_pos + 1, 0, false, CHIBSJ);
-			}	
+				mr.update(sm, lm, chr, shift, lm.end_pos - sm.start_pos + 1, 0, false, CHIORF);
+				return true;
+			}
+	return false;
 }
 
-void check_bsj(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift) {
+bool check_bsj(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift) {
 	if (mr.type == CONCRD or mr.type == DISCRD)
-		return;
+		return false;
 
 	if (sm.exons_spos == NULL or lm.exons_spos == NULL)
-		return;
+		return false;
 
 	for (int i = 0; i < sm.exons_spos->seg_list.size(); i++)
 		for (int j = 0; j < lm.exons_spos->seg_list.size(); j++)
 			if (sm.exons_spos->seg_list[i].same_gene(lm.exons_spos->seg_list[j])) {
 				mr.update(sm, lm, chr, shift, lm.end_pos - sm.start_pos + 1, 0, false, CHIBSJ);
+				return true;
 			}
+	return false;
+}
+
+bool are_chimeric(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, MatchedRead& mr) {
+	if (mms_size <= 0 or mm.dir * mms[0].dir == 1)	// empty / same orientation
+		return false;
+
+	ConShift con_shift = gtf_parser.get_shift(contigName, mm.start_pos);
+	uint32_t shift = con_shift.shift;
+	
+	//vafprintf(0, stderr, "---%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\tdir:%d\n", rname, mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, 
+	//																		omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1, mr.dir);
+		
+	overlap_to_epos(mm);
+	overlap_to_spos(mm);
+
+	for (int i = 0; i < mms_size; i++) {
+		MatchedMate omm = mms[i];
+
+		overlap_to_spos(omm);
+		overlap_to_epos(omm);
+		
+		if (mm.dir == 1) {
+			if (check_bsj(mm, omm, mr, con_shift.contig, shift))
+				return true;
+		}
+
+
+		if (mm.dir == -1) {
+			if(check_bsj(omm, mm, mr, con_shift.contig, shift))
+				return true;
+		}
+	}
+	
+	return false;
 }
 
 bool are_concordant(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, MatchedRead& mr) {
@@ -401,8 +439,6 @@ bool are_concordant(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, Ma
 
 	for (int i = 0; i < mms_size; i++) {
 		MatchedMate omm = mms[i];
-		if (strcmp(mm.chr, omm.chr) != 0)
-			continue;
 
 		overlap_to_spos(omm);
 		overlap_to_epos(omm);
@@ -410,16 +446,15 @@ bool are_concordant(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, Ma
 		if (mm.dir == 1) {
 			if (concordant_explanation(mm, omm, mr, con_shift.contig, shift))
 				return true;
-			else 
-				check_chimeric(omm, mm, mr, con_shift.contig, shift); 
-			}
+			check_chimeric(omm, mm, mr, con_shift.contig, shift);
+		}
 
 
-		if (mm.dir == -1)
+		if (mm.dir == -1) {
 			if (concordant_explanation(omm, mm, mr, con_shift.contig, shift))
 				return true;
-			else 
-				check_chimeric(mm, omm, mr, con_shift.contig, shift);
+			check_chimeric(mm, omm, mr, con_shift.contig, shift);
+		}
 	}
 	
 	return false;
@@ -433,14 +468,21 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 
 	vector <MatchedMate> forward_mml(fc_size);
 	vector <MatchedMate> backward_mml(bc_size);
+	
+	vector <MatchedMate> forward_mml_partial(fc_size);
+	vector <MatchedMate> backward_mml_partial(bc_size);
 
 	MatchedRead mr;
 
 	int ex_ret;
 	int fmml_count = 0;
 	int bmml_count = 0;
+	int fmmlp_count = 0;
+	int bmmlp_count = 0;
 	int min_ret1 = ORPHAN;
 	int min_ret2 = ORPHAN;
+
+	// concordant?
 	for (int i = 0; i < max_len; i++) {
 		if (i < fc_size) {
 			ex_ret = extend_chain(forward_chain.chains[i], record1->seq, record1->seq_len, forward_mml[fmml_count], 1);
@@ -450,7 +492,12 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 					print_mapping(record1->rname, mr);
 					return CONCRD;
 				}
+
 				fmml_count++;
+			}
+			else if (ex_ret == CANDID) {
+				forward_mml_partial[fmmlp_count] = forward_mml[fmml_count];
+				fmmlp_count++;
 			}
 			if (ex_ret < min_ret1)	min_ret1 = ex_ret;
 		}
@@ -465,11 +512,29 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 				}
 				bmml_count++;
 			}
+			else if (ex_ret == CANDID) {
+				backward_mml_partial[bmmlp_count] = backward_mml[bmml_count];
+				bmmlp_count++;
+			}
 			if (ex_ret < min_ret2)	min_ret2 = ex_ret;
 		}
 	}
 
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIBSJ) {
+	// chimeric?
+	for (int i = 0; i < fmmlp_count; i++) {
+		if (are_chimeric(backward_mml, bmml_count, forward_mml_partial[i], mr)) {
+			print_mapping(record1->rname, mr);
+			return mr.type;
+		}
+	}
+	for (int i = 0; i < bmmlp_count; i++) {
+		if (are_chimeric(forward_mml, fmml_count, backward_mml_partial[i], mr)) {
+			print_mapping(record1->rname, mr);
+			return mr.type;
+		}
+	}
+
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
 		print_mapping(record1->rname, mr);
 		return mr.type;
 	}
@@ -556,10 +621,6 @@ bool extend_right(char* seq, uint32_t& pos, int len) {
 	bool right_ok = false;
 	uint32_t new_rmpos = pos;
 	
-	string chr = getRefGenomeName();
-	if (chr == "")
-		return false; 
-	
 	int min_ed = EDTH + 1;
 	int sclen_best = SOFTCLIPTH;
 	uint32_t best_rmpos = 0;
@@ -569,7 +630,7 @@ bool extend_right(char* seq, uint32_t& pos, int len) {
 
 	if (min_ed <= EDTH) {
 		pos = best_rmpos;
-		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, best_rmpos);
+		//vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, best_rmpos);
 		return true;
 	}
 	
@@ -577,8 +638,8 @@ bool extend_right(char* seq, uint32_t& pos, int len) {
 	pac2char(pos + 1, len, res_str);	
 	new_rmpos = pos + len;
 	right_ok = alignment.hamming_match_right(res_str, len, seq, len);
-	vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", pos, len);
-	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nright ok? %d\n", res_str, seq, right_ok);
+	//vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", pos, len);
+	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nright ok? %d\n", res_str, seq, right_ok);
 
 	if (right_ok)
 		pos = new_rmpos;
@@ -661,10 +722,6 @@ bool extend_left(char* seq, uint32_t& pos, int len) {
 	bool left_ok = false;
 	uint32_t new_lmpos = pos;
 	
-	string chr = getRefGenomeName();
-	if (chr == "")
-		return false; 
-
 	int min_ed = EDTH + 1;
 	int sclen_best = SOFTCLIPTH;
 	uint32_t lmpos_best = 0;
@@ -674,7 +731,7 @@ bool extend_left(char* seq, uint32_t& pos, int len) {
 	
 	if (min_ed <= EDTH) {
 		pos = lmpos_best;
-		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
+		//vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 		return true;
 	}
 
@@ -683,8 +740,8 @@ bool extend_left(char* seq, uint32_t& pos, int len) {
 	pac2char(new_lmpos , len, res_str);	
 	left_ok = alignment.hamming_match_left(res_str, len, seq, len);
 	
-	vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", pos, len);
-	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nleft ok? %d\n", res_str, seq, left_ok);
+	//vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", pos, len);
+	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nleft ok? %d\n", res_str, seq, left_ok);
 
 	if (left_ok)
 		pos = new_lmpos;

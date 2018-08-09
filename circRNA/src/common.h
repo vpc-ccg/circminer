@@ -40,11 +40,12 @@ using namespace std;
 // the order matters:
 #define CONCRD 0
 #define DISCRD 1
-#define CHIBSJ 2
-#define CANDID 3
-#define OEANCH 4
-#define ORPHAN 5
-#define CHIFUS 6
+#define CHIORF 2
+#define CHIFUS 3
+#define CHIBSJ 4
+#define CANDID 5
+#define OEANCH 6
+#define ORPHAN 7
 
 //---------- Structures ----------//
 
@@ -145,7 +146,6 @@ typedef struct MatchedMate {
 	int 		matched_len;
 	int 		dir;
 	int 		type;
-	char* 		chr;
 	bool 		is_concord;
 	
 	bool		looked_up_spos;	// intronic / inter-genic -> looked up but not found (still NULL)
@@ -155,6 +155,21 @@ typedef struct MatchedMate {
 	const UniqSegList* exons_epos;
 
 	MatchedMate() : type(ORPHAN), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) {}
+	void operator = (const MatchedMate& mm) {
+		start_pos 	= mm.start_pos;
+		end_pos		= mm.end_pos;
+		junc_num	= mm.junc_num;
+		matched_len	= mm.matched_len;
+		dir			= mm.dir;
+		type		= mm.type;
+		is_concord	= mm.is_concord;
+
+		looked_up_spos = mm.looked_up_spos;
+		looked_up_epos = mm.looked_up_epos;
+
+		exons_spos	= mm.exons_spos;
+		exons_epos	= mm.exons_epos;
+	}
 
 } MatchedMate;
 
@@ -174,6 +189,9 @@ typedef struct MatchedRead {
 	MatchedRead() : type(ORPHAN), tlen(INF), junc_num(-1), gm_compatible(false) {}
 	
 	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type) {
+		if (type > this->type)
+			return false;
+
 		if (this->gm_compatible and !gm_compatible)
 			return false;
 		if ((this->gm_compatible == gm_compatible) and (this->tlen < tlen))
