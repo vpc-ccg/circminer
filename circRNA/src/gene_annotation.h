@@ -59,23 +59,18 @@ private:
 	size_t max_line_size;
 
 	GTFRecord* current_record;
-	vector <GTFRecord> records;
-	map <string, vector <ExonSeg> > wt_exons;
 	
+	map <string, map <UniqSeg, string> > merged_exons; 
+	map <string, boost::icl::interval_map <uint32_t, UniqSegList > > exons_int_map;
+
 	map <string, ConShift> chr2con;
 	map <string, vector<ConShift> > con2chr;
-
 	map <string, int> level;
-
-	map <string, map <UniqSeg, string> > merged_exons; 
-
 
 	void set_contig_shift(const ContigLen* contig_len, int contig_count);
 	void chrloc2conloc(string& chr, uint32_t& start, uint32_t& end);
 
 public:
-	map <string, boost::icl::interval_map <uint32_t, UniqSegList > > exons_int_map;
-
 	GTFParser (void);
 	GTFParser (char* filename, const ContigLen* contig_len, int contig_count);
 	~GTFParser (void);
@@ -88,15 +83,8 @@ public:
 	void tokenize(char* line, int len, const string& delim, vector<string>& gtf_fields);
 	bool parse_gtf_rec (char* line, int len);
 	bool load_gtf (void);
-	void set_wild_type(void);
 
 	int binary_search(const vector <ExonSeg>& seg, int beg, int end, bool on_start, uint32_t target);
-	int search_loc(const string& chr, bool on_start, uint32_t target);
-
-	uint32_t get_start(const string& chr, int seg_ind);
-	uint32_t get_end(const string& chr, int seg_ind);
-	void get_gene_id(const string& chr, int seg_ind, string& gene_id);
-	bool is_last_exonic_region(const string& chr, int seg_ind);
 
 	uint32_t get_upper_bound(uint32_t loc, int len);
 	uint32_t get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end);
@@ -107,7 +95,6 @@ public:
 	ConShift get_shift(const string& contig, uint32_t loc);
 
 	void print_record(const GTFRecord& r);
-	void print_records(void);
 };
 
 extern GTFParser gtf_parser;

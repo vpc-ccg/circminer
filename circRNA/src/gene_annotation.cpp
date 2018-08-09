@@ -33,7 +33,6 @@ void GTFParser::init(char* filename, const ContigLen* contig_len, int contig_cou
 	line = (char*) malloc(max_line_size);
 
 	current_record = new GTFRecord;
-	//records.reserve(INITGTFREC);
 	set_contig_shift(contig_len, contig_count);
 
 	level["gene"] = 1;
@@ -127,7 +126,6 @@ bool GTFParser::parse_gtf_rec(char* line, int len) {
 		return true;
 	}
 	else {
-//		fprintf(stdout, "Type: %s\n", gtf_fields[2].c_str());
 		return false;
 	}
 }
@@ -229,7 +227,6 @@ bool GTFParser::load_gtf(void) {
 				}
 				//prev_record = current_record;
 				copy_seg(prev_record, current_record);
-				records.push_back(*current_record);
 			}
 		}
 		else if (prev_record->type == "exon") {
@@ -303,47 +300,7 @@ bool GTFParser::load_gtf(void) {
 		fprintf(stdout, "Contig [%d]: Need look up for %d\n", i+1, need_lu[i]);
 	}
 
-	set_wild_type();
 	return true;
-}
-
-void GTFParser::set_wild_type(void) {
-	if (records.size() <= 0)
-		return;
-	sort(records.begin(), records.end());
-	//print_records();
-
-	ExonSeg wt_exon;
-	wt_exon.gene_id = records[0].gene_id;
-	wt_exon.gene_name = records[0].gene_name;
-	wt_exon.chr = records[0].chr;
-	wt_exon.start = records[0].start;
-	wt_exon.end = records[0].end;
-	for (int i = 1; i < records.size(); i++) {
-		if (records[i].chr != wt_exon.chr or records[i].start > wt_exon.end) {
-			if (chr2con.find(wt_exon.chr) != chr2con.end()) {	// chr in genome
-				wt_exon.start += chr2con[wt_exon.chr].shift;
-				wt_exon.end += chr2con[wt_exon.chr].shift;
-				wt_exon.chr = chr2con[wt_exon.chr].contig;
-			}
-			wt_exons[wt_exon.chr].push_back(wt_exon);
-
-			wt_exon.gene_id = records[i].gene_id;
-			wt_exon.gene_name = records[i].gene_name;
-			wt_exon.chr = records[i].chr;
-			wt_exon.start = records[i].start;
-			wt_exon.end = records[i].end;
-		}
-		else if (records[i].end > wt_exon.end){
-			wt_exon.end = records[i].end;
-		}
-	}
-	if (chr2con.find(wt_exon.chr) != chr2con.end()) {	// chr in genome
-		wt_exon.start += chr2con[wt_exon.chr].shift;
-		wt_exon.end += chr2con[wt_exon.chr].shift;
-		wt_exon.chr = chr2con[wt_exon.chr].contig;
-	}
-	wt_exons[wt_exon.chr].push_back(wt_exon);
 }
 
 // assumption: target is not less than list[0]
@@ -365,36 +322,8 @@ int GTFParser::binary_search(const vector <ExonSeg>& seg, int beg, int end, bool
 		return binary_search(seg, mid, end, on_start, target);
 }
 
-int GTFParser::search_loc(const string& chr, bool on_start, uint32_t target) {
-	int ret_ind = binary_search(wt_exons[chr], 0, wt_exons[chr].size(), on_start, target);
-	return (on_start)? ret_ind-1 : ret_ind;
-}
-
-uint32_t GTFParser::get_start(const string& chr, int seg_ind) {
-	return wt_exons[chr][seg_ind].start;
-}
-
-uint32_t GTFParser::get_end(const string& chr, int seg_ind) {
-	return wt_exons[chr][seg_ind].end;
-}
-
-void  GTFParser::get_gene_id(const string& chr, int seg_ind, string& gene_id) {
-	gene_id = wt_exons[chr][seg_ind].gene_id;
-}
-
-bool GTFParser::is_last_exonic_region(const string& chr, int seg_ind) {
-	return (seg_ind >= (wt_exons[chr].size() - 1));
-}
-
 void GTFParser::print_record(const GTFRecord& r) {
 	fprintf(stderr, "%s %s %d %d\n", r.gene_name.c_str(), r.chr.c_str(), r.start, r.end);
-}
-
-void GTFParser::print_records(void) {
-	for (int i = 0; i < records.size(); i++) {
-		fprintf(stderr, "%d: ", i);
-		print_record(records[i]);
-	}
 }
 
 void GTFParser::set_contig_shift(const ContigLen* chr_info, int contig_count) {
@@ -441,9 +370,10 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	uint32_t max_next_exon = 0;
 	uint32_t epos = spos + mlen - 1;
 
+	fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
 	if (!is_exon[contigName[0]-'1'][spos])		// intronic
 	{
-		//fprintf(stderr, "skip lookup\n");
+		fprintf(stderr, "skip lookup\n");
 		return spos + rlen + EDTH;	// allowing deletion of size at most "EDTH"
 	}
 
@@ -471,8 +401,8 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 			max_end = maxM(max_end, fit->second.seg_list[i].end);
 			min_end = minM(min_end, fit->second.seg_list[i].end);
 			max_next_exon = maxM(max_next_exon, fit->second.seg_list[i].next_exon_beg);
-			//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
-			//fprintf(stderr, "Exon: [%d-%d]\n", fit->second.seg_list[i].start, fit->second.seg_list[i].end);
+			fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
+			fprintf(stderr, "Exon: [%d-%d]\n", fit->second.seg_list[i].start, fit->second.seg_list[i].end);
 		}
 	}
 
