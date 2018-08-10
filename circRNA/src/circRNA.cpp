@@ -58,9 +58,11 @@ int main(int argc, char **argv) {
 	for (int i = 0; i < max_seg_cnt; i++) {
 		fl[i].frag_count = 0;
 		fl[i].frags = (GeneralIndex*) malloc(FRAGLIM * sizeof(GeneralIndex));
+		fl[i].junc_dist = (JunctionDist*) malloc(FRAGLIM * sizeof(JunctionDist));
 		fl[i].qpos = -1;
 		bl[i].frag_count = 0;
 		bl[i].frags = (GeneralIndex*) malloc(FRAGLIM * sizeof(GeneralIndex));
+		bl[i].junc_dist = (JunctionDist*) malloc(FRAGLIM * sizeof(JunctionDist));
 		bl[i].qpos = -1;
 	}
 

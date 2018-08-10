@@ -6,7 +6,7 @@
 #include "gene_annotation.h"
 
 #define INF 100000
-#define REWARD_COEF		2e6
+#define REWARD_COEF		2e4
 #define PENALTY_COEF	0.1
 
 #define MAX_INTRON	2000000
@@ -15,11 +15,11 @@ inline double score_beta(int distr, int distt, int frag_len) {
 	int maxd = distr < distt ? distt : distr;
 	int mind = distr < distt ? distr : distt;
 
-	return 0.1 * (maxd - mind);
+	return PENALTY_COEF * (maxd - mind);
 }
 
 inline double score_alpha(int distr, int distl, int frag_len) {
-	return 2e6 * frag_len;
+	return REWARD_COEF * frag_len;
 }
 
 bool compare_frag(fragment_t a, fragment_t b) {
@@ -43,6 +43,10 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 	chain_cell best_indices[max_best];
 
 	int distr, distt;
+	int genome_dist;
+	int trans_dist;
+	int read_dist;
+
 	double a_score, b_score;
 	double temp_score;
 
@@ -93,7 +97,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 					continue;
 
 				//if (max_lpos_lim < pc_mk->frags[lb_ind[jj]].info)	// will bot chain to any fragment in thie list
-				if (cur_mk->frags[i].info + MAX_INTRON < pc_mk->frags[lb_ind[jj]].info)	// will bot chain to any fragment in thie list
+				if (cur_mk->frags[i].info + MAX_INTRON < pc_mk->frags[lb_ind[jj]].info)	// will not chain to any fragment in thie list
 					continue;
 
 				while ((lb_ind[jj] < pc_mk->frag_count) and (pc_mk->frags[lb_ind[jj]].info <= cur_mk->frags[i].info))	// skip fragments starting before target
@@ -108,17 +112,34 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 
 				if (max_lpos_lim == -1)
 				{
-					max_lpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end);	// = 0 means not found
+					gtf_parser.get_upper_bound_alu(seg_start, kmer, read_remain, cur_mk->junc_dist[i]);
+					max_lpos_lim = cur_mk->junc_dist[i].range;
+					max_exon_end = cur_mk->junc_dist[i].max_end;
+					//max_lpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end);	// = 0 means not found
 					//vafprintf(2, stderr, "[%d-%d] -> upper bound: %u\n", seg_start, seg_end, max_lpos_lim);
 				}
 
-				distr = pc_mk->qpos - cur_mk->qpos;
+				distr = pc_mk->qpos - cur_mk->qpos - kmer;
+				read_dist = distr;
 				while ((j < pc_mk->frag_count) and (pc_mk->frags[j].info <= max_lpos_lim)) {
 					if (max_exon_end != 0 and (pc_mk->frags[j].info <= max_exon_end) and (pc_mk->frags[j].info + kmer - 1) > max_exon_end) {	// fragment on exon boundary
 						j++;
 						continue;
 					}
-					distt = pc_mk->frags[j].info - cur_mk->frags[i].info;
+					//distt = pc_mk->frags[j].info - cur_mk->frags[i].info;
+					gtf_parser.get_upper_bound_alu(pc_mk->frags[j].info, kmer, seq_len - pc_mk->qpos - kmer, pc_mk->junc_dist[j]);
+					genome_dist = pc_mk->frags[j].info - seg_end - 1;
+					trans_dist = cur_mk->junc_dist[i].dr + pc_mk->junc_dist[j].dl;
+					if (abs(genome_dist - read_dist) <= 10) {
+						distt = genome_dist;
+					}
+					else if (abs(trans_dist - read_dist) <= 10) {
+						distt = trans_dist;
+					}
+					else {
+						j++;
+						continue;
+					}
 
 					temp_score = dp[jj][j].score + score_alpha(distr, distt, kmer) - score_beta(distr, distt, kmer);
 

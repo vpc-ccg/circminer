@@ -86,9 +86,9 @@ int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk
 	if (target == it[lb].checksum)
 		UB = lb;
 	
-	if (UB-LB+1 > FRAGLIM) {
+	if (UB - LB + 1 > FRAGLIM) {
 		mk->frag_count = 0;
-		return 0;
+		return UB - LB + 1;
 	}
 
 	mk->frag_count = UB - LB + 1;
@@ -149,7 +149,7 @@ int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* sta
 	
 	vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
 
-//	print_hits(starting_node, 7);
+	//print_hits(starting_node, 1);
 
 	return valid_nonov_kmer + valid_ov_kmer;
 }

@@ -630,7 +630,7 @@ bool extend_right(char* seq, uint32_t& pos, int len) {
 
 	if (min_ed <= EDTH) {
 		pos = best_rmpos;
-		//vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, best_rmpos);
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, best_rmpos);
 		return true;
 	}
 	
@@ -731,7 +731,7 @@ bool extend_left(char* seq, uint32_t& pos, int len) {
 	
 	if (min_ed <= EDTH) {
 		pos = lmpos_best;
-		//vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 		return true;
 	}
 

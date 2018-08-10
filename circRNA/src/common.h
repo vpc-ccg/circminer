@@ -28,7 +28,6 @@ using namespace std;
 
 #define GENETHRESH 50000
 #define MAXTLEN 500
-//#define MAXTLEN 500000
 #define MINKMER 15
 #define FRAGLIM 5000
 
@@ -49,7 +48,7 @@ using namespace std;
 
 //---------- Structures ----------//
 
-typedef struct fragment_t{
+struct fragment_t{
 	uint32_t rpos;
 	int32_t qpos;
 	uint32_t len;
@@ -57,7 +56,7 @@ typedef struct fragment_t{
 	bool operator < (const fragment_t& other) const {
 		return rpos < other.rpos;
 	}
-} fragment_t;
+};
 
 typedef struct {
 	fragment_t* frags;
@@ -70,13 +69,29 @@ typedef struct {
 	int best_chain_count;
 } chain_list;
 
+struct JunctionDist {
+	bool looked_up;
+	bool exonic;
+	bool cross_boundry;
+
+	uint32_t dr;
+	uint32_t dl;
+
+	uint32_t range;
+	uint32_t max_end;
+	
+	JunctionDist() : looked_up(false) {}
+};
+
 typedef struct {
 	GeneralIndex* frags;	// array of locations
+	JunctionDist* junc_dist;
+
 	uint32_t frag_count;
 	int32_t qpos;
 } GIMatchedKmer;
 
-typedef struct UniqSeg {
+struct UniqSeg {
 	string gene_id;
 	uint32_t start;
 	uint32_t end;
@@ -110,10 +125,9 @@ typedef struct UniqSeg {
 	bool next_exon(const UniqSeg& r) const {	// is this next exon of r?
 		return (r.next_exon_beg == start and prev_exon_end == r.end);
 	}
+};
 
-} UniqSeg;
-
-typedef struct UniqSegList {
+struct UniqSegList {
 	vector <UniqSeg> seg_list;
 	
 	bool operator == (const UniqSegList& r) const {
@@ -137,9 +151,9 @@ typedef struct UniqSegList {
 			seg_list.push_back(r.seg_list[i]);
 		return *this;
 	}
-} UniqSegList;
+};
 
-typedef struct MatchedMate {
+struct MatchedMate {
 	uint32_t 	start_pos;
 	uint32_t 	end_pos;
 	uint16_t	junc_num;
@@ -154,7 +168,7 @@ typedef struct MatchedMate {
 	const UniqSegList* exons_spos;
 	const UniqSegList* exons_epos;
 
-	MatchedMate() : type(ORPHAN), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) {}
+	MatchedMate() : type(ORPHAN), junc_num(0), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) {}
 	void operator = (const MatchedMate& mm) {
 		start_pos 	= mm.start_pos;
 		end_pos		= mm.end_pos;
@@ -171,9 +185,9 @@ typedef struct MatchedMate {
 		exons_epos	= mm.exons_epos;
 	}
 
-} MatchedMate;
+};
 
-typedef struct MatchedRead {
+struct MatchedRead {
 	uint32_t	spos_r1;
 	uint32_t	spos_r2;
 	uint32_t	epos_r1;
@@ -186,7 +200,7 @@ typedef struct MatchedRead {
 	bool		gm_compatible;
 	string		chr;
 
-	MatchedRead() : type(ORPHAN), tlen(INF), junc_num(-1), gm_compatible(false) {}
+	MatchedRead() : type(ORPHAN), tlen(INF), junc_num(0), gm_compatible(false) {}
 	
 	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type) {
 		if (type > this->type)
@@ -214,7 +228,7 @@ typedef struct MatchedRead {
 
 		return true;
 	}
-} MatchedRead;
+};
 
 //---------- Global Variables ----------//
 
@@ -235,7 +249,7 @@ extern FILE* outputJuncFile;
 extern char* contigName;
 
 extern uint32_t lookup_cnt;
-extern bool* is_exon[3];
+extern uint8_t* near_border[3];
 
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];

@@ -19,7 +19,7 @@ char* contigName;
 
 uint32_t lookup_cnt;
 
-bool* is_exon[3];
+uint8_t* near_border[3];
 
 /**********************************************/
 // return:
