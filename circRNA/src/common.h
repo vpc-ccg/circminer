@@ -69,19 +69,17 @@ typedef struct {
 	int best_chain_count;
 } chain_list;
 
-struct JunctionDist {
-	bool looked_up;
-	bool exonic;
-	bool cross_boundry;
-
+typedef struct {
 	uint32_t dr;
 	uint32_t dl;
 
 	uint32_t range;
 	uint32_t max_end;
-	
-	JunctionDist() : looked_up(false) {}
-};
+
+	bool looked_up;
+	bool exonic;
+	bool cross_boundry;
+} JunctionDist;
 
 typedef struct {
 	GeneralIndex* frags;	// array of locations

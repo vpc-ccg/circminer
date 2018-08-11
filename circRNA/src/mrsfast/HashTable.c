@@ -373,7 +373,7 @@ int initLoadingHashTableMeta(char *fileName, ContigLen **contig_len, int *contig
 
 	//***//
 	*contig_cnt = _ih_chrCnt;
-	*contig_len = (ContigLen *) malloc(_ih_chrCnt * sizeof(ContigLen *));
+	*contig_len = (ContigLen *) getMem(_ih_chrCnt * sizeof(ContigLen));
 	//***//
 
 	for (i = 0; i < _ih_chrCnt; i++)
@@ -382,7 +382,7 @@ int initLoadingHashTableMeta(char *fileName, ContigLen **contig_len, int *contig
 		tmp = fread(&nameLen, sizeof(int), 1, _ih_fp);
 
 		//***//
-		(*contig_len)[i].name = (char *) malloc(nameLen * sizeof(char *));
+		(*contig_len)[i].name = (char *) getMem((nameLen + 1) * sizeof(char));
 		//***//
 
 		tmp = fread(_ih_chrNames[i], sizeof(char), nameLen, _ih_fp);

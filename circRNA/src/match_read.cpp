@@ -48,7 +48,6 @@ int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk
 	GeneralIndex *it = getCandidates(hashVal(seq));
 	uint32_t i, j;
 
-	mk->frag_count = 0;
 	if (it == NULL) {
 		return 0;
 	}
@@ -102,13 +101,15 @@ int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk
 // is valid if: #fragments > 0 and < FRAGLIM
 int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int skip, int ll_step, GIMatchedKmer* mk_res, int& em_count) {
 	int i, occ;
-	int sum = 0;
 	int dir;
+	int sum = 0;
+	int invalid_kmer = 0;
 	uint32_t match_len = kmer_size;
 	int32_t end_pos;
 
+	GIMatchedKmer* cur = mk_res;
+
 	em_count = 0;
-	int invalid_kmer = 0;
 	for (i = shift; i < rseq_len; i += skip) {
 		if (rseq_len - i < kmer_size)
 			match_len = rseq_len - i;
@@ -116,8 +117,8 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 			break;
 
 		if (i != shift)
-			mk_res += ll_step;
-		occ = get_exact_locs_hash(rseq + i, i, match_len, mk_res);
+			cur += ll_step;
+		occ = get_exact_locs_hash(rseq + i, i, match_len, cur);
 		
 		vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
 		if (occ <= 0) {
@@ -149,7 +150,7 @@ int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* sta
 	
 	vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
 
-	//print_hits(starting_node, 1);
+	//print_hits(starting_node, 7);
 
 	return valid_nonov_kmer + valid_ov_kmer;
 }

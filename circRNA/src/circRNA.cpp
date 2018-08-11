@@ -55,15 +55,19 @@ int main(int argc, char **argv) {
 
 	GIMatchedKmer* fl = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
 	GIMatchedKmer* bl = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
+
 	for (int i = 0; i < max_seg_cnt; i++) {
 		fl[i].frag_count = 0;
-		fl[i].frags = (GeneralIndex*) malloc(FRAGLIM * sizeof(GeneralIndex));
-		fl[i].junc_dist = (JunctionDist*) malloc(FRAGLIM * sizeof(JunctionDist));
+		fl[i].frags = NULL;
 		fl[i].qpos = -1;
+		fl[i].junc_dist = (JunctionDist*) malloc(FRAGLIM * sizeof(JunctionDist));
+		memset(fl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
+		
 		bl[i].frag_count = 0;
-		bl[i].frags = (GeneralIndex*) malloc(FRAGLIM * sizeof(GeneralIndex));
-		bl[i].junc_dist = (JunctionDist*) malloc(FRAGLIM * sizeof(JunctionDist));
+		bl[i].frags = NULL;
 		bl[i].qpos = -1;
+		bl[i].junc_dist = (JunctionDist*) malloc(FRAGLIM * sizeof(JunctionDist));
+		memset(bl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
 	}
 
 	chain_list fbc_r1;
@@ -116,10 +120,6 @@ int main(int argc, char **argv) {
 	}
 	else 
 		fprintf(stdout, "GTF file successfully loaded!\n");
-
-	for (int i = 0; i < contig_cnt; i++) 
-		free(orig_contig_len[i].name);
-	//free(orig_contig_len);
 
 	time(&curr_time);
 	diff_time = difftime(curr_time, pre_time);
@@ -203,18 +203,30 @@ int main(int argc, char **argv) {
 	/**Free Allocated Memory**/
 	/*************************/
 
-	//for (int i = 0; i < max_seg_cnt; i++) {
-	//	free(fl[i].frags);
-	//	free(bl[i].frags);
-	//}
+	close_file(outputJuncFile);
+
+	for (int i = 0; i < contig_cnt; i++) 
+		freeMem(orig_contig_len[i].name, strlen(orig_contig_len[i].name));
+	freeMem(orig_contig_len, contig_cnt * sizeof(ContigLen));
+
+	finalizeLoadingHashTable();
+
+	for (int i = 0; i < 3; i++)
+		free(near_border[i]);
+
+	for (int i = 0; i < max_seg_cnt; i++) {
+		free(fl[i].junc_dist);
+		free(bl[i].junc_dist);
+	}
 	free(fl);
 	free(bl);
-	//for (int i = 0; i < BESTCHAINLIM; i++) {
-	//	free(fbc_r1.chains[i].frags);
-	//	free(bbc_r1.chains[i].frags);
-	//	free(fbc_r2.chains[i].frags);
-	//	free(bbc_r2.chains[i].frags);
-	//}
+
+	for (int i = 0; i < BESTCHAINLIM; i++) {
+		free(fbc_r1.chains[i].frags);
+		free(bbc_r1.chains[i].frags);
+		free(fbc_r2.chains[i].frags);
+		free(bbc_r2.chains[i].frags);
+	}
 	free(fbc_r1.chains);
 	free(bbc_r1.chains);
 	free(fbc_r2.chains);

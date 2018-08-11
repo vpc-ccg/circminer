@@ -5,7 +5,6 @@
 #include "chain.h"
 #include "gene_annotation.h"
 
-#define INF 100000
 #define REWARD_COEF		2e4
 #define PENALTY_COEF	0.1
 
@@ -33,6 +32,8 @@ bool compare_frag(fragment_t a, fragment_t b) {
 // b(i, j) = inf     y_j >= y_i || max{y_i - y_j, x_i - x_j} > maxDist
 // b(i, j) = gap_cost
 void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_list& best_chain) {
+	best_chain.best_chain_count = 0;
+
 	int kmer_cnt = 2 * ceil(1.0 * seq_len / kmer) - 1;
 	int max_frag_cnt = FRAGLIM;
 	chain_cell dp[kmer_cnt][max_frag_cnt + 1];
@@ -63,8 +64,11 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 	GIMatchedKmer* pc_mk;	// previously calculated matched kmer
 
 	// Ignore empty fragment list at the back
-	while ((fragment_list + kmer_cnt - 1)->frag_count <= 0)
+	while ((kmer_cnt >= 1) and (fragment_list + kmer_cnt - 1)->frag_count <= 0)
 		kmer_cnt--;
+
+	if (kmer_cnt <= 0)
+		return;
 
 	// Initialize dp array
 	for (ii = kmer_cnt - 1; ii >= 0; ii--) {
