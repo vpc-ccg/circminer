@@ -64,6 +64,13 @@ FilterRead::~FilterRead (void) {
 int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedKmer*& fl, GIMatchedKmer*& bl, 
 								chain_list& forward_best_chain, chain_list& backward_best_chain) {
 	
+	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
+
+	for (int i = 0; i < max_seg_cnt; i++) {
+		memset(fl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
+		memset(bl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
+	}
+
 	vafprintf(1, stderr, "%s\n", current_record->rname);
 
 	MatchedMate mr;
@@ -101,6 +108,12 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 								chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2) {
 
 	int max_frag_count = current_record1->seq_len / kmer_size + 1;
+	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
+
+	for (int i = 0; i < max_seg_cnt; i++) {
+		memset(fl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
+		memset(bl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
+	}
 	
 	// R1
 	vafprintf(1, stderr, "R1/%s\n", current_record1->rname);

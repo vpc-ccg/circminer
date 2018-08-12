@@ -57,17 +57,8 @@ int main(int argc, char **argv) {
 	GIMatchedKmer* bl = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
 
 	for (int i = 0; i < max_seg_cnt; i++) {
-		fl[i].frag_count = 0;
-		fl[i].frags = NULL;
-		fl[i].qpos = -1;
 		fl[i].junc_dist = (JunctionDist*) malloc(FRAGLIM * sizeof(JunctionDist));
-		memset(fl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
-		
-		bl[i].frag_count = 0;
-		bl[i].frags = NULL;
-		bl[i].qpos = -1;
 		bl[i].junc_dist = (JunctionDist*) malloc(FRAGLIM * sizeof(JunctionDist));
-		memset(bl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
 	}
 
 	chain_list fbc_r1;

@@ -166,7 +166,8 @@ struct MatchedMate {
 	const UniqSegList* exons_spos;
 	const UniqSegList* exons_epos;
 
-	MatchedMate() : type(ORPHAN), junc_num(0), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) {}
+	MatchedMate() : type(ORPHAN), junc_num(0), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) { }
+
 	void operator = (const MatchedMate& mm) {
 		start_pos 	= mm.start_pos;
 		end_pos		= mm.end_pos;
@@ -198,7 +199,7 @@ struct MatchedRead {
 	bool		gm_compatible;
 	string		chr;
 
-	MatchedRead() : type(ORPHAN), tlen(INF), junc_num(0), gm_compatible(false) {}
+	MatchedRead() : type(ORPHAN), tlen(INF), junc_num(0), gm_compatible(false) { }
 	
 	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type) {
 		if (type > this->type)
