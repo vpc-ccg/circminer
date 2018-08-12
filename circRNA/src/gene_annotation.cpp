@@ -433,8 +433,10 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 // mlen: Matched LENgth
 // rlen: the lenght of the read remained to be matched (Rmained LENgth)
 void GTFParser::get_upper_bound_alu(uint32_t spos, uint32_t mlen, uint32_t rlen, JunctionDist& jd) {
-	if (jd.looked_up)
+	if (jd.looked_up) {
+		//fprintf(stderr, "Looked up before!\n");
 		return;
+	}
 
 	jd.looked_up = true;
 

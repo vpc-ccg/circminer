@@ -64,13 +64,6 @@ FilterRead::~FilterRead (void) {
 int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedKmer*& fl, GIMatchedKmer*& bl, 
 								chain_list& forward_best_chain, chain_list& backward_best_chain) {
 	
-	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
-
-	for (int i = 0; i < max_seg_cnt; i++) {
-		memset(fl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
-		memset(bl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
-	}
-
 	vafprintf(1, stderr, "%s\n", current_record->rname);
 
 	MatchedMate mr;
@@ -108,13 +101,7 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 								chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2) {
 
 	int max_frag_count = current_record1->seq_len / kmer_size + 1;
-	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
 
-	for (int i = 0; i < max_seg_cnt; i++) {
-		memset(fl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
-		memset(bl[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
-	}
-	
 	// R1
 	vafprintf(1, stderr, "R1/%s\n", current_record1->rname);
 
@@ -238,6 +225,11 @@ bool is_concord(const chain_t& a, int seq_len, MatchedMate& mr) {
 void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l) {
 	int kmer_count = ceil(seq_len / kmer_size);
 	int forward_fragment_count, backward_fragment_count;
+	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
+
+	for (int i = 0; i < max_seg_cnt; i++) {
+		memset(frag_l[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
+	}
 
 	split_match_hash(read_seq, seq_len, kmer_size, frag_l);
 	chain_seeds_sorted_kbest(seq_len, frag_l, best_chain);
