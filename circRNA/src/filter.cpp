@@ -623,33 +623,33 @@ void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int rema
 // [ pos+1, pos+len ]
 bool extend_right(char* seq, uint32_t& pos, int len) {
 	char res_str[len+5];
-	bool right_ok = false;
-	uint32_t new_rmpos = pos;
+	res_str[len] = '\0';
 	
+	uint32_t best_rmpos = 0;
 	int min_ed = EDTH + 1;
 	int sclen_best = SOFTCLIPTH;
-	uint32_t best_rmpos = 0;
 	
-	res_str[len] = '\0';
 	get_seq_right(res_str, seq, pos, 0, len, min_ed, sclen_best, best_rmpos);
 
 	if (min_ed <= EDTH) {
-		pos = best_rmpos;
-		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, best_rmpos);
+		pos = best_rmpos - sclen_best;
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
 		return true;
 	}
 	
 	// intron retentaion
 	pac2char(pos + 1, len, res_str);	
-	new_rmpos = pos + len;
-	right_ok = alignment.hamming_match_right(res_str, len, seq, len);
+	min_ed = alignment.hamming_distance_right(res_str, len, seq, len, sclen_best);
 	//vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", pos, len);
-	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nright ok? %d\n", res_str, seq, right_ok);
+	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
-	if (right_ok)
-		pos = new_rmpos;
+	if (min_ed <= EDTH) {
+		pos = pos + len - sclen_best;
+		vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
+		return true;
+	}
 
-	return right_ok;
+	return false;
 }
 
 // pos is exclusive
@@ -724,34 +724,35 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 // [ pos-len, pos-1 ]
 bool extend_left(char* seq, uint32_t& pos, int len) {
 	char res_str[len+5];
-	bool left_ok = false;
-	uint32_t new_lmpos = pos;
+	res_str[len] = '\0';
 	
+	uint32_t lmpos_best = 0;
 	int min_ed = EDTH + 1;
 	int sclen_best = SOFTCLIPTH;
-	uint32_t lmpos_best = 0;
 
-	res_str[len] = '\0';
 	get_seq_left(res_str, seq, pos, 0, len, min_ed, sclen_best, lmpos_best);
 	
 	if (min_ed <= EDTH) {
-		pos = lmpos_best;
+		pos = lmpos_best + sclen_best;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 		return true;
 	}
 
 	// intron retentaion
-	new_lmpos = pos - len;
+	uint32_t new_lmpos = pos - len;
 	pac2char(new_lmpos , len, res_str);	
-	left_ok = alignment.hamming_match_left(res_str, len, seq, len);
+	min_ed = alignment.hamming_distance_left(res_str, len, seq, len, sclen_best);
 	
 	//vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", pos, len);
-	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nleft ok? %d\n", res_str, seq, left_ok);
+	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
-	if (left_ok)
-		pos = new_lmpos;
+	if (min_ed <= EDTH) {
+		pos = new_lmpos + sclen_best;
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
+		return true;
+	}
 
-	return left_ok;
+	return false;
 }
 
 void overlap_to_epos(MatchedMate& mr) {
