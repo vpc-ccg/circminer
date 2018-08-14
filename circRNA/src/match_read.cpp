@@ -87,8 +87,8 @@ int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk
 	
 	if (UB - LB + 1 > FRAGLIM) {
 		mk->frag_count = 0;
-		return 0;
-		//return UB - LB + 1;
+		//return 0;
+		return UB - LB + 1;
 	}
 
 	mk->frag_count = UB - LB + 1;

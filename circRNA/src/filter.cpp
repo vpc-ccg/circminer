@@ -197,10 +197,10 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 
 void print_mapping(char* rname, const MatchedRead& mr) {
 	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
-		fprintf(outputJuncFile, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\n", rname, mr.chr.c_str(), 
+		fprintf(outputJuncFile, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\t%d\n", rname, mr.chr.c_str(), 
 																			mr.spos_r1, mr.epos_r1, mr.mlen_r1, 
 																			mr.spos_r2, mr.epos_r2, mr.mlen_r2, 
-																			mr.tlen, mr.junc_num, mr.gm_compatible);
+																			mr.tlen, mr.junc_num, mr.gm_compatible, mr.type);
 	}
 }
 
@@ -354,6 +354,9 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 					else
 						mr.update(sm, lm, chr, shift, tlen, 1, true, DISCRD);
 				}
+				else if (lm.exons_spos->seg_list[j].same_gene(sm.exons_epos->seg_list[i])) {
+					mr.update(sm, lm, chr, shift, 10000, 2, true, DISCRD);
+				}
 	}
 
 	if (mr.type == CONCRD)
@@ -402,9 +405,6 @@ bool are_chimeric(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, Matc
 	ConShift con_shift = gtf_parser.get_shift(contigName, mm.start_pos);
 	uint32_t shift = con_shift.shift;
 	
-	//vafprintf(0, stderr, "---%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\tdir:%d\n", rname, mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, 
-	//																		omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1, mr.dir);
-		
 	overlap_to_epos(mm);
 	overlap_to_spos(mm);
 
@@ -436,9 +436,6 @@ bool are_concordant(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, Ma
 	ConShift con_shift = gtf_parser.get_shift(contigName, mm.start_pos);
 	uint32_t shift = con_shift.shift;
 	
-	//vafprintf(0, stderr, "---%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\tdir:%d\n", rname, mr.chr, mr.start_pos, mr.end_pos, mr.matched_len, 
-	//																		omr.start_pos, omr.end_pos, omr.matched_len, omr.end_pos - mr.start_pos + 1, mr.dir);
-		
 	overlap_to_epos(mm);
 	overlap_to_spos(mm);
 
@@ -493,7 +490,6 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 			ex_ret = extend_chain(forward_chain.chains[i], record1->seq, record1->seq_len, forward_mml[fmml_count], 1);
 			if (ex_ret == CONCRD) {
 				if (are_concordant(backward_mml, bmml_count, forward_mml[fmml_count], mr)) {
-					//vafprintf(0, stderr, "%s", record1->rname);
 					print_mapping(record1->rname, mr);
 					return CONCRD;
 				}
@@ -511,7 +507,6 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 			ex_ret = extend_chain(backward_chain.chains[i], record2->rcseq, record2->seq_len, backward_mml[bmml_count], -1); 
 			if (ex_ret == CONCRD) {
 				if (are_concordant(forward_mml, fmml_count, backward_mml[bmml_count], mr)) {
-					//vafprintf(0, stderr, "%s", record1->rname);
 					print_mapping(record1->rname, mr);
 					return CONCRD;
 				}
