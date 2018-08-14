@@ -432,6 +432,73 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 // spos: Start POSition of matched region
 // mlen: Matched LENgth
 // rlen: the lenght of the read remained to be matched (Rmained LENgth)
+uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end, const UniqSegList*& ol_exons) {
+	ol_exons = NULL;
+	max_end = 0;
+	uint32_t min_end = 1e9;
+	uint32_t max_next_exon = 0;
+	uint32_t epos = spos + mlen - 1;
+
+	//fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
+	if (!(near_border[contigName[0]-'1'][spos] & 1))		// intronic
+	{
+		//fprintf(stderr, "skip lookup\n");
+		ol_exons = NULL;
+		return spos + rlen + EDTH;	// allowing deletion of size at most "EDTH"
+	}
+
+	lookup_cnt++;
+	boost::icl::discrete_interval <uint32_t> spos_int = boost::icl::discrete_interval <uint32_t>::closed(spos, spos);
+	boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
+	fit = exons_int_map[contigName].find(spos_int);
+
+	if (fit == exons_int_map[contigName].end()) {	// not found => intronic
+		ol_exons = NULL;
+		// find end of intron
+		// To be modified
+		max_end = spos;
+		while (near_border[contigName[0]-'1'][max_end] & 1)
+			max_end++;
+		max_end--;
+
+		if (max_end < epos)	// => crossing the boundry
+			return 0;
+		else
+			return minM(spos + rlen + EDTH, max_end - mlen + 1);
+	}
+
+	for (int i = 0; i < fit->second.seg_list.size(); i++) {
+		if (fit->second.seg_list[i].end >= epos) {	// => exonic
+			max_end = maxM(max_end, fit->second.seg_list[i].end);
+			min_end = minM(min_end, fit->second.seg_list[i].end);
+			max_next_exon = maxM(max_next_exon, fit->second.seg_list[i].next_exon_beg);
+			//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
+			//fprintf(stderr, "Exon: [%d-%d]\n", fit->second.seg_list[i].start, fit->second.seg_list[i].end);
+		}
+	}
+
+	if (max_end > 0) {	// exonic	
+		ol_exons = &(fit->second);
+		// loc excluded
+		int32_t min2end = min_end - epos;
+
+		if (min2end < rlen and max_next_exon != 0)	// junction is allowed
+			return max_next_exon + mlen - 1;
+		else
+			return max_end - mlen + 1;
+	}
+
+	else {	// on exon boundary
+		ol_exons = NULL;
+		return 0;
+	}
+}
+
+// match an interval:
+// [ spos, spos + mlen )
+// spos: Start POSition of matched region
+// mlen: Matched LENgth
+// rlen: the lenght of the read remained to be matched (Rmained LENgth)
 void GTFParser::get_upper_bound_alu(uint32_t spos, uint32_t mlen, uint32_t rlen, JunctionDist& jd) {
 	if (jd.looked_up) {
 		//fprintf(stderr, "Looked up before!\n");

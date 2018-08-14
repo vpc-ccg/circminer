@@ -227,9 +227,9 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& bes
 	int forward_fragment_count, backward_fragment_count;
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
 
-	for (int i = 0; i < max_seg_cnt; i++) {
-		memset(frag_l[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
-	}
+	//for (int i = 0; i < max_seg_cnt; i++) {
+	//	memset(frag_l[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
+	//}
 
 	split_match_hash(read_seq, seq_len, kmer_size, frag_l);
 	chain_seeds_sorted_kbest(seq_len, frag_l, best_chain);
@@ -632,7 +632,8 @@ bool extend_right(char* seq, uint32_t& pos, int len) {
 	get_seq_right(res_str, seq, pos, 0, len, min_ed, sclen_best, best_rmpos);
 
 	if (min_ed <= EDTH) {
-		pos = best_rmpos - sclen_best;
+		//pos = best_rmpos - sclen_best;
+		pos = best_rmpos;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -644,7 +645,8 @@ bool extend_right(char* seq, uint32_t& pos, int len) {
 	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
 	if (min_ed <= EDTH) {
-		pos = pos + len - sclen_best;
+		//pos = pos + len - sclen_best;
+		pos = pos + len;
 		vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -733,7 +735,8 @@ bool extend_left(char* seq, uint32_t& pos, int len) {
 	get_seq_left(res_str, seq, pos, 0, len, min_ed, sclen_best, lmpos_best);
 	
 	if (min_ed <= EDTH) {
-		pos = lmpos_best + sclen_best;
+		//pos = lmpos_best + sclen_best;
+		pos = lmpos_best;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -747,7 +750,8 @@ bool extend_left(char* seq, uint32_t& pos, int len) {
 	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
 	if (min_ed <= EDTH) {
-		pos = new_lmpos + sclen_best;
+		//pos = new_lmpos + sclen_best;
+		pos = new_lmpos;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 		return true;
 	}
