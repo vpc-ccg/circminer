@@ -16,7 +16,7 @@ with open(read_name_file) as rnf:
 		#read_names.append(int(rn))
 
 sorted_read_names = sorted(read_names)
-print sorted_read_names
+#print sorted_read_names
 print len(sorted_read_names)
 
 with open(save_file, 'w') as sf:

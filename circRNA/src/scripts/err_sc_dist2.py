@@ -24,7 +24,7 @@ def parse_cigar(cigar):
 		count[types[i]] += int(lens[i])
 
 	#print count
-	return count['S'], count['I'] + count['D']
+	return count['S'], count['I'] + count['D'], count['N']
 
 #def plot(dist):
 #	fig = plt.figure()
@@ -48,6 +48,8 @@ mate_sc = 0
 mate_err = 0
 mate_mm = 0
 mate_indel = 0
+mate_intron = 0
+mate_sam = ""
 
 with open(sam_fname, 'r') as sf:
 	for l in sf:
@@ -60,12 +62,8 @@ with open(sam_fname, 'r') as sf:
 		if flag > 255:
 			continue
 
-		tlen = int(ll[8])
-		if not(tlen > 20000 or tlen < -20000):
-		#if tlen > 20000 or tlen < -20000:
-			continue
-		
 		line += 1
+		
 		cigar = ll[5]
 		if cigar == "*":
 			print "bad cigar!!!"
@@ -73,21 +71,30 @@ with open(sam_fname, 'r') as sf:
 
 		nm = ll[15]
 		#print cigar, nm
-		sc, indel = parse_cigar(cigar)
+		sc, indel, intron = parse_cigar(cigar)
 		mm = int(nm.split(':')[2])
 		#print sc, indel, mm
 		err = mm + indel
 
+		tlen = abs(int(ll[8])) - mate_intron - intron
+		if (line % 2 == 0) and tlen > 500:
+			print>> sys.stderr, mate_sam
+			print>> sys.stderr, l.strip()
+			continue
+		
 		if line % 2 == 1:
+			mate_sam = l.strip()
 			mate_err = err
 			mate_sc = sc
 			mate_mm = mm
 			mate_indel = indel
+			mate_intron = intron
+		
 		else:
 			dist[indel+mate_indel][mm+mate_mm][sc+mate_sc] += 1
-			#if (indel + mate_indel == 0) and (mm + mate_mm < 3) and (sc + mate_sc < 3):
-			if (indel + mate_indel == 0) and (mm + mate_mm > 10):
-				print>> sys.stderr, l.strip()
+			#if (indel + mate_indel == 0) and (mm + mate_mm == 0) and (sc + mate_sc == 0):
+			#	print>> sys.stderr, mate_sam
+			#	print>> sys.stderr, l.strip()
 
 sums = [ ]
 for i in range(76):
