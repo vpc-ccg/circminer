@@ -11,15 +11,17 @@ FASTQParser::FASTQParser (char* filename, bool read_state) : read_state(read_sta
 }
 
 FASTQParser::~FASTQParser (void) {
-	close_file(input);
-	
-	free(current_record->rname);
-	free(current_record->seq);
-	free(current_record->rcseq);
-	free(current_record->comment);
-	free(current_record->qual);
+	if (input != NULL) {
+		close_file(input);
+		
+		free(current_record->rname);
+		free(current_record->seq);
+		free(current_record->rcseq);
+		free(current_record->comment);
+		free(current_record->qual);
 
-	delete current_record;
+		delete current_record;
+	}
 }
 
 void FASTQParser::init (char* filename) {
