@@ -7,6 +7,7 @@ objects= baseFAST.o Sort.o MrsFAST.o Common.o CommandLineParser.o RefGenome.o Ha
 all: OPTIMIZE_FLAGS build
 debug: DEBUG_FLAGS build
 profile: PROFILE_FLAGS build
+valgrind: OPTIMIZE_FLAGS DEBUG_FLAGS build
 #build: clean_executables SSE_FLAGS $(objects)
 build: clean_executables SSE_FLAGS mrsfast
 
