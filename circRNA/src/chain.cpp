@@ -8,8 +8,6 @@
 #define REWARD_COEF		2e4
 #define PENALTY_COEF	0.1
 
-#define MAX_INTRON	2000000
-
 inline double score_beta(int distr, int distt, int frag_len) {
 	int maxd = distr < distt ? distt : distr;
 	int mind = distr < distt ? distr : distt;

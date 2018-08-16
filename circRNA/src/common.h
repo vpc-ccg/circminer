@@ -30,6 +30,7 @@ using namespace std;
 #define MAXTLEN 500
 #define MINKMER 15
 #define FRAGLIM 5000
+#define MAX_INTRON	2000000
 
 #define BESTCHAINLIM 30
 #define EDTH 3

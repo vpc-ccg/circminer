@@ -85,16 +85,75 @@ int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk
 	if (target == it[lb].checksum)
 		UB = lb;
 	
-	if (UB - LB + 1 > FRAGLIM) {
-		mk->frag_count = 0;
-		//return 0;
-		return UB - LB + 1;
-	}
-
 	mk->frag_count = UB - LB + 1;
 	mk->frags = it + LB;
 
 	return UB - LB + 1;
+}
+
+// reduce number of frags in LargeList (ll) using SmalList (sl)
+// ll locations should be smaller than sl
+bool reduce_hits_behind(GIMatchedKmer* sl, GIMatchedKmer* ll) {
+	if (sl->frag_count == 0 or ll->frag_count == 0)
+		return false;
+
+	uint32_t max_dist = ((sl->qpos - ll->qpos) / 19) * MAX_INTRON;
+
+	int size = 0;
+	int j = 0;
+	for (int i = 0; i < ll->frag_count; i++) {
+		while (j < sl->frag_count and sl->frags[j].info <= ll->frags[i].info)
+			j++;
+
+		if (j >= sl->frag_count)
+			break;
+
+		// now sl->frags[j].info > ll->frags[i].info
+		if (ll->frags[i].info + max_dist >= sl->frags[j].info) {
+			ll->frags[size].info = ll->frags[i].info;
+			size++;
+		}
+	}
+
+	//fprintf(stderr, "Pre hits size: %d\tCur hits size: %d\n", ll->frag_count, size);
+
+	ll->frag_count = size;
+	return (size > 0 and size <= FRAGLIM);
+}
+
+// reduce number of frags in LargeList (ll) using SmalList (sl)
+// ll locations should be greater than sl
+bool reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
+	if (sl->frag_count == 0 or ll->frag_count == 0)
+		return false;
+
+	uint32_t max_dist = ((ll->qpos - sl->qpos) / 19) * MAX_INTRON;
+
+	int size = 0;
+	int j = 0;
+	for (int i = 0; i < ll->frag_count; i++) {
+		if (j >= sl->frag_count)
+			break;
+
+		if (sl->frags[j].info >= ll->frags[i].info)
+			continue;
+
+		while (j < sl->frag_count and sl->frags[j].info + max_dist < ll->frags[i].info)
+			j++;
+
+		if (j >= sl->frag_count)
+			break;
+
+		if (ll->frags[i].info <= max_dist + sl->frags[j].info) {
+			ll->frags[size].info = ll->frags[i].info;
+			size++;
+		}
+	}
+
+	//fprintf(stderr, "Pre hits size: %d\tCur hits size: %d\n", ll->frag_count, size);
+
+	ll->frag_count = size;
+	return (size > 0 and size <= FRAGLIM);
 }
 
 // return:
@@ -105,13 +164,18 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 	int dir;
 	int sum = 0;
 	int invalid_kmer = 0;
+	int valid_kmer = 0;
+	int valid_kmer_ind = 0;
 	uint32_t match_len = kmer_size;
 	int32_t end_pos;
 
 	GIMatchedKmer* cur = mk_res;
 
 	em_count = 0;
+	int j = -1 * ll_step;
 	for (i = shift; i < rseq_len; i += skip) {
+		j += ll_step;
+
 		if (rseq_len - i < kmer_size)
 			match_len = rseq_len - i;
 		if (match_len < MINKMER) 
@@ -127,14 +191,44 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 			invalid_kmer++;
 		}
 
-		if (occ > FRAGLIM ) {
+		else if (occ > FRAGLIM ) {
 			invalid_kmer++;
+		}
+
+		else {
+			valid_kmer_ind = j;
+			valid_kmer++;
 		}
 
 		em_count++;	
 	}
 
-	return em_count - invalid_kmer;
+	valid_kmer = em_count - invalid_kmer;
+
+	// trying to reduce size of hits it there is only one valid kmer
+	if (valid_kmer == 1) {
+		GIMatchedKmer* small = mk_res + valid_kmer_ind;
+		for (int i = 0; i < valid_kmer_ind; i += ll_step) {
+			//fprintf(stderr, "Reducing size of ind = %d\n", i);
+			if (reduce_hits_behind(small, mk_res + i))
+				valid_kmer++;
+		}
+
+		for (int i = valid_kmer_ind + ll_step; i < em_count * ll_step; i += ll_step) {
+			//fprintf(stderr, "Reducing size of ind = %d\n", i);
+			if (reduce_hits_ahead(small, mk_res + i))
+				valid_kmer++;
+		}
+	}
+	
+	for (int i = 0; i < em_count * ll_step; i += ll_step) {
+		if ((mk_res+i)->frag_count > FRAGLIM) {
+			(mk_res+i)->frag_count = 0;
+			(mk_res+i)->frags = NULL;
+		}
+	}
+
+	return valid_kmer;
 }
 
 // fragment results will be sorted
