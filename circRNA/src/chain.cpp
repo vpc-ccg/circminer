@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstring>
+#include <map>
 
 #include "chain.h"
 #include "gene_annotation.h"
@@ -86,6 +87,12 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 	GIMatchedKmer* pc_mk;	// previously calculated matched kmer
 	const UniqSegList* ol_exons;
 
+	map <double, chain_cell_list> score2chain;
+	
+	chain_cell tmp_cell;
+	chain_cell_list empty_chain_cell_list;
+	empty_chain_cell_list.count = 0;
+
 	// Ignore empty fragment list at the back
 	while ((kmer_cnt >= 1) and (fragment_list + kmer_cnt - 1)->frag_count <= 0)
 		kmer_cnt--;
@@ -168,6 +175,18 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 						dp[ii][i].score = temp_score;
 						dp[ii][i].prev_list = jj;
 						dp[ii][i].prev_ind = j;
+
+						if (score2chain.find(temp_score) == score2chain.end()) {
+							score2chain[temp_score] = empty_chain_cell_list;
+						}
+						
+						if (score2chain[temp_score].count < max_best) {
+							tmp_cell.score = dp[ii][i].score;
+							tmp_cell.prev_list = ii;
+							tmp_cell.prev_ind = i;
+							score2chain[temp_score].chain_list[score2chain[temp_score].count++] = tmp_cell;
+						}
+
 					}
 					j++;
 				}
@@ -175,46 +194,90 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 		}
 	}
 
-		// Finding best score
-	for (ii = kmer_cnt - 1; ii >= 0; ii--) {
-		cur_mk = fragment_list + ii;
-		for (i = 0; i < cur_mk->frag_count; i++) {
-			if (dp[ii][i].score > best_score) {
-				best_score = dp[ii][i].score;
-				best_count = 1;
-				best_indices[0].prev_list = ii;
-				best_indices[0].prev_ind = i;
-			}
-			else if (dp[ii][i].score == best_score and best_count < max_best) {
-				best_indices[best_count].prev_list = ii;
-				best_indices[best_count].prev_ind = i;
-				best_count++;
-			}
-		}
-	}
+	// Finding best score
+	
+	//for (ii = kmer_cnt - 1; ii >= 0; ii--) {
+	//	cur_mk = fragment_list + ii;
+	//	for (i = 0; i < cur_mk->frag_count; i++) {
+	//		if (dp[ii][i].score > best_score) {
+	//			best_score = dp[ii][i].score;
+	//			best_count = 1;
+	//			best_indices[0].prev_list = ii;
+	//			best_indices[0].prev_ind = i;
+	//		}
+	//		else if (dp[ii][i].score == best_score and best_count < max_best) {
+	//			best_indices[best_count].prev_list = ii;
+	//			best_indices[best_count].prev_ind = i;
+	//			best_count++;
+	//		}
+	//	}
+	//}
 
 	// Back-tracking
 	chain_cell best_index;	
-	best_chain.best_chain_count = best_count;
 	int tmp_list_ind;
-	for (j = 0; j < best_count; j++) {
-		best_index = best_indices[j];
-		i = 0;
-		while (best_index.prev_list != -1) {
-			best_chain.chains[j].frags[i].rpos = (fragment_list + best_index.prev_list)->frags[best_index.prev_ind].info;
-			best_chain.chains[j].frags[i].qpos = (fragment_list + best_index.prev_list)->qpos;
-			best_chain.chains[j].frags[i].len = kmer;
+
+	//best_chain.best_chain_count = best_count;
+	//for (j = 0; j < best_count; j++) {
+	//	best_index = best_indices[j];
+	
+	uint32_t spos;
+	best_count = 0;
+	best_score = (score2chain.rbegin() != score2chain.rend()) ? score2chain.rbegin()->first : kmer;
+	
+	set <uint32_t> repeats;
+	map <double, chain_cell_list>::reverse_iterator it;
+	
+	for (it = score2chain.rbegin(); it != score2chain.rend(); ++it) {
+		for (int l = 0; l < it->second.count; l++) {
+			if (best_count >= max_best)
+				break;
 			
-			tmp_list_ind = best_index.prev_list;
-			best_index.prev_list = dp[best_index.prev_list][best_index.prev_ind].prev_list;
-			best_index.prev_ind = dp[tmp_list_ind][best_index.prev_ind].prev_ind;
+			best_index = it->second.chain_list[l];
+			spos = (fragment_list + best_index.prev_list)->frags[best_index.prev_ind].info;
+			if (best_index.score < best_score and repeats.find(spos) != repeats.end())
+				continue;
 			
-			i++;
+			i = 0;
+			j = best_count++;
+			while (best_index.prev_list != -1) {
+				best_chain.chains[j].frags[i].rpos = (fragment_list + best_index.prev_list)->frags[best_index.prev_ind].info;
+				best_chain.chains[j].frags[i].qpos = (fragment_list + best_index.prev_list)->qpos;
+				best_chain.chains[j].frags[i].len = kmer;
+				
+				if (i != 0) {
+					repeats.insert(best_chain.chains[j].frags[i].rpos);
+				}
+				
+				tmp_list_ind = best_index.prev_list;
+				best_index.prev_list = dp[best_index.prev_list][best_index.prev_ind].prev_list;
+				best_index.prev_ind = dp[tmp_list_ind][best_index.prev_ind].prev_ind;
+				
+				i++;
+			}
+
+			best_chain.chains[j].score = best_index.score;
+			best_chain.chains[j].chain_len = i;
 		}
-
-		best_chain.chains[j].score = best_score;
-		best_chain.chains[j].chain_len = i;
-
 	}
+
+	// add chains of size 1
+	if (best_count == 0) {
+		for (ii = kmer_cnt - 1; ii >= 0; ii--) {
+			cur_mk = fragment_list + ii;
+			for (i = 0; i < cur_mk->frag_count; i++) {
+				if (best_count >= max_best)
+					break;
+				j = best_count++;
+				best_chain.chains[j].frags[0].rpos = cur_mk->frags[i].info;
+				best_chain.chains[j].frags[0].qpos = cur_mk->qpos;
+				best_chain.chains[j].frags[0].len = kmer;
+				best_chain.chains[j].score = dp[ii][i].score;
+				best_chain.chains[j].chain_len = 1;
+			}
+		}
+	}
+	
+	best_chain.best_chain_count = best_count;
 }
 

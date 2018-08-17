@@ -206,20 +206,20 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 	valid_kmer = em_count - invalid_kmer;
 
 	// trying to reduce size of hits it there is only one valid kmer
-	if (valid_kmer == 1) {
-		GIMatchedKmer* small = mk_res + valid_kmer_ind;
-		for (int i = 0; i < valid_kmer_ind; i += ll_step) {
-			//fprintf(stderr, "Reducing size of ind = %d\n", i);
-			if (reduce_hits_behind(small, mk_res + i))
-				valid_kmer++;
-		}
+	//if (valid_kmer == 1) {
+	//	GIMatchedKmer* small = mk_res + valid_kmer_ind;
+	//	for (int i = 0; i < valid_kmer_ind; i += ll_step) {
+	//		//fprintf(stderr, "Reducing size of ind = %d\n", i);
+	//		if (reduce_hits_behind(small, mk_res + i))
+	//			valid_kmer++;
+	//	}
 
-		for (int i = valid_kmer_ind + ll_step; i < em_count * ll_step; i += ll_step) {
-			//fprintf(stderr, "Reducing size of ind = %d\n", i);
-			if (reduce_hits_ahead(small, mk_res + i))
-				valid_kmer++;
-		}
-	}
+	//	for (int i = valid_kmer_ind + ll_step; i < em_count * ll_step; i += ll_step) {
+	//		//fprintf(stderr, "Reducing size of ind = %d\n", i);
+	//		if (reduce_hits_ahead(small, mk_res + i))
+	//			valid_kmer++;
+	//	}
+	//}
 	
 	for (int i = 0; i < em_count * ll_step; i += ll_step) {
 		if ((mk_res+i)->frag_count > FRAGLIM) {
