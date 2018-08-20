@@ -12,7 +12,7 @@ extern "C" {
 #include "mrsfast/Common.h"
 }
 
-void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l);
+void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l, int& high_hits);
 int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir);
 int process_mates(const chain_list& forward_chain, const Record* record1, const chain_list& backward_chain, const Record* record2);
 
@@ -27,9 +27,9 @@ FilterRead::FilterRead (char* save_fname, bool pe, char* filter_temp_name, int n
 	is_pe = pe;
 	cat_count = num_files;
 
-	char* output_names[8] = { "concordant", "discordant", "circ_RF", "fusion", "circ_bsj", "keep", "OEA", "orphan" };
+	char* output_names[10] = { "concordant", "discordant", "circ_RF", "fusion", "circ_bsj", "keep", "OEA", "orphan", "many_hits", "no_hit" };
 	char cat_fname [FILE_NAME_LENGTH];
-	
+
 	for (int i = 0; i < num_files; i++) {
 		if (is_pe) {
 			sprintf(cat_fname, "%s_%s.%s_R1.fastq", save_fname, filter_temp_name, output_names[i]);
@@ -68,8 +68,9 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 
 	MatchedMate mr;
 	int ex_ret, min_ret = ORPHAN;
+	int fhh, bhh;
 
-	get_best_chains(current_record->seq, current_record->seq_len, kmer_size, forward_best_chain, fl);
+	get_best_chains(current_record->seq, current_record->seq_len, kmer_size, forward_best_chain, fl, fhh);
 	for (int i = 0; i < forward_best_chain.best_chain_count; i++) {
 		ex_ret = extend_chain(forward_best_chain.chains[i], current_record->seq, current_record->seq_len, mr, 1); 
 		
@@ -80,7 +81,7 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 			min_ret = ex_ret;
 	}
 
-	get_best_chains(current_record->rcseq, current_record->seq_len, kmer_size, backward_best_chain, bl);
+	get_best_chains(current_record->rcseq, current_record->seq_len, kmer_size, backward_best_chain, bl, bhh);
 	for (int i = 0; i < backward_best_chain.best_chain_count; i++) {
 		ex_ret = extend_chain(backward_best_chain.chains[i], current_record->rcseq, current_record->seq_len, mr, -1); 
 		
@@ -101,12 +102,15 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 								chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2) {
 
 	int max_frag_count = current_record1->seq_len / kmer_size + 1;
+	int kmer_count = 2 * (current_record1->seq_len / kmer_size);
+	int fhh_r1, bhh_r1;
+	int fhh_r2, bhh_r2;
 
 	// R1
 	vafprintf(1, stderr, "R1/%s\n", current_record1->rname);
 
-	get_best_chains(current_record1->seq, current_record1->seq_len, kmer_size, forward_best_chain_r1, fl);
-	get_best_chains(current_record1->rcseq, current_record1->seq_len, kmer_size, backward_best_chain_r1, bl);
+	get_best_chains(current_record1->seq, current_record1->seq_len, kmer_size, forward_best_chain_r1, fl, fhh_r1);
+	get_best_chains(current_record1->rcseq, current_record1->seq_len, kmer_size, backward_best_chain_r1, bl, bhh_r1);
 
 	vafprintf(1, stderr, "R1/%s\n", current_record1->rname);
 	vafprintf(1, stderr, "R1 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r1.chains[0].score, (unsigned long)forward_best_chain_r1.best_chain_count);
@@ -124,8 +128,8 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 	// R2
 	vafprintf(1, stderr, "R2/%s\n", current_record2->rname);
 
-	get_best_chains(current_record2->seq, current_record2->seq_len, kmer_size, forward_best_chain_r2, fl);
-	get_best_chains(current_record2->rcseq, current_record2->seq_len, kmer_size, backward_best_chain_r2, bl);
+	get_best_chains(current_record2->seq, current_record2->seq_len, kmer_size, forward_best_chain_r2, fl, fhh_r2);
+	get_best_chains(current_record2->rcseq, current_record2->seq_len, kmer_size, backward_best_chain_r2, bl, bhh_r2);
 
 	vafprintf(1, stderr, "R2/%s\n", current_record2->rname);
 	vafprintf(1, stderr, "R2 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r2.chains[0].score, (unsigned long)forward_best_chain_r2.best_chain_count);
@@ -141,8 +145,12 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 		}
 
 	// Orphan / OEA
-	if (forward_best_chain_r1.best_chain_count + backward_best_chain_r1.best_chain_count + forward_best_chain_r2.best_chain_count + backward_best_chain_r2.best_chain_count <= 0)
-		return ORPHAN;
+	if (forward_best_chain_r1.best_chain_count + backward_best_chain_r1.best_chain_count + forward_best_chain_r2.best_chain_count + backward_best_chain_r2.best_chain_count <= 0) {
+		if ((fhh_r1 + bhh_r1 > 0) and (fhh_r2 + bhh_r2 > 0))
+			return NOPROC_MANYHIT;
+		else
+			return NOPROC_NOMATCH;
+	}
 	if ((forward_best_chain_r1.best_chain_count + backward_best_chain_r1.best_chain_count <= 0) or (forward_best_chain_r2.best_chain_count + backward_best_chain_r2.best_chain_count <= 0))
 		return OEANCH;
 
@@ -222,7 +230,7 @@ bool is_concord(const chain_t& a, int seq_len, MatchedMate& mr) {
 	return mr.is_concord;
 }
 
-void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l) {
+void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l, int& high_hits) {
 	int kmer_count = ceil(seq_len / kmer_size);
 	int forward_fragment_count, backward_fragment_count;
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
@@ -233,7 +241,11 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& bes
 
 	split_match_hash(read_seq, seq_len, kmer_size, frag_l);
 	chain_seeds_sorted_kbest(seq_len, frag_l, best_chain);
-	//chain_seeds_sorted_kbest_old(frag_l, best_chain);
+
+	high_hits = 0;
+	for (int i = 0; i < max_seg_cnt; i+=2)
+		if (((frag_l+i)->frags != NULL) and ((frag_l+i)->frag_count == 0))
+			high_hits++;
 }
 
 // return:

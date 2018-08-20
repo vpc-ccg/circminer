@@ -46,6 +46,8 @@ using namespace std;
 #define CANDID 5
 #define OEANCH 6
 #define ORPHAN 7
+#define NOPROC_MANYHIT 8
+#define NOPROC_NOMATCH 9
 
 //---------- Structures ----------//
 

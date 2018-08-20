@@ -10,7 +10,7 @@ for N in 1 2
 	do
 	echo "R${N}"
 	cat ${SRC}/*${CONCRD}_R${N}.fastq > ${DEST}/${CONCRD}_R${N}.fastq
-	for M in discordant circ_bsj circ_RF keep OEA orphan
+	for M in discordant circ_bsj circ_RF keep OEA orphan many_hits no_hit
 		do
 		echo "${M}"
 		cat ${SRC}/*_3.${M}_R${N}.fastq > ${DEST}/${M}_R${N}.fastq

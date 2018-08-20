@@ -71,7 +71,7 @@ bool FASTQParser::read_next (void) {
 		current_record->state = current_record->comment[1] - '0';
 	}
 	else 
-		current_record->state = ORPHAN;
+		current_record->state = NOPROC_NOMATCH;
 	current_record->comment[1] = '\0';
 	/****/
 

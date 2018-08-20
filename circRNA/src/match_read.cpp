@@ -224,7 +224,7 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 	for (int i = 0; i < em_count * ll_step; i += ll_step) {
 		if ((mk_res+i)->frag_count > FRAGLIM) {
 			(mk_res+i)->frag_count = 0;
-			(mk_res+i)->frags = NULL;
+			//(mk_res+i)->frags = NULL;
 		}
 	}
 
