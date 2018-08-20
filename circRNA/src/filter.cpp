@@ -16,8 +16,8 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& bes
 int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir);
 int process_mates(const chain_list& forward_chain, const Record* record1, const chain_list& backward_chain, const Record* record2);
 
-bool extend_right(char* seq, uint32_t& pos, int len);
-bool extend_left(char* seq, uint32_t& pos, int len);
+bool extend_right(char* seq, uint32_t& pos, int len, int& sclen_right);
+bool extend_left(char* seq, uint32_t& pos, int len, int& sclen_left);
 
 void overlap_to_epos(MatchedMate& mr);
 void overlap_to_spos(MatchedMate& mr);
@@ -266,6 +266,8 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	bool left_ok = true;
 	bool right_ok = true;
+	int sclen_left = 0;
+	int sclen_right = 0;
 
 	uint32_t lm_pos = ch.frags[0].rpos;
 	int remain_beg = ch.frags[0].qpos;
@@ -274,7 +276,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 	
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		left_ok = extend_left(seq, lm_pos, remain_beg);
+		left_ok = extend_left(seq, lm_pos, remain_beg, sclen_left);
 	}
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
@@ -284,34 +286,28 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
-		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end);
+		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end, sclen_right);
 	}
 
 
 	mr.start_pos = lm_pos;
 	mr.end_pos = rm_pos;
-	//mr.matched_len = seq_len - sclen_left - sclen_right;
+	mr.matched_len = seq_len;
+	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
+	mr.matched_len -= (right_ok)? sclen_right: remain_end;
 	mr.dir = dir;
 	
 	if (left_ok and right_ok) {
 		mr.is_concord = true;
 		mr.type = CONCRD;
-		mr.matched_len = seq_len;
 	}
 	else if (left_ok or right_ok) {
 		mr.type = CANDID;
-		mr.matched_len = seq_len - kmer;
 	}
 	else
 		mr.type = ORPHAN;
 
 	return mr.type;
-}
-
-// s < l
-int32_t calc_tlen(const UniqSeg& s, const UniqSeg& l) {
-	int32_t min_tlen;
-				
 }
 
 // sm should start before lm
@@ -628,7 +624,7 @@ void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int rema
 
 // pos is exclusive
 // [ pos+1, pos+len ]
-bool extend_right(char* seq, uint32_t& pos, int len) {
+bool extend_right(char* seq, uint32_t& pos, int len, int& sclen) {
 	char res_str[len+5];
 	res_str[len] = '\0';
 	
@@ -639,8 +635,9 @@ bool extend_right(char* seq, uint32_t& pos, int len) {
 	get_seq_right(res_str, seq, pos, 0, len, min_ed, sclen_best, best_rmpos);
 
 	if (min_ed <= EDTH) {
-		//pos = best_rmpos - sclen_best;
-		pos = best_rmpos;
+		pos = best_rmpos - sclen_best;
+		sclen = sclen_best;
+		//pos = best_rmpos;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -652,8 +649,9 @@ bool extend_right(char* seq, uint32_t& pos, int len) {
 	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
 	if (min_ed <= EDTH) {
-		//pos = pos + len - sclen_best;
-		pos = pos + len;
+		pos = pos + len - sclen_best;
+		sclen = sclen_best;
+		//pos = pos + len;
 		vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -731,7 +729,7 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 
 // pos is exclusive
 // [ pos-len, pos-1 ]
-bool extend_left(char* seq, uint32_t& pos, int len) {
+bool extend_left(char* seq, uint32_t& pos, int len, int& sclen) {
 	char res_str[len+5];
 	res_str[len] = '\0';
 	
@@ -742,8 +740,9 @@ bool extend_left(char* seq, uint32_t& pos, int len) {
 	get_seq_left(res_str, seq, pos, 0, len, min_ed, sclen_best, lmpos_best);
 	
 	if (min_ed <= EDTH) {
-		//pos = lmpos_best + sclen_best;
-		pos = lmpos_best;
+		pos = lmpos_best + sclen_best;
+		sclen = sclen_best;
+		//pos = lmpos_best;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -757,8 +756,9 @@ bool extend_left(char* seq, uint32_t& pos, int len) {
 	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
 	if (min_ed <= EDTH) {
-		//pos = new_lmpos + sclen_best;
-		pos = new_lmpos;
+		pos = new_lmpos + sclen_best;
+		sclen = sclen_best;
+		//pos = new_lmpos;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 		return true;
 	}

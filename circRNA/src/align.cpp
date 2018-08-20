@@ -54,10 +54,11 @@ bool Alignment::hamming_match_right(char* s, int n, char* t, int m) {
 // dir > 0
 // return edit distance, soft clipped length
 int Alignment::hamming_distance_right(char* s, int n, char* t, int m, int& sclen) {
-	int mm_th = SOFTCLIPTH / 2;
+	//int mm_th = SOFTCLIPTH / 2;
 	int min_len = minM(n, m);
 	int mid_dist = 0;
-	int side_dist = 0;
+	//int side_dist = 0;
+	int side_dist[SOFTCLIPTH+1] = {0};
 
 	int mid_range = min_len - SOFTCLIPTH;
 	for (int i = 0; i < mid_range; i++) {
@@ -66,18 +67,26 @@ int Alignment::hamming_distance_right(char* s, int n, char* t, int m, int& sclen
 			return mid_dist;
 	}
 
-	for (int i = mid_range; i < min_len; i++)
-		side_dist += diff_ch[s[i]][t[i]];
+	for (int i = min_len - 1; i >= mid_range; i--)
+		side_dist[min_len - i] = side_dist[min_len - i - 1] + diff_ch[s[i]][t[i]];
+		//side_dist += diff_ch[s[i]][t[i]];
 
-	if (side_dist >= mm_th) {
-		sclen = SOFTCLIPTH;
-		return mid_dist;
-	}
-	
-	else {
-		sclen = 0;
-		return mid_dist + side_dist;
-	}
+	int i = SOFTCLIPTH;
+	while (i > 0 and (side_dist[i] == side_dist[i-1] or side_dist[i] < (i / 2.0)))
+		i--;
+
+	sclen = i;
+	return mid_dist + side_dist[SOFTCLIPTH] - side_dist[i];
+
+	//if (side_dist >= mm_th) {
+	//	sclen = SOFTCLIPTH;
+	//	return mid_dist;
+	//}
+	//
+	//else {
+	//	sclen = 0;
+	//	return mid_dist + side_dist;
+	//}
 }
 
 // dir < 0
@@ -101,10 +110,11 @@ bool Alignment::hamming_match_left(char* s, int n, char* t, int m) {
 
 // dir < 0
 int Alignment::hamming_distance_left(char* s, int n, char* t, int m, int& sclen) {
-	int mm_th = SOFTCLIPTH / 2;
+	//int mm_th = SOFTCLIPTH / 2;
 	int min_len = minM(n, m);
 	int mid_dist = 0;
-	int side_dist = 0;
+	//int side_dist = 0;
+	int side_dist[SOFTCLIPTH+1] = {0};
 
 	for (int i = SOFTCLIPTH; i < min_len; i++) {
 		mid_dist += diff_ch[s[i]][t[i]];
@@ -113,16 +123,24 @@ int Alignment::hamming_distance_left(char* s, int n, char* t, int m, int& sclen)
 	}
 
 	for (int i = 0; i < SOFTCLIPTH; i++)
-		side_dist += diff_ch[s[i]][t[i]];
+		side_dist[i + 1] = side_dist[i] + diff_ch[s[i]][t[i]];
+		//side_dist += diff_ch[s[i]][t[i]];
 
-	if (side_dist >= mm_th) {
-		sclen = SOFTCLIPTH;
-		return mid_dist;
-	}
-	else {
-		sclen = 0;
-		return mid_dist + side_dist;
-	}
+	int i = SOFTCLIPTH;
+	while (i > 0 and (side_dist[i] == side_dist[i-1] or side_dist[i] < (i / 2.0)))
+		i--;
+
+	sclen = i;
+	return mid_dist + side_dist[SOFTCLIPTH] - side_dist[i];
+
+	//if (side_dist >= mm_th) {
+	//	sclen = SOFTCLIPTH;
+	//	return mid_dist;
+	//}
+	//else {
+	//	sclen = 0;
+	//	return mid_dist + side_dist;
+	//}
 }
 
 int Alignment::alignment(char* s, int n, char* t, int m, int gap_pen, int mm_pen) {
