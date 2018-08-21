@@ -72,10 +72,13 @@ int Alignment::hamming_distance_right(char* s, int n, char* t, int m, int& sclen
 		//side_dist += diff_ch[s[i]][t[i]];
 
 	int i = SOFTCLIPTH;
-	while (i > 0 and (side_dist[i] == side_dist[i-1] or side_dist[i] < (i / 2.0)))
+	while (i > 0 and (side_dist[i] == side_dist[i-1] or (2 * side_dist[i]) < i))
 		i--;
 
 	sclen = i;
+	//if (sclen == SOFTCLIPTH and diff_ch[s[mid_range-1]][t[mid_range-1]] == 1)	// mismatch exactly after the soft clip ends =>  not extendable
+	//	return EDTH+1;
+
 	return mid_dist + side_dist[SOFTCLIPTH] - side_dist[i];
 
 	//if (side_dist >= mm_th) {
@@ -127,10 +130,13 @@ int Alignment::hamming_distance_left(char* s, int n, char* t, int m, int& sclen)
 		//side_dist += diff_ch[s[i]][t[i]];
 
 	int i = SOFTCLIPTH;
-	while (i > 0 and (side_dist[i] == side_dist[i-1] or side_dist[i] < (i / 2.0)))
+	while (i > 0 and (side_dist[i] == side_dist[i-1] or (2 * side_dist[i]) < i))
 		i--;
 
 	sclen = i;
+	//if (sclen == SOFTCLIPTH and diff_ch[s[SOFTCLIPTH]][t[SOFTCLIPTH]] == 1)	// mismatch exactly after the soft clip ends =>  not extendable
+	//	return EDTH+1;
+
 	return mid_dist + side_dist[SOFTCLIPTH] - side_dist[i];
 
 	//if (side_dist >= mm_th) {

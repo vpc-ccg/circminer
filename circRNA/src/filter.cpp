@@ -580,10 +580,12 @@ void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int rema
 		//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", pos, len);
 		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d\n", res_str - covered, seq, edit_dist);
 		
-		if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
-			min_ed = edit_dist;
-			sclen_best = sclen;
-			rmpos_best = new_rmpos;
+		//if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
+		if (edit_dist <= EDTH)
+			if ((edit_dist < min_ed) or (edit_dist == min_ed and sclen < sclen_best) or (edit_dist == min_ed and sclen == sclen_best and new_rmpos < rmpos_best)) {	// less hamming distance, then less soft clip, then smaller junction distance
+				min_ed = edit_dist;
+				sclen_best = sclen;
+				rmpos_best = new_rmpos;
 		}
 	}
 
@@ -606,12 +608,14 @@ void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int rema
 			//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", pos, len);
 			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d\n", res_str - covered, seq, edit_dist);
 			
-			if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
-				min_ed = edit_dist;
-				sclen_best = sclen;
-				rmpos_best = new_rmpos;
+			//if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
+			if (edit_dist <= EDTH)
+				if ((edit_dist < min_ed) or (edit_dist == min_ed and sclen < sclen_best) or (edit_dist == min_ed and sclen == sclen_best and new_rmpos < rmpos_best)) {	// less hamming distance, then less soft clip, then smaller junction distance
+					min_ed = edit_dist;
+					sclen_best = sclen;
+					rmpos_best = new_rmpos;
+				}
 			}
-		}
 		else {		// junction
 			if (overlapped_exon[i].next_exon_beg == 0)	// should not be the last exon and partially mappable
 				continue;
@@ -685,10 +689,12 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 		//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", new_lmpos, len);
 		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeftedit dist: %d\n", res_str, seq, edit_dist);
 
-		if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
-			min_ed = edit_dist;
-			sclen_best = sclen;
-			lmpos_best = new_lmpos;
+		//if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
+		if (edit_dist <= EDTH)
+			if ((edit_dist < min_ed) or (edit_dist == min_ed and sclen < sclen_best) or (edit_dist == min_ed and sclen == sclen_best and new_lmpos > lmpos_best)) {	// less hamming distance, then less soft clip, then smaller junction distance
+				min_ed = edit_dist;
+				sclen_best = sclen;
+				lmpos_best = new_lmpos;
 		}
 	}
 
@@ -711,12 +717,14 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 			//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", new_lmpos, len);
 			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeft edit dist: %d\n", res_str, seq, edit_dist);
 
-			if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
-				min_ed = edit_dist;
-				sclen_best = sclen;
-				lmpos_best = new_lmpos;
+			//if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
+			if (edit_dist <= EDTH)
+				if ((edit_dist < min_ed) or (edit_dist == min_ed and sclen < sclen_best) or (edit_dist == min_ed and sclen == sclen_best and new_lmpos > lmpos_best)) {	// less hamming distance, then less soft clip, then smaller junction distance
+					min_ed = edit_dist;
+					sclen_best = sclen;
+					lmpos_best = new_lmpos;
+				}
 			}
-		}
 		else {		// junction
 			if (overlapped_exon[i].prev_exon_end == 0)	// should not be the first exon and partially mappable
 				continue;
