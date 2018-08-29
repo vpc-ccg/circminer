@@ -16,8 +16,8 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& bes
 int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir);
 int process_mates(const chain_list& forward_chain, const Record* record1, const chain_list& backward_chain, const Record* record2);
 
-bool extend_right(char* seq, uint32_t& pos, int len, int& sclen_right);
-bool extend_left(char* seq, uint32_t& pos, int len, int& sclen_left);
+bool extend_right(char* seq, uint32_t& pos, int len, int& err, int& sclen_right);
+bool extend_left(char* seq, uint32_t& pos, int len, int& err, int& sclen_left);
 
 void overlap_to_epos(MatchedMate& mr);
 void overlap_to_spos(MatchedMate& mr);
@@ -272,11 +272,14 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 	uint32_t lm_pos = ch.frags[0].rpos;
 	int remain_beg = ch.frags[0].qpos;
 	
+	int err_left = 0;
+	int err_right = 0;
+
 	left_ok = (remain_beg <= 0);
 	
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		left_ok = extend_left(seq, lm_pos, remain_beg, sclen_left);
+		left_ok = extend_left(seq, lm_pos, remain_beg, err_left, sclen_left);
 	}
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
@@ -286,9 +289,8 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
-		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end, sclen_right);
+		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end, err_right, sclen_right);
 	}
-
 
 	mr.start_pos = lm_pos;
 	mr.end_pos = rm_pos;
@@ -297,7 +299,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 	mr.matched_len -= (right_ok)? sclen_right: remain_end;
 	mr.dir = dir;
 	
-	if (left_ok and right_ok) {
+	if (left_ok and right_ok and (err_left + err_right <= EDTH)) {
 		mr.is_concord = true;
 		mr.type = CONCRD;
 	}
@@ -407,7 +409,7 @@ bool check_bsj(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, co
 }
 
 bool are_chimeric(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, MatchedRead& mr) {
-	if (mms_size <= 0 or mm.dir * mms[0].dir == 1)	// empty / same orientation
+	if (mms_size <= 0 or (mm.dir * mms[0].dir) == 1)	// empty / same orientation
 		return false;
 
 	ConShift con_shift = gtf_parser.get_shift(contigName, mm.start_pos);
@@ -422,13 +424,12 @@ bool are_chimeric(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, Matc
 		overlap_to_spos(omm);
 		overlap_to_epos(omm);
 		
+		//if (mm.start_pos <= omm.start_pos) {
 		if (mm.dir == 1) {
 			if (check_bsj(mm, omm, mr, con_shift.contig, shift))
 				return true;
 		}
-
-
-		if (mm.dir == -1) {
+		else {
 			if(check_bsj(omm, mm, mr, con_shift.contig, shift))
 				return true;
 		}
@@ -438,7 +439,7 @@ bool are_chimeric(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, Matc
 }
 
 bool are_concordant(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, MatchedRead& mr) {
-	if (mms_size <= 0 or mm.dir * mms[0].dir == 1)	// empty / same orientation
+	if (mms_size <= 0 or (mm.dir * mms[0].dir) == 1)	// empty / same orientation
 		return false;
 
 	ConShift con_shift = gtf_parser.get_shift(contigName, mm.start_pos);
@@ -546,10 +547,13 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 		print_mapping(record1->rname, mr);
 		return mr.type;
 	}
-
+	
 	int ret_val = (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
 			: ((min_ret1 == ORPHAN) or (min_ret2 == ORPHAN)) ? ORPHAN 
 			: CANDID;
+
+	//if (ret_val <= CANDID)
+	//	print_mapping(record1->rname, mr);
 
 	return ret_val;
 }
@@ -628,20 +632,21 @@ void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int rema
 
 // pos is exclusive
 // [ pos+1, pos+len ]
-bool extend_right(char* seq, uint32_t& pos, int len, int& sclen) {
+bool extend_right(char* seq, uint32_t& pos, int len, int& err, int& sclen) {
 	char res_str[len+5];
 	res_str[len] = '\0';
 	
 	uint32_t best_rmpos = 0;
 	int min_ed = EDTH + 1;
 	int sclen_best = SOFTCLIPTH;
+	err = EDTH + 1;
 	
 	get_seq_right(res_str, seq, pos, 0, len, min_ed, sclen_best, best_rmpos);
 
 	if (min_ed <= EDTH) {
 		pos = best_rmpos - sclen_best;
+		err = min_ed;
 		sclen = sclen_best;
-		//pos = best_rmpos;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -654,8 +659,8 @@ bool extend_right(char* seq, uint32_t& pos, int len, int& sclen) {
 
 	if (min_ed <= EDTH) {
 		pos = pos + len - sclen_best;
+		err = min_ed;
 		sclen = sclen_best;
-		//pos = pos + len;
 		vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -737,20 +742,21 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 
 // pos is exclusive
 // [ pos-len, pos-1 ]
-bool extend_left(char* seq, uint32_t& pos, int len, int& sclen) {
+bool extend_left(char* seq, uint32_t& pos, int len, int& err, int& sclen) {
 	char res_str[len+5];
 	res_str[len] = '\0';
 	
 	uint32_t lmpos_best = 0;
 	int min_ed = EDTH + 1;
 	int sclen_best = SOFTCLIPTH;
+	err = EDTH + 1;
 
 	get_seq_left(res_str, seq, pos, 0, len, min_ed, sclen_best, lmpos_best);
 	
 	if (min_ed <= EDTH) {
 		pos = lmpos_best + sclen_best;
+		err = min_ed;
 		sclen = sclen_best;
-		//pos = lmpos_best;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -765,8 +771,8 @@ bool extend_left(char* seq, uint32_t& pos, int len, int& sclen) {
 
 	if (min_ed <= EDTH) {
 		pos = new_lmpos + sclen_best;
+		err = min_ed;
 		sclen = sclen_best;
-		//pos = new_lmpos;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 		return true;
 	}
