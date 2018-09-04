@@ -152,6 +152,18 @@ struct UniqSegList {
 			seg_list.push_back(r.seg_list[i]);
 		return *this;
 	}
+	
+	bool same_gene(const UniqSegList* r) const {
+		if (r == NULL)
+			return false;
+
+		for (int i = 0; i < seg_list.size(); i++)
+			for (int j = 0; j < r->seg_list.size(); j++)
+				if (seg_list[i].gene_id == r->seg_list[j].gene_id)
+					return true;
+	
+		return false;
+	}
 };
 
 struct MatchedMate {
@@ -231,6 +243,12 @@ struct MatchedRead {
 		return true;
 	}
 };
+
+typedef struct {
+	float score;
+	chain_t forward;
+	chain_t reverse;
+} MatePair;
 
 //---------- Global Variables ----------//
 
