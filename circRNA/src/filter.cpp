@@ -652,7 +652,10 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 		MatchedMate r1_mm;
 		MatchedMate r2_mm;
 
-		if (mate_pairs[i].forward.frags[0].rpos <= mate_pairs[i].reverse.frags[0].rpos) {
+		uint32_t forward_start = mate_pairs[i].forward.frags[0].rpos;
+		uint32_t reverse_start = mate_pairs[i].reverse.frags[0].rpos;
+		uint32_t reverse_end   = mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].rpos + mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].len - 1;
+		if (forward_start <= reverse_end) {
 			extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, record1->seq, record2->rcseq, record1->seq_len, record2->seq_len, r1_mm, r2_mm);
 			
 			if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
@@ -683,7 +686,8 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 				check_bsj(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift);
 			}
 		}
-		else {
+
+		if (forward_start > reverse_start) {
 			extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, record2->rcseq, record1->seq, record2->seq_len, record1->seq_len, r2_mm, r1_mm);
 			
 			if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
