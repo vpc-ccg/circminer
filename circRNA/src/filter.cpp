@@ -830,9 +830,10 @@ int process_mates_old(const chain_list& forward_chain, const Record* record1, co
 
 // pos is exclusive
 // [ pos+1, pos+len ]
-void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int remain, uint32_t ub, int& min_ed, int& sclen_best, uint32_t& rmpos_best) {
+void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int covered, int remain, uint32_t ub, int& min_ed, int& sclen_best, uint32_t& rmpos_best) {
 	int len;
 	int sclen;
+	int indel;
 	int edit_dist;
 	uint32_t new_rmpos;
 	uint32_t exon_remain;
@@ -846,12 +847,13 @@ void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int rema
 		//vafprintf(2, stderr, "Going for %lu - %lu\n", pos + 1, pos + remain);
 		
 		pac2char(pos + 1, remain, res_str);
-		new_rmpos = pos + remain;
 
 		len = covered + remain;
-		edit_dist = alignment.hamming_distance_right(res_str - covered, len, seq, len, sclen);
+		//edit_dist = alignment.hamming_distance_right(res_str - covered, len, seq, seq_len, sclen);
+		edit_dist = alignment.local_alignment_right(res_str - covered, len, seq, seq_len, sclen, indel);
+		new_rmpos = pos + seq_len + indel;
 		
-		//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", pos, len);
+		//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\n", new_rmpos, seq_len, indel);
 		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d\n", res_str - covered, seq, edit_dist);
 		
 		//if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
@@ -874,13 +876,14 @@ void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int rema
 			//vafprintf(2, stderr, "Going for %lu - %lu\n", pos + 1, pos + remain);
 			
 			pac2char(pos + 1, remain, res_str);
-			new_rmpos = pos + remain;
 
 			len = covered + remain;
 
-			edit_dist = alignment.hamming_distance_right(res_str - covered, len, seq, len, sclen);
+			//edit_dist = alignment.hamming_distance_right(res_str - covered, len, seq, len, sclen);
+			edit_dist = alignment.local_alignment_right(res_str - covered, len, seq, seq_len, sclen, indel);
+			new_rmpos = pos + seq_len + indel;
 			
-			//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", pos, len);
+			//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", new_rmpos, len);
 			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d\n", res_str - covered, seq, edit_dist);
 			
 			//if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
@@ -899,7 +902,7 @@ void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int rema
 				continue;
 
 			pac2char(pos + 1, exon_remain, res_str);
-			get_seq_right(res_str + exon_remain, seq, overlapped_exon[i].next_exon_beg - 1, covered + exon_remain, remain - exon_remain, ub, min_ed, sclen_best, rmpos_best);
+			get_seq_right(res_str + exon_remain, seq, seq_len, overlapped_exon[i].next_exon_beg - 1, covered + exon_remain, remain - exon_remain, ub, min_ed, sclen_best, rmpos_best);
 		}
 	}
 }
@@ -907,15 +910,19 @@ void get_seq_right(char* res_str, char* seq, uint32_t pos, int covered, int rema
 // pos is exclusive
 // [ pos+1, pos+len ]
 bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, int& err, int& sclen) {
-	char res_str[len+5];
-	res_str[len] = '\0';
+	int seq_len = len;
+	int ref_len = len + INDELTH;
+
+	char res_str[ref_len+1];
+	res_str[ref_len] = '\0';
 	
 	uint32_t best_rmpos = 0;
 	int min_ed = EDTH + 1;
 	int sclen_best = SOFTCLIPTH;
+	int indel;
 	err = EDTH + 1;
 	
-	get_seq_right(res_str, seq, pos, 0, len, ub, min_ed, sclen_best, best_rmpos);
+	get_seq_right(res_str, seq, seq_len, pos, 0, ref_len, ub, min_ed, sclen_best, best_rmpos);
 
 	if (min_ed <= EDTH) {
 		pos = best_rmpos - sclen_best;
@@ -926,13 +933,14 @@ bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, int& err, int&
 	}
 	
 	// intron retentaion
-	pac2char(pos + 1, len, res_str);	
-	min_ed = alignment.hamming_distance_right(res_str, len, seq, len, sclen_best);
+	pac2char(pos + 1, ref_len, res_str);	
+	//min_ed = alignment.hamming_distance_right(res_str, len, seq, len, sclen_best);
+	min_ed = alignment.local_alignment_right(res_str, ref_len, seq, seq_len, sclen_best, indel);
 	//vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", pos, len);
 	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
 	if (min_ed <= EDTH) {
-		pos = pos + len - sclen_best;
+		pos = pos + seq_len + indel - sclen_best;
 		err = min_ed;
 		sclen = sclen_best;
 		vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
@@ -944,9 +952,10 @@ bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, int& err, int&
 
 // pos is exclusive
 // [ pos-len, pos-1 ]
-bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remain, uint32_t lb, int& min_ed, int& sclen_best, uint32_t& lmpos_best) {
+bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int covered, int remain, uint32_t lb, int& min_ed, int& sclen_best, uint32_t& lmpos_best) {
 	int len;
 	int sclen;
+	int indel;
 	int edit_dist;
 	uint32_t new_lmpos;
 	uint32_t exon_remain;
@@ -959,13 +968,14 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 	if (overlapped_exon.size() == 0) {
 		//vafprintf(2, stderr, "Going for %lu - %lu\n", pos - remain, pos - 1);
 
-		new_lmpos = pos - remain;
-		pac2char(new_lmpos, remain, res_str);
+		pac2char(pos - remain, remain, res_str);
 
 		len = covered + remain;
-		edit_dist = alignment.hamming_distance_left(res_str, len, seq, len, sclen);
+		//edit_dist = alignment.hamming_distance_left(res_str, len, seq, len, sclen);
+		edit_dist = alignment.local_alignment_left(res_str, len, seq, seq_len, sclen, indel);
+		new_lmpos = pos - seq_len - indel;
 
-		//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", new_lmpos, len);
+		//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\t indel: %d\n", new_lmpos, seq_len, indel);
 		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeftedit dist: %d\n", res_str, seq, edit_dist);
 
 		//if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
@@ -987,13 +997,14 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 		if (exon_remain >= remain) {
 			//vafprintf(2, stderr, "Going for %lu - %lu\n", pos - remain, pos - 1);
 
-			new_lmpos = pos - remain;
-			pac2char(new_lmpos, remain, res_str);
+			pac2char(pos - remain, remain, res_str);
 
 			len = covered + remain;
-			edit_dist = alignment.hamming_distance_left(res_str, len, seq, len, sclen);
+			//edit_dist = alignment.hamming_distance_left(res_str, len, seq, len, sclen);
+			edit_dist = alignment.local_alignment_left(res_str, len, seq, seq_len, sclen, indel);
+			new_lmpos = pos - seq_len - indel;
 
-			//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", new_lmpos, len);
+			//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", new_lmpos, seq_len);
 			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeft edit dist: %d\n", res_str, seq, edit_dist);
 
 			//if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
@@ -1012,7 +1023,7 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 				continue;
 
 			pac2char(overlapped_exon[i].start, exon_remain, res_str + remain - exon_remain);
-			get_seq_left(res_str, seq, overlapped_exon[i].prev_exon_end + 1, covered + exon_remain, remain - exon_remain, lb, min_ed, sclen_best, lmpos_best);
+			get_seq_left(res_str, seq, seq_len, overlapped_exon[i].prev_exon_end + 1, covered + exon_remain, remain - exon_remain, lb, min_ed, sclen_best, lmpos_best);
 		}
 	}
 }
@@ -1020,15 +1031,18 @@ bool get_seq_left(char* res_str, char* seq, uint32_t pos, int covered, int remai
 // pos is exclusive
 // [ pos-len, pos-1 ]
 bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, int& err, int& sclen) {
-	char res_str[len+5];
-	res_str[len] = '\0';
+	int seq_len = len;
+	int ref_len = len + INDELTH;
+	char res_str[ref_len+1];
+	res_str[ref_len] = '\0';
 	
 	uint32_t lmpos_best = 0;
 	int min_ed = EDTH + 1;
 	int sclen_best = SOFTCLIPTH;
+	int indel;
 	err = EDTH + 1;
 
-	get_seq_left(res_str, seq, pos, 0, len, lb, min_ed, sclen_best, lmpos_best);
+	get_seq_left(res_str, seq, seq_len, pos, 0, ref_len, lb, min_ed, sclen_best, lmpos_best);
 	
 	if (min_ed <= EDTH) {
 		pos = lmpos_best + sclen_best;
@@ -1039,15 +1053,15 @@ bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, int& err, int& 
 	}
 
 	// intron retentaion
-	uint32_t new_lmpos = pos - len;
-	pac2char(new_lmpos , len, res_str);	
-	min_ed = alignment.hamming_distance_left(res_str, len, seq, len, sclen_best);
+	pac2char(pos - ref_len, ref_len, res_str);
+	//min_ed = alignment.hamming_distance_left(res_str, len, seq, len, sclen_best);
+	min_ed = alignment.local_alignment_left(res_str, ref_len, seq, seq_len, sclen_best, indel);
 	
 	//vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", pos, len);
 	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
 	if (min_ed <= EDTH) {
-		pos = new_lmpos + sclen_best;
+		pos = pos - seq_len - indel + sclen_best;
 		err = min_ed;
 		sclen = sclen_best;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);

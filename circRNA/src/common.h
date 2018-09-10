@@ -34,6 +34,7 @@ using namespace std;
 
 #define BESTCHAINLIM 30
 #define EDTH 4
+#define INDELTH 3
 #define SOFTCLIPTH 7
 
 // ouput categories
