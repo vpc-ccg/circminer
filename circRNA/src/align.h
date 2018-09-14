@@ -42,12 +42,15 @@ public:
 	
 	int global_alignment(char* s, int n, char* t, int m, int gap_pen, int mm_pen);
 	void global_banded_alignment(char* s, int n, char* t, int m);
+	void global_banded_alignment_reverse(char* s, int n, char* t, int m);
 	
 	void hamming_distance(char* s, int n, char* t, int m);
 	void hamming_distance_bottom(char* s, int n, char* t, int m);
+	void hamming_distance_top(char* s, int n, char* t, int m);
 	
 	int local_alignment_right(char* s, int n, char* t, int m, int& sc_len, int& indel);
 	int local_alignment_left (char* s, int n, char* t, int m, int& sc_len, int& indel);
+	int local_alignment_left2(char* s, int n, char* t, int m, int& sc_len, int& indel);
 
 private:
 	int dp[MAXSTRSIZE][MAXSTRSIZE];

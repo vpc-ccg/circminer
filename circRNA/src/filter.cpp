@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
+#include <set>
 
 #include "filter.h"
 #include "align.h"
@@ -14,6 +15,8 @@ extern "C" {
 
 #define MINLB 0
 #define MAXUB 4294967295	//2^32 - 1
+
+set <GenRegion> trans_extensions;
 
 void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l, int& high_hits);
 int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir);
@@ -746,6 +749,7 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 	
 	int ret_val = (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
 			: ((min_ret1 == ORPHAN) or (min_ret2 == ORPHAN)) ? ORPHAN 
+			: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD)) ? CHIFUS
 			: CANDID;
 
 	//if (ret_val < CANDID)
@@ -868,7 +872,7 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 		edit_dist = alignment.local_alignment_right(res_str - covered, len, seq, seq_len, sclen, indel);
 	
 		consecutive = true;
-		new_rmpos = pos + seq_len + indel;
+		new_rmpos = pos + seq_len - indel;
 		
 		//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\n", new_rmpos, seq_len, indel);
 		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d\n", res_str - covered, seq, edit_dist);
@@ -881,6 +885,9 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 		}
 	}
 
+	//set <GenRegion> trans_extensions;
+	GenRegion new_region;
+
 	for (int i = 0; i < overlapped_exon.size(); i++) {
 		//vafprintf(2, stderr, "This exon: [%u-%u] -> %u\n", overlapped_exon[i].start, overlapped_exon[i].end, overlapped_exon[i].next_exon_beg);
 		if (covered > 0 and overlapped_exon[i].start != search_pos)	// when jump to the next exon
@@ -889,6 +896,12 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 		exon_remain = overlapped_exon[i].end - pos;
 		//vafprintf(2, stderr, "Remain on exon: %u\n", exon_remain);
 		if (exon_remain >= remain) {	// exonic	
+			new_region.set(pos + remain, 0);
+			if (trans_extensions.find(new_region) != trans_extensions.end())
+				continue;
+
+			trans_extensions.insert(new_region);
+
 			//vafprintf(2, stderr, "Going for %lu - %lu\n", pos + 1, pos + remain);
 			
 			pac2char(pos + 1, remain, res_str);
@@ -899,7 +912,7 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 			edit_dist = alignment.local_alignment_right(res_str - covered, len, seq, seq_len, sclen, indel);
 		
 			consecutive = true;
-			new_rmpos = pos + seq_len + indel;
+			new_rmpos = pos + seq_len - indel;
 			
 			//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", new_rmpos, len);
 			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d\n", res_str - covered, seq, edit_dist);
@@ -917,6 +930,12 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 			
 			if (overlapped_exon[i].next_exon_beg > ub)	// do not allow junction further than ub
 				continue;
+
+			new_region.set(overlapped_exon[i].end, overlapped_exon[i].next_exon_beg);
+			if (trans_extensions.find(new_region) != trans_extensions.end())
+				continue;
+
+			trans_extensions.insert(new_region);
 
 			pac2char(pos + 1, exon_remain, res_str);
 			get_seq_right(res_str + exon_remain, seq, seq_len, overlapped_exon[i].next_exon_beg - 1, covered + exon_remain, remain - exon_remain, ub, min_ed, sclen_best, rmpos_best, dummy_consec);
@@ -962,7 +981,7 @@ bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, int& err, int&
 	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
 	if (min_ed <= EDTH) {
-		pos = pos + seq_len + indel - sclen_best;
+		pos = pos + seq_len - indel - sclen_best;
 		err = min_ed;
 		sclen = sclen_best;
 		vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
@@ -999,7 +1018,7 @@ bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 		edit_dist = alignment.local_alignment_left(res_str, len, seq, seq_len, sclen, indel);
 		
 		consecutive = true;
-		new_lmpos = pos - seq_len - indel;
+		new_lmpos = pos - seq_len + indel;
 
 		//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\t indel: %d\n", new_lmpos, seq_len, indel);
 		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeftedit dist: %d\n", res_str, seq, edit_dist);
@@ -1012,6 +1031,9 @@ bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 		}
 	}
 
+	//set <GenRegion> trans_extensions;
+	GenRegion new_region;
+
 	for (int i = 0; i < overlapped_exon.size(); i++) {
 		//vafprintf(2, stderr, "%u <- This exon: [%u-%u]\n", overlapped_exon[i].prev_exon_end, overlapped_exon[i].start, overlapped_exon[i].end);
 		if (covered > 0 and overlapped_exon[i].end != search_pos)	// when jump to prev exon
@@ -1020,6 +1042,12 @@ bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 		exon_remain = pos - overlapped_exon[i].start;
 		//vafprintf(2, stderr, "Remain on exon: %u\n", exon_remain);
 		if (exon_remain >= remain) {
+			new_region.set(pos - remain, 0);
+			if (trans_extensions.find(new_region) != trans_extensions.end())
+				continue;
+
+			trans_extensions.insert(new_region);
+
 			//vafprintf(2, stderr, "Going for %lu - %lu\n", pos - remain, pos - 1);
 
 			pac2char(pos - remain, remain, res_str);
@@ -1029,12 +1057,11 @@ bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 			edit_dist = alignment.local_alignment_left(res_str, len, seq, seq_len, sclen, indel);
 		
 			consecutive = true;
-			new_lmpos = pos - seq_len - indel;
+			new_lmpos = pos - seq_len + indel;
 
 			//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", new_lmpos, seq_len);
 			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeft edit dist: %d\n", res_str, seq, edit_dist);
 
-			//if ((sclen == sclen_best and edit_dist < min_ed) or (sclen < sclen_best and edit_dist <= EDTH)) {	// less soft clip and then less hamming distance
 			if (edit_dist <= EDTH)
 				if ((edit_dist < min_ed) or (edit_dist == min_ed and sclen < sclen_best) or (edit_dist == min_ed and sclen == sclen_best and new_lmpos > lmpos_best)) {	// less hamming distance, then less soft clip, then smaller junction distance
 					min_ed = edit_dist;
@@ -1048,6 +1075,12 @@ bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 
 			if (overlapped_exon[i].prev_exon_end < lb)
 				continue;
+
+			new_region.set(overlapped_exon[i].start, overlapped_exon[i].prev_exon_end);
+			if (trans_extensions.find(new_region) != trans_extensions.end())
+				continue;
+
+			trans_extensions.insert(new_region);
 
 			pac2char(overlapped_exon[i].start, exon_remain, res_str + remain - exon_remain);
 			get_seq_left(res_str, seq, seq_len, overlapped_exon[i].prev_exon_end + 1, covered + exon_remain, remain - exon_remain, lb, min_ed, sclen_best, lmpos_best, dummy_consec);
@@ -1092,7 +1125,7 @@ bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, int& err, int& 
 	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
 	if (min_ed <= EDTH) {
-		pos = pos - seq_len - indel + sclen_best;
+		pos = pos - seq_len + indel + sclen_best;
 		err = min_ed;
 		sclen = sclen_best;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);

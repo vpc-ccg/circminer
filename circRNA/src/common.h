@@ -251,6 +251,25 @@ typedef struct {
 	chain_t reverse;
 } MatePair;
 
+struct GenRegion {
+	uint32_t last_pos;	// last position on exon
+	uint32_t next_pos;	// next position on next exon
+
+	GenRegion () : last_pos(0), next_pos(0) { }
+	GenRegion (uint32_t lp, uint32_t np) : last_pos(lp), next_pos(np) { }
+
+	void set(uint32_t lp, uint32_t np) {
+		last_pos = lp;
+		next_pos = np;
+	}
+	
+	bool operator < (const GenRegion& r) const {
+		if (last_pos != r.last_pos)
+			return (last_pos < r.last_pos);
+		return (next_pos < r.next_pos);
+	}
+};
+
 //---------- Global Variables ----------//
 
 extern bool pairedEnd;
