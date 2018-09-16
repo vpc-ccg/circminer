@@ -16,7 +16,7 @@ extern "C" {
 #define MINLB 0
 #define MAXUB 4294967295	//2^32 - 1
 
-set <GenRegion> trans_extensions;
+//set <GenRegion> trans_extensions;
 
 void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l, int& high_hits);
 int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir);
@@ -885,7 +885,8 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 		}
 	}
 
-	//set <GenRegion> trans_extensions;
+	set <GenRegion> trans_extensions;
+	//trans_extensions.clear();
 	GenRegion new_region;
 
 	for (int i = 0; i < overlapped_exon.size(); i++) {
@@ -1031,7 +1032,8 @@ bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 		}
 	}
 
-	//set <GenRegion> trans_extensions;
+	set <GenRegion> trans_extensions;
+	//trans_extensions.clear();
 	GenRegion new_region;
 
 	for (int i = 0; i < overlapped_exon.size(); i++) {
