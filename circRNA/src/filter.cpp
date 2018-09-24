@@ -589,9 +589,21 @@ bool are_concordant(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, Ma
 	return false;
 }
 
+bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
+	if (s == NULL or r == NULL)
+		return false;
+
+	for (int i = 0; i < s->seg_list.size(); i++)
+		for (int j = 0; j < r->seg_list.size(); j++)
+			if (s->seg_list[i].gene_id == r->seg_list[j].gene_id)
+				return true;
+
+	return false;
+}
+
 void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired) {
-	vector <const UniqSegList*> forward_exon_list(forward_chain.best_chain_count);
-	vector <const UniqSegList*> reverse_exon_list(reverse_chain.best_chain_count);
+	vector <const IntervalInfo<UniqSeg>*> forward_exon_list(forward_chain.best_chain_count);
+	vector <const IntervalInfo<UniqSeg>*> reverse_exon_list(reverse_chain.best_chain_count);
 
 	uint32_t pos;
 
@@ -617,7 +629,7 @@ void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chai
 						? (reverse_chain.chains[j].frags[reverse_chain.chains[j].chain_len-1].rpos + reverse_chain.chains[j].frags[reverse_chain.chains[j].chain_len-1].len - forward_chain.chains[i].frags[0].rpos)
 						: (forward_chain.chains[i].frags[forward_chain.chains[i].chain_len-1].rpos + forward_chain.chains[i].frags[forward_chain.chains[i].chain_len-1].len - reverse_chain.chains[j].frags[0].rpos);
 
-			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and forward_exon_list[i]->same_gene(reverse_exon_list[j]))
+			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_gene(forward_exon_list[i], reverse_exon_list[j]))
 				or (tlen <= MAXTLEN)) {
 				//or (forward_exon_list[i] == NULL and reverse_exon_list[j] == NULL and tlen <= MAXTLEN)) {
 				MatePair temp;
@@ -859,10 +871,9 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 
 	// if covered > 0 -> pos = (next_exon_beg - 1) = > search on (pos + 1)
 	uint32_t search_pos = (covered == 0) ? pos : pos + 1;
-	vector <UniqSeg> overlapped_exon;
-	gtf_parser.get_location_overlap(search_pos, overlapped_exon, true);
+	const IntervalInfo<UniqSeg>* overlapped_exon = gtf_parser.get_location_overlap(search_pos, true);
 
-	if (overlapped_exon.size() == 0) { // there is enough distance to the end of exon / intron
+	if (overlapped_exon == NULL or overlapped_exon->seg_list.size() == 0) { // there is enough distance to the end of exon / intron
 		//vafprintf(2, stderr, "Going for %lu - %lu\n", pos + 1, pos + remain);
 		
 		pac2char(pos + 1, remain, res_str);
@@ -883,18 +894,20 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 				sclen_best = sclen;
 				rmpos_best = new_rmpos;
 		}
+
+		return;
 	}
 
 	set <GenRegion> trans_extensions;
 	//trans_extensions.clear();
 	GenRegion new_region;
 
-	for (int i = 0; i < overlapped_exon.size(); i++) {
-		//vafprintf(2, stderr, "This exon: [%u-%u] -> %u\n", overlapped_exon[i].start, overlapped_exon[i].end, overlapped_exon[i].next_exon_beg);
-		if (covered > 0 and overlapped_exon[i].start != search_pos)	// when jump to the next exon
+	for (int i = 0; i < overlapped_exon->seg_list.size(); i++) {
+		//vafprintf(2, stderr, "This exon: [%u-%u] -> %u\n", overlapped_exon->seg_list[i].start, overlapped_exon->seg_list[i].end, overlapped_exon->seg_list[i].next_exon_beg);
+		if (covered > 0 and overlapped_exon->seg_list[i].start != search_pos)	// when jump to the next exon
 			continue;
 
-		exon_remain = overlapped_exon[i].end - pos;
+		exon_remain = overlapped_exon->seg_list[i].end - pos;
 		//vafprintf(2, stderr, "Remain on exon: %u\n", exon_remain);
 		if (exon_remain >= remain) {	// exonic	
 			new_region.set(pos + remain, 0);
@@ -926,20 +939,20 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 				}
 			}
 		else {		// junction
-			if (overlapped_exon[i].next_exon_beg == 0)	// should not be the last exon and partially mappable
+			if (overlapped_exon->seg_list[i].next_exon_beg == 0)	// should not be the last exon and partially mappable
 				continue;
 			
-			if (overlapped_exon[i].next_exon_beg > ub)	// do not allow junction further than ub
+			if (overlapped_exon->seg_list[i].next_exon_beg > ub)	// do not allow junction further than ub
 				continue;
 
-			new_region.set(overlapped_exon[i].end, overlapped_exon[i].next_exon_beg);
+			new_region.set(overlapped_exon->seg_list[i].end, overlapped_exon->seg_list[i].next_exon_beg);
 			if (trans_extensions.find(new_region) != trans_extensions.end())
 				continue;
 
 			trans_extensions.insert(new_region);
 
 			pac2char(pos + 1, exon_remain, res_str);
-			get_seq_right(res_str + exon_remain, seq, seq_len, overlapped_exon[i].next_exon_beg - 1, covered + exon_remain, remain - exon_remain, ub, min_ed, sclen_best, rmpos_best, dummy_consec);
+			get_seq_right(res_str + exon_remain, seq, seq_len, overlapped_exon->seg_list[i].next_exon_beg - 1, covered + exon_remain, remain - exon_remain, ub, min_ed, sclen_best, rmpos_best, dummy_consec);
 		}
 	}
 }
@@ -994,7 +1007,7 @@ bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, int& err, int&
 
 // pos is exclusive
 // [ pos-len, pos-1 ]
-bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int covered, int remain, uint32_t lb, int& min_ed, int& sclen_best, uint32_t& lmpos_best, bool& consecutive) {
+void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int covered, int remain, uint32_t lb, int& min_ed, int& sclen_best, uint32_t& lmpos_best, bool& consecutive) {
 	int len;
 	int sclen;
 	int indel;
@@ -1006,10 +1019,9 @@ bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 	
 	// if covered > 0 -> pos = (prev_exon_end + 1) = > search on (pos - 1)
 	uint32_t search_pos = (covered == 0) ? pos : pos - 1;
-	vector <UniqSeg> overlapped_exon;
-	gtf_parser.get_location_overlap(search_pos, overlapped_exon, false);
+	const IntervalInfo <UniqSeg>* overlapped_exon = gtf_parser.get_location_overlap(search_pos, false);
 
-	if (overlapped_exon.size() == 0) {
+	if (overlapped_exon == NULL or overlapped_exon->seg_list.size() == 0) {
 		//vafprintf(2, stderr, "Going for %lu - %lu\n", pos - remain, pos - 1);
 
 		pac2char(pos - remain, remain, res_str);
@@ -1030,18 +1042,20 @@ bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 				sclen_best = sclen;
 				lmpos_best = new_lmpos;
 		}
+
+		return;
 	}
 
 	set <GenRegion> trans_extensions;
 	//trans_extensions.clear();
 	GenRegion new_region;
 
-	for (int i = 0; i < overlapped_exon.size(); i++) {
-		//vafprintf(2, stderr, "%u <- This exon: [%u-%u]\n", overlapped_exon[i].prev_exon_end, overlapped_exon[i].start, overlapped_exon[i].end);
-		if (covered > 0 and overlapped_exon[i].end != search_pos)	// when jump to prev exon
+	for (int i = 0; i < overlapped_exon->seg_list.size(); i++) {
+		//vafprintf(2, stderr, "%u <- This exon: [%u-%u]\n", overlapped_exon->seg_list[i].prev_exon_end, overlapped_exon->seg_list[i].start, overlapped_exon->seg_list[i].end);
+		if (covered > 0 and overlapped_exon->seg_list[i].end != search_pos)	// when jump to prev exon
 			continue;
 
-		exon_remain = pos - overlapped_exon[i].start;
+		exon_remain = pos - overlapped_exon->seg_list[i].start;
 		//vafprintf(2, stderr, "Remain on exon: %u\n", exon_remain);
 		if (exon_remain >= remain) {
 			new_region.set(pos - remain, 0);
@@ -1072,20 +1086,20 @@ bool get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 				}
 			}
 		else {		// junction
-			if (overlapped_exon[i].prev_exon_end == 0)	// should not be the first exon and partially mappable
+			if (overlapped_exon->seg_list[i].prev_exon_end == 0)	// should not be the first exon and partially mappable
 				continue;
 
-			if (overlapped_exon[i].prev_exon_end < lb)
+			if (overlapped_exon->seg_list[i].prev_exon_end < lb)
 				continue;
 
-			new_region.set(overlapped_exon[i].start, overlapped_exon[i].prev_exon_end);
+			new_region.set(overlapped_exon->seg_list[i].start, overlapped_exon->seg_list[i].prev_exon_end);
 			if (trans_extensions.find(new_region) != trans_extensions.end())
 				continue;
 
 			trans_extensions.insert(new_region);
 
-			pac2char(overlapped_exon[i].start, exon_remain, res_str + remain - exon_remain);
-			get_seq_left(res_str, seq, seq_len, overlapped_exon[i].prev_exon_end + 1, covered + exon_remain, remain - exon_remain, lb, min_ed, sclen_best, lmpos_best, dummy_consec);
+			pac2char(overlapped_exon->seg_list[i].start, exon_remain, res_str + remain - exon_remain);
+			get_seq_left(res_str, seq, seq_len, overlapped_exon->seg_list[i].prev_exon_end + 1, covered + exon_remain, remain - exon_remain, lb, min_ed, sclen_best, lmpos_best, dummy_consec);
 		}
 	}
 }

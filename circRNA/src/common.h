@@ -7,8 +7,9 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include <iostream>
 
-#include <boost/icl/interval_map.hpp>
+#include "interval_info.h"
 
 extern "C" {
 #include "mrsfast/Common.h"
@@ -100,6 +101,28 @@ struct UniqSeg {
 	uint32_t next_exon_beg;
 	uint32_t prev_exon_end;
 
+	friend ostream& operator<<(ostream& os, const UniqSeg& us);
+
+	UniqSeg() : 
+			start(0), end(0), next_exon_beg(0), prev_exon_end(0), gene_id("") {}
+	UniqSeg(const string& gid, uint32_t s, uint32_t e, uint32_t n, uint32_t p) : 
+			start(s), end(e), next_exon_beg(n), prev_exon_end(p), gene_id(gid) {}
+
+	UniqSeg(const UniqSeg& other) : start(other.start), end(other.end), next_exon_beg(other.next_exon_beg), prev_exon_end(other.prev_exon_end), gene_id(other.gene_id) {}
+
+	UniqSeg& operator = (const UniqSeg& other) {
+		if (this == &other)
+			return *this;
+
+		start 			= other.start;
+		end 			= other.end;
+		next_exon_beg 	= other.next_exon_beg;
+		prev_exon_end 	= other.prev_exon_end;
+		gene_id 		= other.gene_id;
+
+		return *this;
+	}
+
 	bool operator < (const UniqSeg& r) const {
 		if (start != r.start)
 			return start < r.start;
@@ -128,6 +151,12 @@ struct UniqSeg {
 		return (r.next_exon_beg == start and prev_exon_end == r.end);
 	}
 };
+
+// Temporary, just for testing --will be deleted
+inline ostream& operator<<(ostream& os, const UniqSeg& us) {
+	os << us.prev_exon_end << " [" << us.gene_id << ": " << us.start << "-" << us.end << "] " << us.next_exon_beg;
+	return os;
+}
 
 struct UniqSegList {
 	vector <UniqSeg> seg_list;
@@ -179,8 +208,8 @@ struct MatchedMate {
 	bool		looked_up_spos;	// intronic / inter-genic -> looked up but not found (still NULL)
 	bool		looked_up_epos;	// intronic / inter-genic -> looked up but not found (still NULL)
 
-	const UniqSegList* exons_spos;
-	const UniqSegList* exons_epos;
+	const IntervalInfo<UniqSeg>* exons_spos;
+	const IntervalInfo<UniqSeg>* exons_epos;
 
 	MatchedMate() : type(ORPHAN), junc_num(0), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) { }
 

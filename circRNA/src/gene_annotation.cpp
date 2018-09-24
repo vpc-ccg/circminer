@@ -285,14 +285,35 @@ bool GTFParser::load_gtf(void) {
 	map <UniqSeg, string>:: iterator it;
 
 	for (con_it = merged_exons.begin(); con_it != merged_exons.end(); con_it++) {
+		exons_int_map[con_it->first].build(con_it->second);
+
 		for (it = con_it->second.begin(); it != con_it->second.end(); it++) {
 			
 			UniqSegList temp_list;
 			temp_list += it->first;
-			exons_int_map[con_it->first] += make_pair(boost::icl::discrete_interval <uint32_t>::closed (it->first.start, it->first.end), temp_list);
 
 			//fprintf(stderr, "%s -> %10u [%s:%10u%10u] %10u = Val: %s\n", con_it->first.c_str(), it->first.prev_exon_end, it->first.gene_id.c_str(), it->first.start, it->first.end, (it->first).next_exon_beg, it->second.c_str());
 		}
+		//exons_int_map[con_it->first].print();
+		
+		//fprintf(stdout, "# UniqSeg: %d\n", con_it->second.size());
+		//fprintf(stdout, "Size of interval tree [%s] %d\n", con_it->first.c_str(), exons_int_map[con_it->first].size());
+		//fprintf(stdout, "Interval count: %d\n", interval_count(exons_int_map[con_it->first]));
+		//fprintf(stdout, "Interative size: %d\n", exons_int_map[con_it->first].iterative_size());
+		//fprintf(stdout, "Length %d\n", length(exons_int_map[con_it->first]));
+		//
+		//boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
+		//int cnt = 0;
+		//for (fit = exons_int_map[con_it->first].begin(); fit != exons_int_map[con_it->first].end(); fit++) {
+		//	cerr << fit->first << " = { ";
+		//	//cerr << "[" << fit->first.lower() << ", " << fit->first.upper()-1 << "] = { ";
+		//	for (int kk = 0; kk < fit->second.seg_list.size(); kk++)
+		//		cerr << fit->second.seg_list[kk].prev_exon_end << " [" << fit->second.seg_list[kk].gene_id << ": " 
+		//			 << fit->second.seg_list[kk].start << "-" << fit->second.seg_list[kk].end << "] " << fit->second.seg_list[kk].next_exon_beg << ", ";
+		//	cerr << " }\n";
+		//	cnt++;
+		//}
+		//fprintf(stdout, "# Disjoint intervals [%s] %d\n", con_it->first.c_str(), cnt);
 	}
 
 	int need_lu[3];
@@ -305,7 +326,7 @@ bool GTFParser::load_gtf(void) {
 	}
 
 	delete prev_record;
-
+	
 	return true;
 }
 
@@ -384,11 +405,10 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	}
 
 	lookup_cnt++;
-	boost::icl::discrete_interval <uint32_t> spos_int = boost::icl::discrete_interval <uint32_t>::closed(spos, spos);
-	boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
-	fit = exons_int_map[contigName].find(spos_int);
+	
+	const IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigName].find(spos);
 
-	if (fit == exons_int_map[contigName].end()) {	// not found => intronic
+	if (ov_res == NULL or ov_res->seg_list.size() == 0) {	// not found => intronic
 		// find end of intron
 		// To be modified
 		max_end = spos;
@@ -403,13 +423,13 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 			//return spos + rlen + EDTH;
 	}
 
-	for (int i = 0; i < fit->second.seg_list.size(); i++) {
-		if (fit->second.seg_list[i].end >= epos) {	// => exonic
-			max_end = maxM(max_end, fit->second.seg_list[i].end);
-			min_end = minM(min_end, fit->second.seg_list[i].end);
-			max_next_exon = maxM(max_next_exon, fit->second.seg_list[i].next_exon_beg);
+	for (int i = 0; i < ov_res->seg_list.size(); i++) {
+		if (ov_res->seg_list[i].end >= epos) {	// => exonic
+			max_end = maxM(max_end, ov_res->seg_list[i].end);
+			min_end = minM(min_end, ov_res->seg_list[i].end);
+			max_next_exon = maxM(max_next_exon, ov_res->seg_list[i].next_exon_beg);
 			//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
-			//fprintf(stderr, "Exon: [%d-%d]\n", fit->second.seg_list[i].start, fit->second.seg_list[i].end);
+			//fprintf(stderr, "Exon: [%d-%d]\n", ov_res->seg_list[i].start, ov_res->seg_list[i].end);
 		}
 	}
 
@@ -432,7 +452,7 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 // spos: Start POSition of matched region
 // mlen: Matched LENgth
 // rlen: the lenght of the read remained to be matched (Rmained LENgth)
-uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end, const UniqSegList*& ol_exons) {
+uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end, const IntervalInfo<UniqSeg>*& ol_exons) {
 	ol_exons = NULL;
 	max_end = 0;
 	uint32_t min_end = 1e9;
@@ -448,11 +468,10 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	}
 
 	lookup_cnt++;
-	boost::icl::discrete_interval <uint32_t> spos_int = boost::icl::discrete_interval <uint32_t>::closed(spos, spos);
-	boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
-	fit = exons_int_map[contigName].find(spos_int);
+	
+	const IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigName].find(spos);
 
-	if (fit == exons_int_map[contigName].end()) {	// not found => intronic
+	if (ov_res == NULL or ov_res->seg_list.size() == 0) {	// not found => intronic
 		ol_exons = NULL;
 		// find end of intron
 		// To be modified
@@ -467,18 +486,19 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 			return minM(spos + rlen + EDTH, max_end - mlen + 1);
 	}
 
-	for (int i = 0; i < fit->second.seg_list.size(); i++) {
-		if (fit->second.seg_list[i].end >= epos) {	// => exonic
-			max_end = maxM(max_end, fit->second.seg_list[i].end);
-			min_end = minM(min_end, fit->second.seg_list[i].end);
-			max_next_exon = maxM(max_next_exon, fit->second.seg_list[i].next_exon_beg);
+	for (int i = 0; i < ov_res->seg_list.size(); i++) {
+		if (ov_res->seg_list[i].end >= epos) {	// => exonic
+			max_end = maxM(max_end, ov_res->seg_list[i].end);
+			min_end = minM(min_end, ov_res->seg_list[i].end);
+			max_next_exon = maxM(max_next_exon, ov_res->seg_list[i].next_exon_beg);
 			//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
-			//fprintf(stderr, "Exon: [%d-%d]\n", fit->second.seg_list[i].start, fit->second.seg_list[i].end);
+			//fprintf(stderr, "Exon: [%d-%d]\n", ov_res->seg_list[i].start, ov_res->seg_list[i].end);
 		}
 	}
 
 	if (max_end > 0) {	// exonic	
-		ol_exons = &(fit->second);
+		ol_exons = ov_res;
+
 		// loc excluded
 		int32_t min2end = min_end - epos;
 
@@ -516,11 +536,9 @@ void GTFParser::get_upper_bound_alu(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	//fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
 	
 	lookup_cnt++;
-	boost::icl::discrete_interval <uint32_t> spos_int = boost::icl::discrete_interval <uint32_t>::closed(spos, spos);
-	boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
-	fit = exons_int_map[contigName].find(spos_int);
+	IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigName].find(spos);
 
-	if (fit == exons_int_map[contigName].end()) {	// not found => intronic
+	if (ov_res == NULL or ov_res->seg_list.size() == 0) {	// not found => intronic
 		jd.exonic = false;
 		jd.dr = maxReadLength;	// do not consider junction
 		jd.dl = maxReadLength;
@@ -553,14 +571,14 @@ void GTFParser::get_upper_bound_alu(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	}
 
 	jd.exonic = true;
-	for (int i = 0; i < fit->second.seg_list.size(); i++) {
-		if (fit->second.seg_list[i].end >= epos) {	// => exonic
-			max_beg = maxM(max_beg, fit->second.seg_list[i].start);
-			max_end = maxM(max_end, fit->second.seg_list[i].end);
-			min_end = minM(min_end, fit->second.seg_list[i].end);
-			max_next_exon = maxM(max_next_exon, fit->second.seg_list[i].next_exon_beg);
+	for (int i = 0; i < ov_res->seg_list.size(); i++) {
+		if (ov_res->seg_list[i].end >= epos) {	// => exonic
+			max_beg = maxM(max_beg, ov_res->seg_list[i].start);
+			max_end = maxM(max_end, ov_res->seg_list[i].end);
+			min_end = minM(min_end, ov_res->seg_list[i].end);
+			max_next_exon = maxM(max_next_exon, ov_res->seg_list[i].next_exon_beg);
 			//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
-			//fprintf(stderr, "Exon: [%d-%d]\n", fit->second.seg_list[i].start, fit->second.seg_list[i].end);
+			//fprintf(stderr, "Exon: [%d-%d]\n", ov_res->seg_list[i].start, ov_res->seg_list[i].end);
 		}
 	}
 
@@ -593,41 +611,17 @@ void GTFParser::get_upper_bound_alu(uint32_t spos, uint32_t mlen, uint32_t rlen,
 
 // returns intervals overlapping with: loc
 // remain lenght does not include loc itself (starting from next location)
-const UniqSegList* GTFParser::get_location_overlap(uint32_t loc, bool use_mask) {
+const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap(uint32_t loc, bool use_mask) {
 	// do not use mask if extending left
 	if (use_mask and !(near_border[contigName[0]-'1'][loc] & 1)) {		// intronic
 		//fprintf(stderr, "skip lookup\n");
 		return NULL;
 	}
+	
+	IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigName].find(loc);
 
-	boost::icl::discrete_interval <uint32_t> loc_int = boost::icl::discrete_interval <uint32_t>::closed(loc, loc);
-	boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
-	fit = exons_int_map[contigName].find(loc_int);
-
-	if (fit == exons_int_map[contigName].end())	// not found => intronic
+	if (ov_res == NULL or ov_res->seg_list.size() == 0)	// not found => intronic
 		return NULL;
 
-	return &(fit->second);
-}
-
-void GTFParser::get_location_overlap(uint32_t loc, vector <UniqSeg>& overlap, bool use_mask) {
-	overlap.clear();
-
-	// do not use mask if extending left
-	if (use_mask and !(near_border[contigName[0]-'1'][loc] & 1)) {		// intronic
-		//fprintf(stderr, "skip lookup\n");
-		return;
-	}
-
-	boost::icl::discrete_interval <uint32_t> loc_int = boost::icl::discrete_interval <uint32_t>::closed(loc, loc);
-	boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
-	fit = exons_int_map[contigName].find(loc_int);
-
-	if (fit == exons_int_map[contigName].end())	// not found => intronic
-		return;
-
-	for (int i = 0; i < fit->second.seg_list.size(); i++) {
-		overlap.push_back(fit->second.seg_list[i]);
-	}
-
+	return ov_res;
 }

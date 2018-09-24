@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstring>
 #include <map>
+#include <set>
 
 #include "chain.h"
 #include "gene_annotation.h"
@@ -24,7 +25,7 @@ bool compare_frag(fragment_t a, fragment_t b) {
 	return a.qpos < b.qpos;
 }
 
-bool check_junction(uint32_t s1, uint32_t s2, const UniqSegList* ol_exons, int read_dist, int& trans_dist) {
+bool check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_exons, int read_dist, int& trans_dist) {
 	trans_dist = INF;
 	if (ol_exons == NULL)
 		return false;
@@ -85,7 +86,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 	uint32_t max_exon_end;
 	GIMatchedKmer* cur_mk;
 	GIMatchedKmer* pc_mk;	// previously calculated matched kmer
-	const UniqSegList* ol_exons;
+	const IntervalInfo<UniqSeg>* ol_exons;
 
 	map <double, chain_cell_list> score2chain;
 	
