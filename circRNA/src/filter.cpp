@@ -271,6 +271,7 @@ bool extend_chain_left(const chain_t& ch, char* seq, int seq_len, int lb, Matche
 	
 	mr.start_pos = lm_pos;
 	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
+	mr.sclen_left = sclen_left;
 
 	err = err_left;
 
@@ -294,6 +295,7 @@ bool extend_chain_right(const chain_t& ch, char* seq, int seq_len, int ub, Match
 
 	mr.end_pos = rm_pos;
 	mr.matched_len -= (right_ok)? sclen_right : remain_end;
+	mr.sclen_right = sclen_right;
 
 	err = err_right;
 
@@ -301,6 +303,8 @@ bool extend_chain_right(const chain_t& ch, char* seq, int seq_len, int ub, Match
 }
 
 void update_match_mate_info(bool lok, bool rok, int lerr, int rerr, MatchedMate& mm) {
+	mm.left_ok = lok;
+	mm.right_ok = rok;
 	if (lok and rok and (lerr + rerr <= EDTH)) {
 		mm.is_concord = true;
 		mm.type = CONCRD;
@@ -483,7 +487,8 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 						mr.update(sm, lm, chr, shift, tlen, 1, true, DISCRD);
 				}
 				else if (lm.exons_spos->seg_list[j].same_gene(sm.exons_epos->seg_list[i])) {
-					mr.update(sm, lm, chr, shift, 10000, 2, true, DISCRD);
+					tlen = lm.start_pos - sm.end_pos - 1 + sm.matched_len + lm.matched_len;
+					mr.update(sm, lm, chr, shift, tlen, 2, true, DISCRD);
 				}
 	}
 
@@ -512,6 +517,9 @@ bool check_chimeric(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& m
 
 bool check_bsj(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift) {
 	if (mr.type == CONCRD or mr.type == DISCRD)
+		return false;
+
+	if ((!sm.right_ok) or (!lm.left_ok))
 		return false;
 
 	if (sm.exons_spos == NULL or lm.exons_spos == NULL)

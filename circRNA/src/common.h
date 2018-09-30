@@ -200,10 +200,15 @@ struct MatchedMate {
 	uint32_t 	start_pos;
 	uint32_t 	end_pos;
 	uint16_t	junc_num;
+	int			sclen_right;
+	int			sclen_left;
 	int 		matched_len;
 	int 		dir;
 	int 		type;
 	bool 		is_concord;
+
+	bool		left_ok;
+	bool		right_ok;
 	
 	bool		looked_up_spos;	// intronic / inter-genic -> looked up but not found (still NULL)
 	bool		looked_up_epos;	// intronic / inter-genic -> looked up but not found (still NULL)
@@ -211,16 +216,21 @@ struct MatchedMate {
 	const IntervalInfo<UniqSeg>* exons_spos;
 	const IntervalInfo<UniqSeg>* exons_epos;
 
-	MatchedMate() : type(ORPHAN), junc_num(0), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) { }
+	MatchedMate() : type(ORPHAN), junc_num(0), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) { }
 
 	void operator = (const MatchedMate& mm) {
 		start_pos 	= mm.start_pos;
 		end_pos		= mm.end_pos;
 		junc_num	= mm.junc_num;
+		sclen_right	= mm.sclen_right;
+		sclen_left	= mm.sclen_left;
 		matched_len	= mm.matched_len;
 		dir			= mm.dir;
 		type		= mm.type;
 		is_concord	= mm.is_concord;
+
+		left_ok 	= mm.left_ok;
+		right_ok	= mm.right_ok;
 
 		looked_up_spos = mm.looked_up_spos;
 		looked_up_epos = mm.looked_up_epos;
@@ -250,10 +260,13 @@ struct MatchedRead {
 		if (type > this->type)
 			return false;
 
-		if (this->gm_compatible and !gm_compatible)
-			return false;
-		if ((this->gm_compatible == gm_compatible) and (this->tlen < tlen))
-			return false;
+		if (type == this->type) {
+			if (this->gm_compatible and !gm_compatible)
+				return false;
+
+			if ((this->gm_compatible == gm_compatible) and (this->tlen < tlen))
+				return false;
+		}
 
 		this->type = type;
 		this->chr = chr;
