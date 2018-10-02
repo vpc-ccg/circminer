@@ -434,6 +434,18 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 	return mr.type;
 }
 
+bool same_gene(const MatchedMate& mm, const MatchedMate& other) {
+	GeneInfo* ginfo;
+	for (int i = 0; i < mm.exons_spos->seg_list.size(); i++) {
+		ginfo = gtf_parser.get_gene_info(mm.exons_spos->seg_list[i].gene_id);
+		//fprintf(stderr, "Gene[%d][%s]: [%d - %d], [%d - %d]\n", i, mm.exons_spos->seg_list[i].gene_id.c_str(), ginfo->start, ginfo->end, other.start_pos, other.end_pos);
+		if (ginfo->start <= other.start_pos and other.end_pos <= ginfo->end)
+			return true;
+	}
+
+	return false;
+}
+
 // sm should start before lm
 bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift) {
 	if (sm.start_pos > lm.start_pos)
@@ -522,8 +534,14 @@ bool check_bsj(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, co
 	if ((!sm.right_ok) or (!lm.left_ok))
 		return false;
 
-	if (sm.exons_spos == NULL or lm.exons_spos == NULL)
+	if (sm.exons_spos == NULL or lm.exons_spos == NULL) {
+		if ((sm.exons_spos != NULL and same_gene(sm, lm)) or (lm.exons_spos != NULL and same_gene(lm, sm))) {
+			mr.update(sm, lm, chr, shift, lm.end_pos - sm.start_pos + 1, 0, false, CHIBSJ);
+			return true;
+		}
+
 		return false;
+	}
 
 	for (int i = 0; i < sm.exons_spos->seg_list.size(); i++)
 		for (int j = 0; j < lm.exons_spos->seg_list.size(); j++)
@@ -609,6 +627,17 @@ bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
 	return false;
 }
 
+bool same_gene(const IntervalInfo<UniqSeg>* mate, uint32_t s, uint32_t e) {
+	GeneInfo* ginfo;
+	for (int i = 0; i < mate->seg_list.size(); i++)
+		ginfo = gtf_parser.get_gene_info(mate->seg_list[i].gene_id);
+		if (ginfo->start <= s and e <= ginfo->end)
+			return true;
+		
+
+	return false;
+}
+
 void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired) {
 	vector <const IntervalInfo<UniqSeg>*> forward_exon_list(forward_chain.best_chain_count);
 	vector <const IntervalInfo<UniqSeg>*> reverse_exon_list(reverse_chain.best_chain_count);
@@ -630,14 +659,24 @@ void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chai
 	memset(forward_paired, 0, BESTCHAINLIM * sizeof(bool));
 	memset(reverse_paired, 0, BESTCHAINLIM * sizeof(bool));
 
+	uint32_t fs, fe;
+	uint32_t rs, re;
+	int tlen;
+
 	for (int i = 0; i < forward_chain.best_chain_count; i++) {
 		for (int j = 0; j < reverse_chain.best_chain_count; j++) {
 			
-			int tlen = (forward_chain.chains[i].frags[0].rpos < reverse_chain.chains[j].frags[0].rpos) 
-						? (reverse_chain.chains[j].frags[reverse_chain.chains[j].chain_len-1].rpos + reverse_chain.chains[j].frags[reverse_chain.chains[j].chain_len-1].len - forward_chain.chains[i].frags[0].rpos)
-						: (forward_chain.chains[i].frags[forward_chain.chains[i].chain_len-1].rpos + forward_chain.chains[i].frags[forward_chain.chains[i].chain_len-1].len - reverse_chain.chains[j].frags[0].rpos);
+			fs = forward_chain.chains[i].frags[0].rpos;
+			rs = reverse_chain.chains[j].frags[0].rpos;
+
+			fe = forward_chain.chains[i].frags[forward_chain.chains[i].chain_len-1].rpos + forward_chain.chains[i].frags[forward_chain.chains[i].chain_len-1].len;
+			re = reverse_chain.chains[j].frags[reverse_chain.chains[j].chain_len-1].rpos + reverse_chain.chains[j].frags[reverse_chain.chains[j].chain_len-1].len;
+
+			tlen = (fs < rs) ? (re - fs) : (fe - rs);
 
 			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_gene(forward_exon_list[i], reverse_exon_list[j]))
+				or (forward_exon_list[i] != NULL and same_gene(forward_exon_list[i], rs, re))
+				or (reverse_exon_list[j] != NULL and same_gene(reverse_exon_list[j], fs, fe))
 				or (tlen <= MAXTLEN)) {
 				//or (forward_exon_list[i] == NULL and reverse_exon_list[j] == NULL and tlen <= MAXTLEN)) {
 				MatePair temp;
@@ -678,6 +717,7 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 		uint32_t forward_start = mate_pairs[i].forward.frags[0].rpos;
 		uint32_t reverse_start = mate_pairs[i].reverse.frags[0].rpos;
 		uint32_t reverse_end   = mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].rpos + mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].len - 1;
+		
 		if (forward_start <= reverse_end) {
 			extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, record1->seq, record2->rcseq, record1->seq_len, record2->seq_len, r1_mm, r2_mm);
 			

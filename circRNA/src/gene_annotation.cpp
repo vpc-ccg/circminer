@@ -180,8 +180,11 @@ bool GTFParser::load_gtf(void) {
 		chrloc2conloc(current_record->chr, current_record->start, current_record->end);
 
 		if (current_record->chr == "0")
-		{
 			continue;
+
+		if (current_record->type == "gene") {
+			GeneInfo tmp = {.start = current_record->start, .end = current_record->end};
+			gid2ginfo[current_record->chr][current_record->gene_id] = tmp;
 		}
 
 		if (current_record->type == "exon") {
@@ -286,34 +289,7 @@ bool GTFParser::load_gtf(void) {
 
 	for (con_it = merged_exons.begin(); con_it != merged_exons.end(); con_it++) {
 		exons_int_map[con_it->first].build(con_it->second);
-
-		for (it = con_it->second.begin(); it != con_it->second.end(); it++) {
-			
-			UniqSegList temp_list;
-			temp_list += it->first;
-
-			//fprintf(stderr, "%s -> %10u [%s:%10u%10u] %10u = Val: %s\n", con_it->first.c_str(), it->first.prev_exon_end, it->first.gene_id.c_str(), it->first.start, it->first.end, (it->first).next_exon_beg, it->second.c_str());
-		}
 		//exons_int_map[con_it->first].print();
-		
-		//fprintf(stdout, "# UniqSeg: %d\n", con_it->second.size());
-		//fprintf(stdout, "Size of interval tree [%s] %d\n", con_it->first.c_str(), exons_int_map[con_it->first].size());
-		//fprintf(stdout, "Interval count: %d\n", interval_count(exons_int_map[con_it->first]));
-		//fprintf(stdout, "Interative size: %d\n", exons_int_map[con_it->first].iterative_size());
-		//fprintf(stdout, "Length %d\n", length(exons_int_map[con_it->first]));
-		//
-		//boost::icl::interval_map<uint32_t, UniqSegList >::const_iterator fit;
-		//int cnt = 0;
-		//for (fit = exons_int_map[con_it->first].begin(); fit != exons_int_map[con_it->first].end(); fit++) {
-		//	cerr << fit->first << " = { ";
-		//	//cerr << "[" << fit->first.lower() << ", " << fit->first.upper()-1 << "] = { ";
-		//	for (int kk = 0; kk < fit->second.seg_list.size(); kk++)
-		//		cerr << fit->second.seg_list[kk].prev_exon_end << " [" << fit->second.seg_list[kk].gene_id << ": " 
-		//			 << fit->second.seg_list[kk].start << "-" << fit->second.seg_list[kk].end << "] " << fit->second.seg_list[kk].next_exon_beg << ", ";
-		//	cerr << " }\n";
-		//	cnt++;
-		//}
-		//fprintf(stdout, "# Disjoint intervals [%s] %d\n", con_it->first.c_str(), cnt);
 	}
 
 	int need_lu[3];
@@ -624,4 +600,8 @@ const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap(uint32_t loc, bool 
 		return NULL;
 
 	return ov_res;
+}
+
+GeneInfo* GTFParser::get_gene_info(const string& gid) {
+	return &gid2ginfo[contigName][gid];
 }
