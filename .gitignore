@@ -1,0 +1,4 @@
+src/*.o
+src/mrsfast/*.o
+test/*
+profiling/*
