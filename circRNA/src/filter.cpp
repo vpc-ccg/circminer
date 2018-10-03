@@ -629,10 +629,11 @@ bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
 
 bool same_gene(const IntervalInfo<UniqSeg>* mate, uint32_t s, uint32_t e) {
 	GeneInfo* ginfo;
-	for (int i = 0; i < mate->seg_list.size(); i++)
+	for (int i = 0; i < mate->seg_list.size(); i++) {
 		ginfo = gtf_parser.get_gene_info(mate->seg_list[i].gene_id);
 		if (ginfo->start <= s and e <= ginfo->end)
 			return true;
+	}
 		
 
 	return false;

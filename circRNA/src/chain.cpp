@@ -35,9 +35,14 @@ bool check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_ex
 		return false;
 
 	int e12end, beg2s2;
+	int trans_dist2intron = -1;
 	for (int i = 0; i < ol_exons->seg_list.size(); i++) {
 		e12end = ol_exons->seg_list[i].end - e1;
 		beg2s2 = s2 - ol_exons->seg_list[i].next_exon_beg;
+
+		if (e12end >= 0 and e12end < read_dist and beg2s2 + kmer < 0)	// enforcing 2nd kmer to be completely in the middle of immediate intron
+			trans_dist2intron = s2 - e1 - 1;
+
 		if (e12end < 0 or beg2s2 < 0)
 			continue;
 
@@ -45,8 +50,16 @@ bool check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_ex
 		if (abs(trans_dist - read_dist) <= EDTH)
 			return true;
 	}
-	trans_dist = INF;
-	return false;
+
+	//fprintf(stderr, "S1: %d\tS2: %d\tTrans Dist2intron: %d\n", s1, s2, trans_dist2intron);
+	if (trans_dist2intron != -1) {
+		trans_dist = trans_dist2intron;
+		return true;
+	}
+	else {
+		trans_dist = INF;
+		return false;
+	}
 }
 
 // Assumption: fragment list sorted by reference position
