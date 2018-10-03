@@ -2,3 +2,5 @@ src/*.o
 src/mrsfast/*.o
 test/*
 profiling/*
+circRNA
+cmd.run
