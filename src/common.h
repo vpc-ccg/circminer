@@ -1,130 +1,349 @@
-/*
- * Copyright (c) 2012 - 2013, Simon Fraser University
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification, 
- * are permitted provided that the following conditions are met:
- *   
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, this
- *   list of conditions and the following disclaimer in the documentation and/or other
- *   materials provided with the distribution.
- * - Neither the name of the Simon Fraser University nor the names of its contributors may be
- *   used to endorse or promote products derived from this software without specific
- *   prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+#ifndef __COMMON_H__
+#define __COMMON_H__
 
-/*
- * Author         : Yen-Yi Lin
- * Email          : yenyil AT sfu DOT ca
- * Last Update    : March 19, 2013.
- */
-
-#ifndef __COMMON__
-#define __COMMON__
-#include <vector>
-#include <map>
+#include <stdint.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
-#include <inttypes.h>
-#include <time.h>
+#include <vector>
+#include <iostream>
 
-// Maximum number of characters per line
-#define MAX_LINE 200000
-// Maximum length of file names
-#define FILE_NAME_LENGTH 500
-// Maximum number of characters in parsing
-#define TOKEN_LENGTH 20000
-// Prompting messages after reading fixed line
-#define VERBOSE_LINE 100000
+#include "interval_info.h"
 
-#define L(c,...) fprintf(stdout,c,##__VA_ARGS__)
-#define E(c,...) fprintf(stderr,c,##__VA_ARGS__)
+extern "C" {
+#include "mrsfast/Common.h"
+#include "mrsfast/HashTable.h"
+}
 
-//extern char GtfFilename[FILE_NAME_LENGTH];
-//extern char RepeatFilename[FILE_NAME_LENGTH];
-//extern char FastqFilename[FILE_NAME_LENGTH];
-//extern char SamFilename[FILE_NAME_LENGTH];
-//extern char SeqFilename[FILE_NAME_LENGTH];
-//extern char SamListname[FILE_NAME_LENGTH];
-//extern char Predictname[FILE_NAME_LENGTH];
-//extern char TargetFilename[FILE_NAME_LENGTH];
-//extern char Outputname[FILE_NAME_LENGTH];
-//extern char OutputFolder[FILE_NAME_LENGTH];
-//extern char Libraryname[FILE_NAME_LENGTH];
-//
-//
-//extern int Mode_TSVProtein;
-//extern int Mode_CheckProtID;
-//extern int Mode_CheckPepSEQ;
-//extern int Mode_CheckDtaID;
-//extern int Mode_CheckMultiHit;
-//extern int Mode_CountEvent;
-//// Probably splits here
-//extern int Mode_GetFusionEvent_0;
-//extern int Mode_GetFusionEvent;
-//extern int Mode_GetSVEvent;
-//extern int Mode_deFuseInfo;
-//extern int Mode_GetFusionPep;
-//extern int Mode_AdjustPvalue;
-//extern int Mode_CheckVCF;
-//extern int Mode_ConvertVCF;
-//extern int Mode_GetSVPep;
-//extern int Mode_MergePep;
-//
-////
-//extern int Op_Mode;
-//extern int Join_Mode;
-//extern int Reads_Model;
-//extern int Decoy_Mode;
-//extern int Mix_Mode;
-////extern int Verbose_Mode;
-//extern int Library_Type;
-//extern int Orman_Flag;
-//extern int CPLEX_STR_LENGTH;
-//extern int Abe_Mode;
-//extern int Reads_Buffer;
-//extern float Error_Bound;
-//extern std::string DEST_FOLDER;
-//
-//
-//extern char versionNumber[10];
-//extern char versionNumberF[10];
-//
-//int overlap_int(const int s1, const int e1, const int s2, const int e2);
-//
-//FILE *fileOpen(char *fileName, char *mode);
-//std::vector<std::string> splitStringOld(std::string str, char delim);
-//std::vector<std::string> splitString(char *raw_str, char delim);
-//
-//void splitStringCopy(const char *raw_str, const char delim, std::vector<std::string> &token_array);
-//std::string convert_illrgal_string(std::string raw_str);
-//
-// Utility Modules
-void copyToString( char *src, std::string &new_str);
-void attachToString( char *src, std::string &new_str);
-void copyToStringStrip( char *src, std::string &new_str);
-void stripString( std::string &s );
-int get_nth_word( char *target, const char *src, int n);
-int get_num_word( const char *src);
-void make_rc( const std::string &raw_str, std::string &new_str);
-void make_rev( const std::string &raw_str, std::string &new_str);
-void ConfigureOutputFolder();
-void ExtractSampleList( const char *listfile, std::vector<std::string> &sample_vector);
-int over_l( const int s1, const int e1, const int s2, const int e2);
-std::string add_extension( const char *src, const std::string &ext);
-std::string get_gtf_str( const std::string &src, uint32_t start, uint32_t end );
-void fold_output( FILE *out, const std::string &str);
-#endif
+using namespace std;
+
+#define maxM(A,B) (((A) > (B)) ? (A) : (B))
+#define minM(A,B) (((A) < (B)) ? (A) : (B))
+
+#define FILE_NAME_LENGTH 1000
+#define LINELOG	100000
+#define ASCISIZE 128
+
+#define INF 1e9
+
+#define GENETHRESH 50000
+#define MAXTLEN 500
+#define MINKMER 15
+#define FRAGLIM 5000
+#define MAX_INTRON	2000000
+
+#define BESTCHAINLIM 30
+#define EDTH 4
+#define INDELTH 3
+#define SOFTCLIPTH 7
+
+// ouput categories
+// the order matters:
+#define CONCRD 0
+#define DISCRD 1
+#define CHIORF 2
+#define CHIFUS 3
+#define CHIBSJ 4
+#define CANDID 5
+#define OEANCH 6
+#define ORPHAN 7
+#define NOPROC_MANYHIT 8
+#define NOPROC_NOMATCH 9
+
+//---------- Structures ----------//
+
+struct fragment_t{
+	uint32_t rpos;
+	int32_t qpos;
+	uint32_t len;
+
+	bool operator < (const fragment_t& other) const {
+		return rpos < other.rpos;
+	}
+};
+
+typedef struct {
+	fragment_t* frags;
+	uint32_t chain_len;
+	float score;
+} chain_t;
+
+typedef struct {
+	chain_t* chains;
+	int best_chain_count;
+} chain_list;
+
+typedef struct {
+	uint32_t dr;
+	uint32_t dl;
+
+	uint32_t range;
+	uint32_t max_end;
+
+	bool looked_up;
+	bool exonic;
+	bool cross_boundry;
+} JunctionDist;
+
+typedef struct {
+	GeneralIndex* frags;	// array of locations
+	JunctionDist* junc_dist;
+
+	uint32_t frag_count;
+	int32_t qpos;
+} GIMatchedKmer;
+
+struct UniqSeg {
+	string gene_id;
+	uint32_t start;
+	uint32_t end;
+	uint32_t next_exon_beg;
+	uint32_t prev_exon_end;
+
+	friend ostream& operator<<(ostream& os, const UniqSeg& us);
+
+	UniqSeg() : 
+			start(0), end(0), next_exon_beg(0), prev_exon_end(0), gene_id("") {}
+	UniqSeg(const string& gid, uint32_t s, uint32_t e, uint32_t n, uint32_t p) : 
+			start(s), end(e), next_exon_beg(n), prev_exon_end(p), gene_id(gid) {}
+
+	UniqSeg(const UniqSeg& other) : start(other.start), end(other.end), next_exon_beg(other.next_exon_beg), prev_exon_end(other.prev_exon_end), gene_id(other.gene_id) {}
+
+	UniqSeg& operator = (const UniqSeg& other) {
+		if (this == &other)
+			return *this;
+
+		start 			= other.start;
+		end 			= other.end;
+		next_exon_beg 	= other.next_exon_beg;
+		prev_exon_end 	= other.prev_exon_end;
+		gene_id 		= other.gene_id;
+
+		return *this;
+	}
+
+	bool operator < (const UniqSeg& r) const {
+		if (start != r.start)
+			return start < r.start;
+		if (end != r.end)
+			return end < r.end;
+		if (gene_id != r.gene_id)
+			return gene_id < r.gene_id;
+		if (next_exon_beg != r.next_exon_beg)
+			return next_exon_beg > r.next_exon_beg;		// for backward move after binary search
+		return prev_exon_end < r.prev_exon_end;
+	}
+	
+	bool operator == (const UniqSeg& r) const {
+		return (start == r.start and end == r.end and gene_id == r.gene_id and next_exon_beg == r.next_exon_beg and prev_exon_end == r.prev_exon_end);
+	}
+
+	bool same_gene(const UniqSeg& r) const {
+		return (gene_id == r.gene_id);
+	}
+
+	bool same_exon(const UniqSeg& r) const {
+		return (start == r.start and end == r.end);
+	}
+
+	bool next_exon(const UniqSeg& r) const {	// is this next exon of r?
+		return (r.next_exon_beg == start and prev_exon_end == r.end);
+	}
+};
+
+// Temporary, just for testing --will be deleted
+inline ostream& operator<<(ostream& os, const UniqSeg& us) {
+	os << us.prev_exon_end << " [" << us.gene_id << ": " << us.start << "-" << us.end << "] " << us.next_exon_beg;
+	return os;
+}
+
+struct UniqSegList {
+	vector <UniqSeg> seg_list;
+	
+	bool operator == (const UniqSegList& r) const {
+		if (seg_list.size() != r.seg_list.size())
+			return false;
+
+		for (int i = 0; i < seg_list.size(); i++)
+			if (!(seg_list[i] == r.seg_list[i]))
+				return false;
+
+		return true;
+	}
+
+	UniqSegList& operator += (const UniqSeg& r) {
+		seg_list.push_back(r);
+		return *this;
+	}
+	
+	UniqSegList& operator += (const UniqSegList& r) {
+		for (int i = 0; i < r.seg_list.size(); i++)
+			seg_list.push_back(r.seg_list[i]);
+		return *this;
+	}
+	
+	bool same_gene(const UniqSegList* r) const {
+		if (r == NULL)
+			return false;
+
+		for (int i = 0; i < seg_list.size(); i++)
+			for (int j = 0; j < r->seg_list.size(); j++)
+				if (seg_list[i].gene_id == r->seg_list[j].gene_id)
+					return true;
+	
+		return false;
+	}
+};
+
+struct MatchedMate {
+	uint32_t 	start_pos;
+	uint32_t 	end_pos;
+	uint16_t	junc_num;
+	int			sclen_right;
+	int			sclen_left;
+	int 		matched_len;
+	int 		dir;
+	int 		type;
+	bool 		is_concord;
+
+	bool		left_ok;
+	bool		right_ok;
+	
+	bool		looked_up_spos;	// intronic / inter-genic -> looked up but not found (still NULL)
+	bool		looked_up_epos;	// intronic / inter-genic -> looked up but not found (still NULL)
+
+	const IntervalInfo<UniqSeg>* exons_spos;
+	const IntervalInfo<UniqSeg>* exons_epos;
+
+	MatchedMate() : type(ORPHAN), junc_num(0), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) { }
+
+	void operator = (const MatchedMate& mm) {
+		start_pos 	= mm.start_pos;
+		end_pos		= mm.end_pos;
+		junc_num	= mm.junc_num;
+		sclen_right	= mm.sclen_right;
+		sclen_left	= mm.sclen_left;
+		matched_len	= mm.matched_len;
+		dir			= mm.dir;
+		type		= mm.type;
+		is_concord	= mm.is_concord;
+
+		left_ok 	= mm.left_ok;
+		right_ok	= mm.right_ok;
+
+		looked_up_spos = mm.looked_up_spos;
+		looked_up_epos = mm.looked_up_epos;
+
+		exons_spos	= mm.exons_spos;
+		exons_epos	= mm.exons_epos;
+	}
+
+};
+
+struct MatchedRead {
+	uint32_t	spos_r1;
+	uint32_t	spos_r2;
+	uint32_t	epos_r1;
+	uint32_t	epos_r2;
+	int 		mlen_r1;
+	int 		mlen_r2;
+	int 		type;
+	int32_t 	tlen;
+	uint16_t 	junc_num;
+	bool		gm_compatible;
+	string		chr;
+
+	MatchedRead() : type(ORPHAN), tlen(INF), junc_num(0), gm_compatible(false) { }
+	
+	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type) {
+		if (type > this->type)
+			return false;
+
+		if (type == this->type) {
+			if (this->gm_compatible and !gm_compatible)
+				return false;
+
+			if ((this->gm_compatible == gm_compatible) and (this->tlen < tlen))
+				return false;
+		}
+
+		this->type = type;
+		this->chr = chr;
+
+		spos_r1 = r1.start_pos - shift;
+		epos_r1 = r1.end_pos - shift;
+		mlen_r1 = r1.matched_len;
+
+		spos_r2 = r2.start_pos - shift;
+		epos_r2 = r2.end_pos - shift;
+		mlen_r2 = r2.matched_len;
+
+		this->tlen = tlen;
+		this->junc_num = jun_between + r1.junc_num + r2.junc_num;
+		this->gm_compatible = gm_compatible;
+
+		return true;
+	}
+};
+
+typedef struct {
+	float score;
+	chain_t forward;
+	chain_t reverse;
+} MatePair;
+
+struct GenRegion {
+	uint32_t last_pos;	// last position on exon
+	uint32_t next_pos;	// next position on next exon
+
+	GenRegion () : last_pos(0), next_pos(0) { }
+	GenRegion (uint32_t lp, uint32_t np) : last_pos(lp), next_pos(np) { }
+
+	void set(uint32_t lp, uint32_t np) {
+		last_pos = lp;
+		next_pos = np;
+	}
+	
+	bool operator < (const GenRegion& r) const {
+		if (last_pos != r.last_pos)
+			return (last_pos < r.last_pos);
+		return (next_pos < r.next_pos);
+	}
+};
+
+//---------- Global Variables ----------//
+
+extern bool pairedEnd;
+
+extern int kmer;
+extern int maxReadLength;
+extern int verboseMode;
+
+extern char gtfFilename[FILE_NAME_LENGTH];
+extern char referenceFilename[FILE_NAME_LENGTH];
+extern char fastqFilename[FILE_NAME_LENGTH];
+extern char outputFilename[FILE_NAME_LENGTH];
+extern char outputDir[FILE_NAME_LENGTH];
+
+extern FILE* outputJuncFile;
+
+extern char* contigName;
+
+extern uint32_t lookup_cnt;
+extern uint8_t* near_border[3];
+
+extern char versionNumberMajor[10];
+extern char versionNumberMinor[10];
+
+//---------- Functions ----------//
+
+FILE* open_file(char* filename, char* mode);
+void close_file(FILE* fp);
+
+// verbose-aware fprintf
+void vafprintf(int verbosity, FILE *stream, const char *format, ...);
+
+//--------------------------------//
+
+#endif	//__COMMON_H__
