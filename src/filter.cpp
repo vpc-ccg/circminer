@@ -33,7 +33,7 @@ FilterRead::FilterRead (char* save_fname, bool pe, char* filter_temp_name, int n
 	is_pe = pe;
 	cat_count = num_files;
 
-	char* output_names[10] = { "concordant", "discordant", "circ_RF", "fusion", "circ_bsj", "keep", "OEA", "orphan", "many_hits", "no_hit" };
+	char* output_names[11] = { "concordant", "discordant", "circ_RF", "circ_bsj", "fusion", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
 	char cat_fname [FILE_NAME_LENGTH];
 
 	for (int i = 0; i < num_files; i++) {
@@ -457,6 +457,8 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 		tlen = lm.start_pos - sm.end_pos - 1 + lm.matched_len + sm.matched_len;
 		if (tlen <= MAXTLEN)
 			mr.update(sm, lm, chr, shift, tlen, 0, false, CONCRD);
+		else if (tlen <= MAXDISCRDTLEN)
+			mr.update(sm, lm, chr, shift, tlen, 0, false, DISCRD);
 	}
 	else {
 		//fprintf(stderr, "Left Mate [%u-%u] dir=%d, type=%d, Right Mate[%u-%u] dir=%d, type=%d\n", sm.start_pos, sm.end_pos, sm.dir, sm.type, lm.start_pos, lm.end_pos, lm.dir, lm.type);
@@ -477,6 +479,8 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 		tlen = lm.start_pos - sm.end_pos - 1 + sm.matched_len + lm.matched_len;
 		if (tlen <= MAXTLEN)
 			mr.update(sm, lm, chr, shift, tlen, 0, false, CONCRD);
+		else if (tlen <= MAXDISCRDTLEN)
+			mr.update(sm, lm, chr, shift, tlen, 0, false, DISCRD);
 	}
 	else {
 		for (int i = 0; i < sm.exons_epos->seg_list.size(); i++)
@@ -678,7 +682,7 @@ void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chai
 			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_gene(forward_exon_list[i], reverse_exon_list[j]))
 				or (forward_exon_list[i] != NULL and same_gene(forward_exon_list[i], rs, re))
 				or (reverse_exon_list[j] != NULL and same_gene(reverse_exon_list[j], fs, fe))
-				or (tlen <= MAXTLEN)) {
+				or (tlen <= MAXDISCRDTLEN)) {
 				//or (forward_exon_list[i] == NULL and reverse_exon_list[j] == NULL and tlen <= MAXTLEN)) {
 				MatePair temp;
 				temp.forward = forward_chain.chains[i];
@@ -707,6 +711,9 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 
 	int min_ret1 = ORPHAN;
 	int min_ret2 = ORPHAN;
+
+	bool r1_genic = false;
+	bool r2_genic = false;
 
 	// concordant?
 	vafprintf(1, stderr, "#pairs = %d\n", mate_pairs.size());
@@ -783,6 +790,9 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 		min_ret1 = minM(r1_mm.type, min_ret1);
 		min_ret2 = minM(r2_mm.type, min_ret2);
 
+		r1_genic = (r1_mm.exons_spos != NULL) or (r1_mm.exons_epos != NULL);
+		r2_genic = (r2_mm.exons_spos != NULL) or (r2_mm.exons_epos != NULL);
+
 	}
 
 	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
@@ -790,27 +800,39 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 		return mr.type;
 	}
 
-	MatchedMate mm;
+	MatchedMate mm1;
 	int ex_ret;
 	if (min_ret1 != CONCRD)
 		for (int i = 0; i < forward_chain.best_chain_count; i++) {
 			if (!forward_paired[i]) {
-				ex_ret = extend_chain(forward_chain.chains[i], record1->seq, record1->seq_len, mm, 1);
+				ex_ret = extend_chain(forward_chain.chains[i], record1->seq, record1->seq_len, mm1, 1);
 				min_ret1 = minM(ex_ret, min_ret1);
+
+				overlap_to_spos(mm1);
+				overlap_to_epos(mm1);
+
+				r1_genic = (mm1.exons_spos != NULL) or (mm1.exons_epos != NULL);
 			}
 		}
 	
+	MatchedMate mm2;
 	if (min_ret2 != CONCRD)
 		for (int i = 0; i < backward_chain.best_chain_count; i++) {
 			if (!backward_paired[i]) {
-				ex_ret = extend_chain(backward_chain.chains[i], record2->rcseq, record2->seq_len, mm, -1);
+				ex_ret = extend_chain(backward_chain.chains[i], record2->rcseq, record2->seq_len, mm2, -1);
 				min_ret2 = minM(ex_ret, min_ret2);
+				
+				overlap_to_spos(mm2);
+				overlap_to_epos(mm2);
+
+				r2_genic = (mm2.exons_spos != NULL) or (mm2.exons_epos != NULL);
 			}
 		}
 	
 	int ret_val = (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
 			: ((min_ret1 == ORPHAN) or (min_ret2 == ORPHAN)) ? ORPHAN 
-			: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD)) ? CHIFUS
+			: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD) and (r1_genic and r2_genic)) ? CHIFUS
+			: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD)) ? OEA2
 			: CANDID;
 
 	//if (ret_val < CANDID)

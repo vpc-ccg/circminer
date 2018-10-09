@@ -65,6 +65,7 @@ def find_cat(chrom, pos, exon_starts_rel, exon_mlen):
 		
 		if len(retll) == 0:
 			fault.append('intron')
+			continue
 		
 		fully_in = False
 		same_start = False

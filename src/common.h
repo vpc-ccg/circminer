@@ -28,6 +28,7 @@ using namespace std;
 #define INF 1e9
 
 #define GENETHRESH 50000
+#define MAXDISCRDTLEN 10000
 #define MAXTLEN 500
 #define MINKMER 15
 #define FRAGLIM 5000
@@ -43,13 +44,14 @@ using namespace std;
 #define CONCRD 0
 #define DISCRD 1
 #define CHIORF 2
-#define CHIFUS 3
-#define CHIBSJ 4
-#define CANDID 5
-#define OEANCH 6
-#define ORPHAN 7
-#define NOPROC_MANYHIT 8
-#define NOPROC_NOMATCH 9
+#define CHIBSJ 3
+#define CHIFUS 4
+#define OEA2   5
+#define CANDID 6
+#define OEANCH 7
+#define ORPHAN 8
+#define NOPROC_MANYHIT 9
+#define NOPROC_NOMATCH 10
 
 //---------- Structures ----------//
 

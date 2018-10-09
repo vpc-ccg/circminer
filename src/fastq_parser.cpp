@@ -67,8 +67,15 @@ bool FASTQParser::read_next (void) {
 	
 	/** read state from comment **/
 	assert(current_record->comment[0] == '+');
+
 	if (read_state and comment_len > 2) {
-		current_record->state = current_record->comment[1] - '0';
+		int i = 1;
+		current_record->state = 0;
+		while (i < comment_len and current_record->comment[i] != '\n') {
+			current_record->state *= 10;
+			current_record->state += current_record->comment[i] - '0';
+			i++;
+		}
 	}
 	else 
 		current_record->state = NOPROC_NOMATCH;
