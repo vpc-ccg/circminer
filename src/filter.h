@@ -12,8 +12,6 @@
 
 using namespace std;
 
-#define CATNUM 11	// number of output categories
-
 class FilterRead {
 private:
 	FILE* cat_file_r1[CATNUM];

@@ -26,6 +26,9 @@ public:
 
 	void build(map <T, string>& sorted_list);
 	IntervalInfo<T>* find(uint32_t pos);
+	IntervalInfo<T>* find_ind(uint32_t pos, int& ind);
+
+	IntervalInfo<T>* get_node(int ind);
 
 	void print();
 };

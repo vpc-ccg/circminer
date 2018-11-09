@@ -39,21 +39,25 @@ using namespace std;
 #define INDELTH 3
 #define SOFTCLIPTH 7
 
+#define LARIAT2BEGTH 1000
+
 // ouput categories
+#define CATNUM 11	// number of output categories
+
 // the order matters:
-#define CONCRD 0
-#define DISCRD 1
-#define CHIORF 2
-#define CHIBSJ 3
-#define CHIFUS 4
-#define OEA2   5
-#define CANDID 6
-#define OEANCH 7
-#define ORPHAN 8
+#define CONCRD	0
+#define DISCRD	1
+#define CHIORF	2
+#define CHIBSJ	3
+#define CHIFUS	4
+#define OEA2	5
+#define CANDID	6
+#define OEANCH	7
+#define ORPHAN	8
 #define NOPROC_MANYHIT 9
 #define NOPROC_NOMATCH 10
 
-//---------- Structures ----------//
+//---------- Structures ----------\\
 
 struct fragment_t{
 	uint32_t rpos;
@@ -65,16 +69,22 @@ struct fragment_t{
 	}
 };
 
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
 typedef struct {
 	fragment_t* frags;
 	uint32_t chain_len;
 	float score;
 } chain_t;
 
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
 typedef struct {
 	chain_t* chains;
 	int best_chain_count;
 } chain_list;
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 typedef struct {
 	uint32_t dr;
@@ -88,6 +98,8 @@ typedef struct {
 	bool cross_boundry;
 } JunctionDist;
 
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
 typedef struct {
 	GeneralIndex* frags;	// array of locations
 	JunctionDist* junc_dist;
@@ -95,6 +107,28 @@ typedef struct {
 	uint32_t frag_count;
 	int32_t qpos;
 } GIMatchedKmer;
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
+struct GeneInfo {
+	uint32_t start;
+	uint32_t end;
+
+	friend ostream& operator<<(ostream& os, const GeneInfo& gi);
+
+	bool operator < (const GeneInfo& gi) const {
+		if (start != gi.start)
+			return start < gi.start;
+		return end < gi.end;
+	}
+};
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
+inline ostream& operator<<(ostream& os, const GeneInfo& gi) {
+	os << "[" << gi.start << "-" << gi.end << "]";
+	return os;
+}
 
 struct UniqSeg {
 	string gene_id;
@@ -160,6 +194,8 @@ inline ostream& operator<<(ostream& os, const UniqSeg& us) {
 	return os;
 }
 
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
 struct UniqSegList {
 	vector <UniqSeg> seg_list;
 	
@@ -198,6 +234,8 @@ struct UniqSegList {
 	}
 };
 
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
 struct MatchedMate {
 	uint32_t 	start_pos;
 	uint32_t 	end_pos;
@@ -214,11 +252,20 @@ struct MatchedMate {
 	
 	bool		looked_up_spos;	// intronic / inter-genic -> looked up but not found (still NULL)
 	bool		looked_up_epos;	// intronic / inter-genic -> looked up but not found (still NULL)
+	
+	bool		looked_up_gene;
+
+	int 		exon_ind_spos;
+	int 		exon_ind_epos;
 
 	const IntervalInfo<UniqSeg>* exons_spos;
 	const IntervalInfo<UniqSeg>* exons_epos;
 
-	MatchedMate() : type(ORPHAN), junc_num(0), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), looked_up_spos(false), looked_up_epos(false), exons_spos(NULL), exons_epos(NULL) { }
+	const IntervalInfo<GeneInfo>* gene_info;
+
+	MatchedMate() : type(ORPHAN), junc_num(0), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), 
+					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), exons_spos(NULL), exons_epos(NULL), 
+					exon_ind_spos(-1), exon_ind_epos(-1), gene_info(NULL) { }
 
 	void operator = (const MatchedMate& mm) {
 		start_pos 	= mm.start_pos;
@@ -242,6 +289,8 @@ struct MatchedMate {
 	}
 
 };
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 struct MatchedRead {
 	uint32_t	spos_r1;
@@ -289,11 +338,15 @@ struct MatchedRead {
 	}
 };
 
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
 typedef struct {
 	float score;
 	chain_t forward;
 	chain_t reverse;
 } MatePair;
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 struct GenRegion {
 	uint32_t last_pos;	// last position on exon
@@ -314,7 +367,7 @@ struct GenRegion {
 	}
 };
 
-//---------- Global Variables ----------//
+//---------- Global Variables ----------\\
 
 extern bool pairedEnd;
 
@@ -338,7 +391,7 @@ extern uint8_t* near_border[3];
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];
 
-//---------- Functions ----------//
+//---------- Functions ----------\\
 
 FILE* open_file(char* filename, char* mode);
 void close_file(FILE* fp);
@@ -346,6 +399,6 @@ void close_file(FILE* fp);
 // verbose-aware fprintf
 void vafprintf(int verbosity, FILE *stream, const char *format, ...);
 
-//--------------------------------//
+//--------------------------------\\
 
 #endif	//__COMMON_H__

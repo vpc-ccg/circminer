@@ -183,8 +183,21 @@ bool GTFParser::load_gtf(void) {
 			continue;
 
 		if (current_record->type == "gene") {
+			int con = current_record->chr[0]-'1';
+			if (con >= 0 and con < 3) {
+				for (int k = current_record->start; k <= current_record->end; k++)
+					near_border[current_record->chr[0]-'1'][k] |= 2;
+			}
+
 			GeneInfo tmp = {.start = current_record->start, .end = current_record->end};
 			gid2ginfo[current_record->chr][current_record->gene_id] = tmp;
+
+			if (merged_genes[current_record->chr].find(tmp) != merged_genes[current_record->chr].end()) {	// found gene
+				merged_genes[current_record->chr][tmp] += "\t" + current_record->gene_id;
+			}
+			else {
+				merged_genes[current_record->chr][tmp] = current_record->gene_id;
+			}
 		}
 
 		if (current_record->type == "exon") {
@@ -192,15 +205,18 @@ bool GTFParser::load_gtf(void) {
 			//
 			int con = current_record->chr[0]-'1';
 			if (con >= 0 and con < 3) {
+				for (int k = current_record->start; k <= current_record->end; k++)
+					near_border[current_record->chr[0]-'1'][k] &= ~(2);
+				
 				for (int k = maxM(0, current_record->start - maxReadLength); k < current_record->start; k++)
 					near_border[current_record->chr[0]-'1'][k] |= 1;
 				for (int k = maxM(0, current_record->end - maxReadLength + 1); k <= current_record->end; k++)
 					near_border[current_record->chr[0]-'1'][k] |= 1;
 
-				for (int k = current_record->start; k < current_record->start + maxReadLength; k++)
-					near_border[current_record->chr[0]-'1'][k] |= 2;
-				for (int k = current_record->end + 1; k <= current_record->end + maxReadLength; k++)
-					near_border[current_record->chr[0]-'1'][k] |= 2;
+				//for (int k = current_record->start; k < current_record->start + maxReadLength; k++)
+				//	near_border[current_record->chr[0]-'1'][k] |= 2;
+				//for (int k = current_record->end + 1; k <= current_record->end + maxReadLength; k++)
+				//	near_border[current_record->chr[0]-'1'][k] |= 2;
 			}
 			//
 			///
@@ -285,20 +301,31 @@ bool GTFParser::load_gtf(void) {
 	//////
 
 	map <string, map <UniqSeg, string> >:: iterator con_it;
-	map <UniqSeg, string>:: iterator it;
-
 	for (con_it = merged_exons.begin(); con_it != merged_exons.end(); con_it++) {
 		exons_int_map[con_it->first].build(con_it->second);
 		//exons_int_map[con_it->first].print();
+	}
+	
+	map <string, map <GeneInfo, string> >:: iterator it;
+	for (it = merged_genes.begin(); it != merged_genes.end(); it++) {
+		genes_int_map[it->first].build(it->second);
+		//genes_int_map[it->first].print();
 	}
 
 	int need_lu[3];
 	for (int i = 0; i < 3; i++) {
 		need_lu[i] = 0;
 		for (int j = 0; j < 1200000000; j++)
-			if (near_border[i][j] != 0)
+			if (near_border[i][j] & 1)
 				need_lu[i]++;
-		fprintf(stdout, "Contig [%d]: Need look up for %d\n", i+1, need_lu[i]);
+		fprintf(stdout, "Contig [%d]: Near exon boundaries: %d\n", i+1, need_lu[i]);
+	}
+	for (int i = 0; i < 3; i++) {
+		need_lu[i] = 0;
+		for (int j = 0; j < 1200000000; j++)
+			if (near_border[i][j] & 2)
+				need_lu[i]++;
+		fprintf(stdout, "Contig [%d]: Intronic: %d\n", i+1, need_lu[i]);
 	}
 
 	delete prev_record;
@@ -600,6 +627,44 @@ const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap(uint32_t loc, bool 
 		return NULL;
 
 	return ov_res;
+}
+
+// returns intervals overlapping with: loc
+// remain lenght does not include loc itself (starting from next location)
+const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap_ind(uint32_t loc, bool use_mask, int& ind) {
+	// do not use mask if extending left
+	if (use_mask and !(near_border[contigName[0]-'1'][loc] & 1)) {		// intronic
+		//fprintf(stderr, "skip lookup\n");
+		return NULL;
+	}
+	
+	IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigName].find_ind(loc, ind);
+
+	if (ov_res == NULL or ov_res->seg_list.size() == 0)	// not found => intronic
+		return NULL;
+
+	return ov_res;
+}
+
+// returns genes overlapping with: loc
+// remain lenght does not include loc itself (starting from next location)
+const IntervalInfo<GeneInfo>* GTFParser::get_gene_overlap(uint32_t loc, bool use_mask) {
+	// do not use mask if extending left
+	if (use_mask and !(near_border[contigName[0]-'1'][loc] & 1)) {		// intronic
+		//fprintf(stderr, "skip lookup\n");
+		return NULL;
+	}
+	
+	IntervalInfo<GeneInfo>* ov_res = genes_int_map[contigName].find(loc);
+
+	if (ov_res == NULL or ov_res->seg_list.size() == 0)	// not found => intronic
+		return NULL;
+
+	return ov_res;
+}
+
+uint32_t GTFParser::get_interval_epos(int interval_ind) {
+	return exons_int_map[contigName].get_node(interval_ind)->epos;
 }
 
 GeneInfo* GTFParser::get_gene_info(const string& gid) {

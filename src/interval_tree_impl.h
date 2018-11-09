@@ -157,14 +157,35 @@ IntervalInfo<T>* FlatIntervalTree<T>::find(uint32_t pos) {
 }
 
 template <class T>
+IntervalInfo<T>* FlatIntervalTree<T>::find_ind(uint32_t pos, int& ind) {
+	ind = -1;
+	if (pos < disjoint_intervals[0].spos)
+		return NULL;
+
+	ind = search(pos) - 1;	//closest start less than or equal pos
+	if (ind < 0 or disjoint_intervals[ind].epos < pos)
+		return NULL;
+	
+	return &disjoint_intervals[ind];
+}
+
+template <class T>
+IntervalInfo<T>* FlatIntervalTree<T>::get_node(int ind) {
+	return &disjoint_intervals[ind];
+}
+
+template <class T>
 void FlatIntervalTree<T>::print() {
 	cerr << "size = " << disjoint_intervals.size() << endl;
+	int sum = 0;
 	for (int i = 0; i < disjoint_intervals.size(); i++) {
-		cerr << "[" << disjoint_intervals[i].spos << ", " << disjoint_intervals[i].epos << "] = { ";
+		sum += disjoint_intervals[i].epos - disjoint_intervals[i].spos + 1;
+		cerr << disjoint_intervals[i].epos - disjoint_intervals[i].spos + 1 << " [" << disjoint_intervals[i].spos << ", " << disjoint_intervals[i].epos << "] = { ";
 		for (int j = 0; j < disjoint_intervals[i].seg_list.size(); j++)
 			cerr << disjoint_intervals[i].seg_list[j] << ", ";
 		cerr << " }\n";
 	}
+	cout << "Total covered area: " << sum << endl;
 }
 
 #endif

@@ -27,6 +27,7 @@ bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, int& err, int& 
 
 void overlap_to_epos(MatchedMate& mr);
 void overlap_to_spos(MatchedMate& mr);
+void gene_overlap(MatchedMate& mr);
 
 // updates next fq file to be read if need be (keep file)
 FilterRead::FilterRead (char* save_fname, bool pe, char* filter_temp_name, int num_files, char* fq_file1, char* fq_file2) {
@@ -446,6 +447,31 @@ bool same_gene(const MatchedMate& mm, const MatchedMate& other) {
 	return false;
 }
 
+bool same_gene(uint32_t sme, const IntervalInfo<GeneInfo>* smg, uint32_t lms, const IntervalInfo<GeneInfo>* lmg) {
+	if (smg == NULL or lmg == NULL)
+		return false;
+
+	if (smg->seg_list.size() == 0 or lmg->seg_list.size() == 0)
+		return false;
+
+	bool same_intron;
+	int step = 10;
+	for (int i = 0; i < smg->seg_list.size(); i++)
+		for (int j = 0; j < lmg->seg_list.size(); j++)
+			if (smg->seg_list[i].start == lmg->seg_list[j].start and smg->seg_list[i].end == lmg->seg_list[j].end) {
+				same_intron = true;
+				for (int k = sme; k <= lms; k += step)
+					if (!(near_border[contigName[0]-'1'][k] & 2)) {
+						same_intron = false;
+						break;
+					}
+				if (same_intron)
+					return true;
+			}
+	
+	return false;
+}
+
 // sm should start before lm
 bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift) {
 	if (sm.start_pos > lm.start_pos)
@@ -531,18 +557,39 @@ bool check_chimeric(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& m
 	return false;
 }
 
-bool check_bsj(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift) {
+bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift) {
 	if (mr.type == CONCRD or mr.type == DISCRD)
 		return false;
 
 	if ((!sm.right_ok) or (!lm.left_ok))
 		return false;
 
+
+	//fprintf(stderr, "In Check BSJ\n");
+
 	if (sm.exons_spos == NULL or lm.exons_spos == NULL) {
 		if ((sm.exons_spos != NULL and same_gene(sm, lm)) or (lm.exons_spos != NULL and same_gene(lm, sm))) {
 			mr.update(sm, lm, chr, shift, lm.end_pos - sm.start_pos + 1, 0, false, CHIBSJ);
 			return true;
 		}
+
+		// checking for ciRNA
+		//overlap_to_spos(sm);
+		//overlap_to_epos(lm);
+		//fprintf(stderr, "R1 start ind: %d\tR2 end ind: %d\n To beg of intron: %d\n", sm.exon_ind_spos, lm.exon_ind_epos, sm.start_pos - gtf_parser.get_interval_epos(sm.exon_ind_spos));
+		if ((near_border[contigName[0]-'1'][sm.start_pos] & 2) and ((near_border[contigName[0]-'1'][lm.start_pos] & 2)) and 
+			(sm.exon_ind_spos >= 0) and (lm.exon_ind_epos >= 0) and (sm.exon_ind_spos == lm.exon_ind_epos) and 
+			(sm.start_pos - gtf_parser.get_interval_epos(sm.exon_ind_spos) <= LARIAT2BEGTH)) {
+			mr.update(sm, lm, chr, shift, lm.end_pos - sm.start_pos + 1, 0, false, CHIBSJ);
+			return true;
+		}
+		
+		//gene_overlap(sm);
+		//gene_overlap(lm);
+		//if (same_gene(sm.end_pos, sm.gene_info, lm.start_pos, lm.gene_info)) {
+		//	mr.update(sm, lm, chr, shift, lm.end_pos - sm.start_pos + 1, 0, false, CHIBSJ);
+		//	return true;
+		//}
 
 		return false;
 	}
@@ -1225,7 +1272,8 @@ bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, int& err, int& 
 void overlap_to_epos(MatchedMate& mr) {
 	if (mr.looked_up_epos or mr.exons_epos != NULL)
 		return;
-	mr.exons_epos = gtf_parser.get_location_overlap(mr.end_pos, false);
+
+	mr.exons_epos = gtf_parser.get_location_overlap_ind(mr.end_pos, false, mr.exon_ind_epos);
 	mr.looked_up_epos = true;
 	//fprintf(stdout, "End Seg list size: %d\n", mr.exons_epos->seg_list.size());
 }
@@ -1233,7 +1281,15 @@ void overlap_to_epos(MatchedMate& mr) {
 void overlap_to_spos(MatchedMate& mr) {
 	if (mr.looked_up_spos or mr.exons_spos != NULL)
 		return;
-	mr.exons_spos = gtf_parser.get_location_overlap(mr.start_pos, false);
+
+	mr.exons_spos = gtf_parser.get_location_overlap_ind(mr.start_pos, false, mr.exon_ind_spos);
 	mr.looked_up_spos = true;
 	//fprintf(stdout, "Start Seg list size: %d\n", mr.exons_spos->seg_list.size());
+}
+
+void gene_overlap(MatchedMate& mr) {
+	if (mr.looked_up_gene or mr.gene_info != NULL)
+		return;
+	mr.gene_info = gtf_parser.get_gene_overlap(mr.start_pos, false);
+	mr.looked_up_gene = true;
 }

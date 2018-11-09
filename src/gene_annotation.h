@@ -21,11 +21,6 @@ typedef struct {
 	uint32_t end;
 } ExonSeg;
 
-typedef struct {
-	uint32_t start;
-	uint32_t end;
-} GeneInfo;
-
 typedef struct GTFRecord {
 	string chr;
 	string source;
@@ -64,7 +59,10 @@ private:
 	GTFRecord* current_record;
 	
 	map <string, map <UniqSeg, string> > merged_exons; 
+	map <string, map <GeneInfo, string> > merged_genes; 
+
 	map <string, FlatIntervalTree <UniqSeg> > exons_int_map;
+	map <string, FlatIntervalTree <GeneInfo> > genes_int_map;
 	
 	map <string, map <string, GeneInfo> > gid2ginfo;
 
@@ -96,6 +94,10 @@ public:
 	void get_upper_bound_alu(uint32_t spos, uint32_t mlen, uint32_t rlen, JunctionDist& jd);
 	
 	const IntervalInfo<UniqSeg>* get_location_overlap(uint32_t loc, bool use_mask);
+	const IntervalInfo<UniqSeg>* get_location_overlap_ind(uint32_t loc, bool use_mask, int& ind);
+	const IntervalInfo<GeneInfo>* get_gene_overlap(uint32_t loc, bool use_mask);
+
+	uint32_t get_interval_epos(int interval_ind);
 
 	ConShift get_shift(const string& contig, uint32_t loc);
 
