@@ -124,6 +124,7 @@ int main(int argc, char **argv) {
 	//char* contig_name;
 	int cat_count;
 	bool is_first = true;
+	bool is_last = false;
 	do {
 		fprintf(stdout, "Started loading index...\n");
 	
@@ -139,6 +140,7 @@ int main(int argc, char **argv) {
 
 		fprintf(stdout, "Contig: %s\n", getRefGenomeName());
 		contigName = getRefGenomeName();
+		int contigNum = atoi(contigName);
 
 		FASTQParser fq_parser1(fq_file1, !is_first);
 		Record* current_record1;
@@ -149,9 +151,9 @@ int main(int argc, char **argv) {
 			fq_parser2.init(fq_file2);
 		}
 
+		is_last = !flag;
+		FilterRead filter_read(outputFilename, is_pe, contigNum, is_first, is_last, fq_file1, fq_file2);
 		is_first = false;
-		cat_count = (flag) ? 2 : CATNUM;		// 2 category output unless this is the last contig
-		FilterRead filter_read(outputFilename, is_pe, contigName, cat_count, fq_file1, fq_file2);
 
 		fprintf(stdout, "Started reading FASTQ file...\n");
 		int line = 0;
@@ -176,7 +178,9 @@ int main(int argc, char **argv) {
 			int state;
 			if (is_pe) {
 				state = filter_read.process_read(current_record1, current_record2, kmer, fl, bl, fbc_r1, bbc_r1, fbc_r2, bbc_r2);
-				filter_read.write_read_category(current_record1, current_record2, state);
+				if (current_record1->mr.type == CONCRD or is_last)
+					filter_read.print_mapping(current_record1->rname, current_record1->mr);
+				filter_read.write_read_category(current_record1, current_record2, current_record1->mr);
 			}
 			else {
 				state = filter_read.process_read(current_record1, kmer, fl, bl, fbc_r1, bbc_r1);
@@ -193,8 +197,6 @@ int main(int argc, char **argv) {
 	/*************************/
 	/**Free Allocated Memory**/
 	/*************************/
-
-	close_file(outputJuncFile);
 
 	for (int i = 0; i < contig_cnt; i++) 
 		freeMem(orig_contig_len[i].name, strlen(orig_contig_len[i].name));

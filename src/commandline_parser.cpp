@@ -12,8 +12,6 @@ char fastqFilename[FILE_NAME_LENGTH];
 char outputFilename[FILE_NAME_LENGTH]="output";
 char outputDir[FILE_NAME_LENGTH] = "./";
 
-FILE *outputJuncFile; 
-
 char* contigName;
 
 uint32_t lookup_cnt;
@@ -76,11 +74,6 @@ int parse_command( int argc, char *argv[] )
 				break;
 			case 'o': {
 				strncpy(outputFilename, optarg, FILE_NAME_LENGTH);
-				
-				char juncFilename[FILE_NAME_LENGTH] = "";
-				strncpy(juncFilename, optarg, FILE_NAME_LENGTH);
-				strcat(juncFilename, ".junc");
-				outputJuncFile = fopen(juncFilename,"w");
 				break;
 			}
 			case 'd':

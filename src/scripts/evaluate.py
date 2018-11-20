@@ -9,17 +9,24 @@ class Usage(Exception):
 		self.msg = msg
 
 def usage():
-	print '\nUsage: python ' + sys.argv[0] + ' fastq_file output STAR_Mapings Chimeric_Mappings Chimeric_RID'
+	print '\nUsage: python ' + sys.argv[0] + ' fastq/pam_file output STAR_Mapings Chimeric_Mappings Chimeric_RID'
 	sys.exit(-1)
 
-def get_read_id( file ):
+def get_read_id( fname ):
 	r_dict = {}
 	count = 0
-	sr = open( sys.argv[1], 'r')
-	for line in sr:
-		if 0 == count %4:
-			r_dict[ line.strip().split(".")[1] ] = 0
-		count +=1
+	sr = open( fname, 'r')
+
+	if fname[-3:] == 'pam':
+		for line in sr:
+			rname = line.strip().split()[0]
+			r_dict[ rname.split(".")[1] ] = 0
+	else:
+		for line in sr:
+			if 0 == count % 4:
+				r_dict[ line.strip().split(".")[1] ] = 0
+			count += 1
+
 	sr.close()
 	return r_dict
 	

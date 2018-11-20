@@ -1,3 +1,5 @@
+#include <cstdio> 
+#include <cstring>
 #include "fastq_parser.h"
 
 #define MAXLINESIZE 400
@@ -60,27 +62,13 @@ bool FASTQParser::read_next (void) {
 
 	int rname_len = 1;
 	rname_len += getline(&skip_at, &max_line_size, input);
+	extract_map_info(skip_at);
 
 	getline(&current_record->seq, &max_line_size, input);
-	int comment_len = getline(&current_record->comment, &max_line_size, input);
+	getline(&current_record->comment, &max_line_size, input);
 	getline(&current_record->qual, &max_line_size, input);
 	
-	/** read state from comment **/
 	assert(current_record->comment[0] == '+');
-
-	if (read_state and comment_len > 2) {
-		int i = 1;
-		current_record->state = 0;
-		while (i < comment_len and current_record->comment[i] != '\n') {
-			current_record->state *= 10;
-			current_record->state += current_record->comment[i] - '0';
-			i++;
-		}
-	}
-	else 
-		current_record->state = NOPROC_NOMATCH;
-	current_record->comment[1] = '\0';
-	/****/
 
 	current_record->seq_len = strlen(current_record->seq) - 1;	// skipping newline at the end
 	current_record->rname[rname_len - 1] = '\0';
@@ -117,4 +105,51 @@ void FASTQParser::set_reverse_comp (void) {
 		current_record->rcseq[len-i-1] = comp[current_record->seq[i]];
 	}
 	current_record->rcseq[len] = '\0';
+}
+
+void FASTQParser::extract_map_info(char* str) {
+	// Returns first token  
+	char *token = strtok(str, " "); 
+    
+	// Keep printing tokens while one of the 
+	// delimiters present in str[]. 
+	int i = 0;
+	while (token != NULL) 
+	{ 
+		strcpy(tokens[i], token);
+		token = strtok(NULL, " "); 
+		++i;
+	}
+
+	// i == 1 iff there is no comment in the line
+	int rname_len = (i == 1) ? strlen(tokens[0]) : strlen(tokens[0]) + 1;
+	current_record->rname[rname_len] = '\0';
+
+	fill_map_info(i);
+}
+
+void FASTQParser::fill_map_info(int cnt) {
+	assert(cnt == 1 or cnt == 12);
+	
+	if (cnt == 1) {
+		current_record->mr.type = NOPROC_NOMATCH;
+		current_record->mr.tlen = INF;
+		current_record->mr.junc_num = 0;
+		current_record->mr.gm_compatible = false;
+	}
+	else {
+		char* stop_string;
+		int base = 10;
+		current_record->mr.type 	= atoi(tokens[1]);
+		current_record->mr.chr 		= tokens[2];
+		current_record->mr.spos_r1 	= strtoul(tokens[3], &stop_string, base);
+		current_record->mr.epos_r1 	= strtoul(tokens[4], &stop_string, base);
+		current_record->mr.mlen_r1 	= atoi(tokens[5]);
+		current_record->mr.spos_r2 	= strtoul(tokens[6], &stop_string, base);
+		current_record->mr.epos_r2 	= strtoul(tokens[7], &stop_string, base);
+		current_record->mr.mlen_r2 	= atoi(tokens[8]);
+		current_record->mr.tlen 	= atoi(tokens[9]);
+		current_record->mr.junc_num = strtoul(tokens[10], &stop_string, base);
+		current_record->mr.gm_compatible = (tokens[11][0] == '1');
+	}
 }

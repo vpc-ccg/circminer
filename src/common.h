@@ -305,7 +305,7 @@ struct MatchedRead {
 	bool		gm_compatible;
 	string		chr;
 
-	MatchedRead() : type(ORPHAN), tlen(INF), junc_num(0), gm_compatible(false) { }
+	MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), chr("-") { }
 	
 	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type) {
 		if (type > this->type)
@@ -335,6 +335,11 @@ struct MatchedRead {
 		this->gm_compatible = gm_compatible;
 
 		return true;
+	}
+
+	bool update_type(int type) {
+		if (type < this->type)
+			this->type = type;
 	}
 };
 
@@ -380,8 +385,6 @@ extern char referenceFilename[FILE_NAME_LENGTH];
 extern char fastqFilename[FILE_NAME_LENGTH];
 extern char outputFilename[FILE_NAME_LENGTH];
 extern char outputDir[FILE_NAME_LENGTH];
-
-extern FILE* outputJuncFile;
 
 extern char* contigName;
 

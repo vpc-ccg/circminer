@@ -16,7 +16,8 @@ typedef struct {
 	char *qual;
 
 	int seq_len;
-	int state;
+
+	MatchedRead mr;
 } Record;
 
 
@@ -29,6 +30,8 @@ private:
 	size_t max_line_size;
 	int size;
 	bool read_state;
+
+	char tokens[12][100];
 
 	bool has_next (void);
 
@@ -44,6 +47,9 @@ public:
 	void set_reverse_comp (void);
 
 	void set_comp (void);
+
+	void extract_map_info(char* str);
+	void fill_map_info(int cnt);
 };
 
 #endif	//__FASTQPARSER_H__

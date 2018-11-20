@@ -20,7 +20,7 @@ extern "C" {
 
 void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l, int& high_hits);
 int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir);
-int process_mates(const chain_list& forward_chain, const Record* record1, const chain_list& backward_chain, const Record* record2);
+int process_mates(const chain_list& forward_chain, const Record* record1, const chain_list& backward_chain, const Record* record2, MatchedRead& mr);
 
 bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, int& err, int& sclen_right);
 bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, int& err, int& sclen_left);
@@ -29,41 +29,68 @@ void overlap_to_epos(MatchedMate& mr);
 void overlap_to_spos(MatchedMate& mr);
 void gene_overlap(MatchedMate& mr);
 
-// updates next fq file to be read if need be (keep file)
-FilterRead::FilterRead (char* save_fname, bool pe, char* filter_temp_name, int num_files, char* fq_file1, char* fq_file2) {
+
+FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, bool last_round, char* fq_file1, char* fq_file2) {
 	is_pe = pe;
-	cat_count = num_files;
-
-	char* output_names[11] = { "concordant", "discordant", "circ_RF", "circ_bsj", "fusion", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
-	char cat_fname [FILE_NAME_LENGTH];
-
-	for (int i = 0; i < num_files; i++) {
+	this->first_round = first_round;
+	this->last_round = last_round;
+	
+	// temp fastq file(s) to be read in next round
+	if (! last_round) {
+		char temp_fname [FILE_NAME_LENGTH];
 		if (is_pe) {
-			sprintf(cat_fname, "%s_%s.%s_R1.fastq", save_fname, filter_temp_name, output_names[i]);
-			cat_file_r1[i] = open_file(cat_fname, "w");
-			sprintf(cat_fname, "%s_%s.%s_R2.fastq", save_fname, filter_temp_name, output_names[i]);
-			cat_file_r2[i] = open_file(cat_fname, "w");
+			sprintf(temp_fname, "%s_%d_remain_R1.fastq", save_fname, round);
+			temp_fq_r1 = open_file(temp_fname, "w");
+
+			sprintf(temp_fname, "%s_%d_remain_R2.fastq", save_fname, round);
+			temp_fq_r2 = open_file(temp_fname, "w");
 		}
 		else {
-			sprintf(cat_fname, "%s_%s.%s.fastq", save_fname, filter_temp_name, output_names[i]);
-			cat_file_r1[i] = open_file(cat_fname, "w");
+			sprintf(temp_fname, "%s_%d_remain.fastq", save_fname, round);
+			temp_fq_r1 = open_file(temp_fname, "w");
 		}
 	}
 
 	// updating fq file to be read in next round
 	if (is_pe) {
-		sprintf(fq_file1, "%s_%s.%s_R1.fastq", save_fname, filter_temp_name, output_names[DISCRD]);
-		sprintf(fq_file2, "%s_%s.%s_R2.fastq", save_fname, filter_temp_name, output_names[DISCRD]);
+		sprintf(fq_file1, "%s_%d_remain_R1.fastq", save_fname, round);
+		sprintf(fq_file2, "%s_%d_remain_R2.fastq", save_fname, round);
 	}
 	else {
-		sprintf(fq_file1, "%s_%s.%s.fastq", save_fname, filter_temp_name, output_names[DISCRD]);
+		sprintf(fq_file1, "%s_%d_remain.fastq", save_fname, round);
 	}
+
+	// openning pam files
+	char* output_names[11] = { "concordant", "discordant", "circ_RF", "circ_bsj", "fusion", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
+	char cat_fname [FILE_NAME_LENGTH];
+
+	char mode[2];
+	sprintf(mode, "%s", (first_round) ? "w" : "a");
+
+	sprintf(cat_fname, "%s.%s.pam", save_fname, output_names[0]);
+	cat_file_pam[0] = open_file(cat_fname, mode);
+
+	if (! last_round)
+		return;
+
+	for (int i = 1; i < CATNUM; i++) {
+		sprintf(cat_fname, "%s.%s.pam", save_fname, output_names[i]);
+		cat_file_pam[i] = open_file(cat_fname, "w");
+	}
+
 }
 
 FilterRead::~FilterRead (void) {
-	for (int i = 0; i < CATNUM; i++) {
-		close_file(cat_file_r1[i]);
-		close_file(cat_file_r2[i]);
+	close_file(cat_file_pam[0]);
+
+	if (! last_round) {
+		close_file(temp_fq_r1);
+		close_file(temp_fq_r2);
+	}
+	else {
+		for (int i = 1; i < CATNUM; i++) {
+			close_file(cat_file_pam[i]);
+		}
 	}
 }
 
@@ -153,13 +180,20 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 
 	// Orphan / OEA
 	if (forward_best_chain_r1.best_chain_count + backward_best_chain_r1.best_chain_count + forward_best_chain_r2.best_chain_count + backward_best_chain_r2.best_chain_count <= 0) {
-		if ((fhh_r1 + bhh_r1 > 0) and (fhh_r2 + bhh_r2 > 0))
+		if ((fhh_r1 + bhh_r1 > 0) and (fhh_r2 + bhh_r2 > 0)) {
+			current_record1->mr.update_type(NOPROC_MANYHIT);
 			return NOPROC_MANYHIT;
-		else
+		}
+		else {
+			current_record1->mr.update_type(NOPROC_NOMATCH);
 			return NOPROC_NOMATCH;
+		}
 	}
-	if ((forward_best_chain_r1.best_chain_count + backward_best_chain_r1.best_chain_count <= 0) or (forward_best_chain_r2.best_chain_count + backward_best_chain_r2.best_chain_count <= 0))
+	if ((forward_best_chain_r1.best_chain_count + backward_best_chain_r1.best_chain_count <= 0) or 
+		(forward_best_chain_r2.best_chain_count + backward_best_chain_r2.best_chain_count <= 0)) {
+		current_record1->mr.update_type(OEANCH);
 		return OEANCH;
+	}
 
 	// checking read concordancy
 	// any concordancy evidence/explanation ?
@@ -168,54 +202,72 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 	float fc_score_r2 = forward_best_chain_r2.chains[0].score;
 	float bc_score_r2 = backward_best_chain_r2.chains[0].score;
 	vafprintf(2, stderr, "Scores: fc1=%f, bc1=%f, fc2=%f, bc2=%f\n", fc_score_r1, bc_score_r1, fc_score_r2, bc_score_r2);
+	
 	int attempt1, attempt2;
 	if (fc_score_r1 + bc_score_r2 >= fc_score_r2 + bc_score_r1) {
 		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
-		attempt1 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2);
-		if (attempt1 == CONCRD)
+		attempt1 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, current_record1->mr);
+		if (attempt1 == CONCRD) {
 			return CONCRD;
+		}
 
 		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
-		attempt2 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1);
-		if (attempt2 == CONCRD)
+		attempt2 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, current_record1->mr);
+		if (attempt2 == CONCRD) {
 			return CONCRD;
+		}
+
 		return (attempt1 < attempt2) ? attempt1 : attempt2;
 	}
 	else {
 		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
-		attempt1 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1);
-		if (attempt1 == CONCRD)
+		attempt1 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, current_record1->mr);
+		if (attempt1 == CONCRD) {
 			return CONCRD;
+		}
 
 		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
-		attempt2 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2);
-		if (attempt2 == CONCRD)
+		attempt2 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, current_record1->mr);
+		if (attempt2 == CONCRD) {
 			return CONCRD;
+		}
+
 		return (attempt1 < attempt2) ? attempt1 : attempt2;
 	}
 }
 
 // write reads SE mode
 void FilterRead::write_read_category (Record* current_record, int state) {
-	state = minM(state, current_record->state);
-	int cat = (state >= cat_count) ? DISCRD : state;
-	fprintf(cat_file_r1[cat], "%s\n%s%s%d\n%s", current_record->rname, current_record->seq, current_record->comment, state, current_record->qual);
+	//state = minM(state, current_record->state);
+	//int cat = (state >= cat_count) ? DISCRD : state;
+	if (!last_round and state != CONCRD) {
+		fprintf(temp_fq_r1, "%s\n%s%s%d\n%s", current_record->rname, current_record->seq, current_record->comment, state, current_record->qual);
+	}
 }
 
 // write reads PE mode
-void FilterRead::write_read_category (Record* current_record1, Record* current_record2, int state) {
-	state = minM(state, current_record1->state);
-	int cat = (state >= cat_count) ? DISCRD : state;
-	fprintf(cat_file_r1[cat], "%s\n%s%s%d\n%s", current_record1->rname, current_record1->seq, current_record1->comment, state, current_record1->qual);
-	fprintf(cat_file_r2[cat], "%s\n%s%s%d\n%s", current_record2->rname, current_record2->seq, current_record2->comment, state, current_record2->qual);
+void FilterRead::write_read_category (Record* current_record1, Record* current_record2, const MatchedRead& mr) {
+	sprintf(comment, " %d %s %u %u %d %u %u %d %d %d %d", mr.type, mr.chr.c_str(), 
+														mr.spos_r1, mr.epos_r1, mr.mlen_r1, 
+														mr.spos_r2, mr.epos_r2, mr.mlen_r2, 
+														mr.tlen, mr.junc_num, mr.gm_compatible);
+
+	if (!last_round and mr.type != CONCRD) {
+		fprintf(temp_fq_r1, "%s%s\n%s%s%s", current_record1->rname, comment, current_record1->seq, current_record1->comment, current_record1->qual);
+		fprintf(temp_fq_r2, "%s%s\n%s%s%s", current_record2->rname, comment, current_record2->seq, current_record2->comment, current_record2->qual);
+	}
 }
 
-void print_mapping(char* rname, const MatchedRead& mr) {
+void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
-		fprintf(outputJuncFile, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\t%d\n", rname, mr.chr.c_str(), 
+		fprintf(cat_file_pam[mr.type], "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\t%d\n", rname, mr.chr.c_str(), 
 																			mr.spos_r1, mr.epos_r1, mr.mlen_r1, 
 																			mr.spos_r2, mr.epos_r2, mr.mlen_r2, 
 																			mr.tlen, mr.junc_num, mr.gm_compatible, mr.type);
+	}
+
+	else {
+		fprintf(cat_file_pam[mr.type], "%s\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\n", rname);
 	}
 }
 
@@ -564,9 +616,6 @@ bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& 
 	if ((!sm.right_ok) or (!lm.left_ok))
 		return false;
 
-
-	//fprintf(stderr, "In Check BSJ\n");
-
 	if (sm.exons_spos == NULL or lm.exons_spos == NULL) {
 		if ((sm.exons_spos != NULL and same_gene(sm, lm)) or (lm.exons_spos != NULL and same_gene(lm, sm))) {
 			mr.update(sm, lm, chr, shift, lm.end_pos - sm.start_pos + 1, 0, false, CHIBSJ);
@@ -747,14 +796,12 @@ void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chai
 	
 }
 
-int process_mates(const chain_list& forward_chain, const Record* record1, const chain_list& backward_chain, const Record* record2) {
+int process_mates(const chain_list& forward_chain, const Record* record1, const chain_list& backward_chain, const Record* record2, MatchedRead& mr) {
 	vector <MatePair> mate_pairs;
 
 	bool forward_paired[BESTCHAINLIM];
 	bool backward_paired[BESTCHAINLIM];
 	pair_chains(forward_chain, backward_chain, mate_pairs, forward_paired, backward_paired);
-
-	MatchedRead mr;
 
 	int min_ret1 = ORPHAN;
 	int min_ret2 = ORPHAN;
@@ -786,7 +833,7 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 				overlap_to_spos(r2_mm);
 			
 				if (concordant_explanation(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift)) {
-					print_mapping(record1->rname, mr);
+					//print_mapping(record1->rname, mr);
 					return CONCRD;
 				}
 			}
@@ -843,7 +890,7 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 	}
 
 	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
-		print_mapping(record1->rname, mr);
+		//print_mapping(record1->rname, mr);
 		return mr.type;
 	}
 
@@ -876,103 +923,14 @@ int process_mates(const chain_list& forward_chain, const Record* record1, const 
 			}
 		}
 	
-	int ret_val = (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
-			: ((min_ret1 == ORPHAN) or (min_ret2 == ORPHAN)) ? ORPHAN 
-			: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD) and (r1_genic and r2_genic)) ? CHIFUS
-			: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD)) ? OEA2
-			: CANDID;
+	int new_type = (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
+				: ((min_ret1 == ORPHAN) or (min_ret2 == ORPHAN)) ? ORPHAN 
+				: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD) and (r1_genic and r2_genic)) ? CHIFUS
+				: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD)) ? OEA2
+				: CANDID;
 
-	//if (ret_val < CANDID)
-	//	print_mapping(record1->rname, mr);
-
-	return ret_val;
-}
-
-int process_mates_old(const chain_list& forward_chain, const Record* record1, const chain_list& backward_chain, const Record* record2) {
-	int fc_size = forward_chain.best_chain_count;
-	int bc_size = backward_chain.best_chain_count;
-
-	int max_len = (fc_size >= bc_size) ? fc_size : bc_size;
-
-	vector <MatchedMate> forward_mml(fc_size);
-	vector <MatchedMate> backward_mml(bc_size);
-	
-	vector <MatchedMate> forward_mml_partial(fc_size);
-	vector <MatchedMate> backward_mml_partial(bc_size);
-
-	MatchedRead mr;
-
-	int ex_ret;
-	int fmml_count = 0;
-	int bmml_count = 0;
-	int fmmlp_count = 0;
-	int bmmlp_count = 0;
-	int min_ret1 = ORPHAN;
-	int min_ret2 = ORPHAN;
-
-	// concordant?
-	for (int i = 0; i < max_len; i++) {
-		if (i < fc_size) {
-			ex_ret = extend_chain(forward_chain.chains[i], record1->seq, record1->seq_len, forward_mml[fmml_count], 1);
-			if (ex_ret == CONCRD) {
-				if (are_concordant(backward_mml, bmml_count, forward_mml[fmml_count], mr)) {
-					print_mapping(record1->rname, mr);
-					return CONCRD;
-				}
-
-				fmml_count++;
-			}
-			else if (ex_ret == CANDID) {
-				forward_mml_partial[fmmlp_count] = forward_mml[fmml_count];
-				fmmlp_count++;
-			}
-			if (ex_ret < min_ret1)	min_ret1 = ex_ret;
-		}
-
-		if (i < bc_size) {
-			ex_ret = extend_chain(backward_chain.chains[i], record2->rcseq, record2->seq_len, backward_mml[bmml_count], -1); 
-			if (ex_ret == CONCRD) {
-				if (are_concordant(forward_mml, fmml_count, backward_mml[bmml_count], mr)) {
-					print_mapping(record1->rname, mr);
-					return CONCRD;
-				}
-				bmml_count++;
-			}
-			else if (ex_ret == CANDID) {
-				backward_mml_partial[bmmlp_count] = backward_mml[bmml_count];
-				bmmlp_count++;
-			}
-			if (ex_ret < min_ret2)	min_ret2 = ex_ret;
-		}
-	}
-
-	// chimeric?
-	for (int i = 0; i < fmmlp_count; i++) {
-		if (are_chimeric(backward_mml, bmml_count, forward_mml_partial[i], mr)) {
-			print_mapping(record1->rname, mr);
-			return mr.type;
-		}
-	}
-	for (int i = 0; i < bmmlp_count; i++) {
-		if (are_chimeric(forward_mml, fmml_count, backward_mml_partial[i], mr)) {
-			print_mapping(record1->rname, mr);
-			return mr.type;
-		}
-	}
-
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
-		print_mapping(record1->rname, mr);
-		return mr.type;
-	}
-	
-	int ret_val = (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
-			: ((min_ret1 == ORPHAN) or (min_ret2 == ORPHAN)) ? ORPHAN 
-			: CANDID;
-
-	//if (ret_val <= CANDID)
-	//	print_mapping(record1->rname, mr);
-
-	return ret_val;
+	mr.update_type(new_type);
+	return mr.type;
 }
 
 // pos is exclusive
