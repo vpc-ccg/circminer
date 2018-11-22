@@ -25,7 +25,9 @@ MYOBJ        = $(SRCDIR)/circRNA.o \
 			   $(SRCDIR)/chain.o \
 			   $(SRCDIR)/gene_annotation.o \
 			   $(SRCDIR)/align.o \
-			   $(SRCDIR)/common.o
+			   $(SRCDIR)/common.o \
+			   $(SRCDIR)/hash_table.o \
+			   $(SRCDIR)/process_circ.o
 
 #MRSOBJ       = $(MRSDIR)/*.o
 MRSOBJ       = $(MRSDIR)/[!base]*.o

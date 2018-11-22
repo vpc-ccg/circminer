@@ -40,7 +40,7 @@ public:
 	void write_read_category (Record* current_record, int is_chimeric);
 	void write_read_category (Record* current_record1, Record* current_record2, const MatchedRead& mr);
 
-	void print_mapping(char* rname, const MatchedRead& mr);
+	void print_mapping (char* rname, const MatchedRead& mr);
 
 };
 

@@ -21,6 +21,7 @@ using namespace std;
 #define maxM(A,B) (((A) > (B)) ? (A) : (B))
 #define minM(A,B) (((A) < (B)) ? (A) : (B))
 
+#define MAXLINESIZE 400
 #define FILE_NAME_LENGTH 1000
 #define LINELOG	100000
 #define ASCISIZE 128
@@ -120,6 +121,10 @@ struct GeneInfo {
 		if (start != gi.start)
 			return start < gi.start;
 		return end < gi.end;
+	}
+
+	uint32_t length() {
+		return end - start + 1;
 	}
 };
 
