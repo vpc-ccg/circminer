@@ -180,7 +180,8 @@ int main(int argc, char **argv) {
 				state = filter_read.process_read(current_record1, current_record2, kmer, fl, bl, fbc_r1, bbc_r1, fbc_r2, bbc_r2);
 				if (current_record1->mr.type == CONCRD or is_last)
 					filter_read.print_mapping(current_record1->rname, current_record1->mr);
-				filter_read.write_read_category(current_record1, current_record2, current_record1->mr);
+				if ((!is_last and current_record1->mr.type != CONCRD) or (is_last and current_record1->mr.type == CHIBSJ))
+					filter_read.write_read_category(current_record1, current_record2, current_record1->mr);
 			}
 			else {
 				state = filter_read.process_read(current_record1, kmer, fl, bl, fbc_r1, bbc_r1);

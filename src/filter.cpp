@@ -36,20 +36,20 @@ FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, 
 	this->last_round = last_round;
 	
 	// temp fastq file(s) to be read in next round
-	if (! last_round) {
-		char temp_fname [FILE_NAME_LENGTH];
-		if (is_pe) {
-			sprintf(temp_fname, "%s_%d_remain_R1.fastq", save_fname, round);
-			temp_fq_r1 = open_file(temp_fname, "w");
+	//if (! last_round) {
+	char temp_fname [FILE_NAME_LENGTH];
+	if (is_pe) {
+		sprintf(temp_fname, "%s_%d_remain_R1.fastq", save_fname, round);
+		temp_fq_r1 = open_file(temp_fname, "w");
 
-			sprintf(temp_fname, "%s_%d_remain_R2.fastq", save_fname, round);
-			temp_fq_r2 = open_file(temp_fname, "w");
-		}
-		else {
-			sprintf(temp_fname, "%s_%d_remain.fastq", save_fname, round);
-			temp_fq_r1 = open_file(temp_fname, "w");
-		}
+		sprintf(temp_fname, "%s_%d_remain_R2.fastq", save_fname, round);
+		temp_fq_r2 = open_file(temp_fname, "w");
 	}
+	else {
+		sprintf(temp_fname, "%s_%d_remain.fastq", save_fname, round);
+		temp_fq_r1 = open_file(temp_fname, "w");
+	}
+	//}
 
 	// updating fq file to be read in next round
 	if (is_pe) {
@@ -83,11 +83,11 @@ FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, 
 FilterRead::~FilterRead (void) {
 	close_file(cat_file_pam[0]);
 
-	if (! last_round) {
-		close_file(temp_fq_r1);
-		close_file(temp_fq_r2);
-	}
-	else {
+	//if (! last_round) {
+	close_file(temp_fq_r1);
+	close_file(temp_fq_r2);
+	//}
+	if (last_round) {
 		for (int i = 1; i < CATNUM; i++) {
 			close_file(cat_file_pam[i]);
 		}
@@ -252,10 +252,9 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 														mr.spos_r2, mr.epos_r2, mr.mlen_r2, 
 														mr.tlen, mr.junc_num, mr.gm_compatible);
 
-	if (!last_round and mr.type != CONCRD) {
-		fprintf(temp_fq_r1, "%s%s\n%s%s%s", current_record1->rname, comment, current_record1->seq, current_record1->comment, current_record1->qual);
-		fprintf(temp_fq_r2, "%s%s\n%s%s%s", current_record2->rname, comment, current_record2->seq, current_record2->comment, current_record2->qual);
-	}
+	fprintf(temp_fq_r1, "%s%s\n%s%s%s", current_record1->rname, comment, current_record1->seq, current_record1->comment, current_record1->qual);
+	fprintf(temp_fq_r2, "%s%s\n%s%s%s", current_record2->rname, comment, current_record2->seq, current_record2->comment, current_record2->qual);
+
 }
 
 void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
