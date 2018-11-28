@@ -242,8 +242,11 @@ struct UniqSegList {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 struct MatchedMate {
-	uint32_t 	start_pos;
-	uint32_t 	end_pos;
+	uint32_t 	spos;
+	uint32_t 	epos;
+	uint32_t 	qspos;
+	uint32_t 	qepos;
+
 	uint16_t	junc_num;
 	int			sclen_right;
 	int			sclen_left;
@@ -273,8 +276,11 @@ struct MatchedMate {
 					exon_ind_spos(-1), exon_ind_epos(-1), gene_info(NULL) { }
 
 	void operator = (const MatchedMate& mm) {
-		start_pos 	= mm.start_pos;
-		end_pos		= mm.end_pos;
+		spos 		= mm.spos;
+		epos		= mm.epos;
+		qspos 		= mm.qspos;
+		qepos		= mm.qepos;
+
 		junc_num	= mm.junc_num;
 		sclen_right	= mm.sclen_right;
 		sclen_left	= mm.sclen_left;
@@ -298,12 +304,24 @@ struct MatchedMate {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 struct MatchedRead {
+	// pos on reference
 	uint32_t	spos_r1;
 	uint32_t	spos_r2;
 	uint32_t	epos_r1;
 	uint32_t	epos_r2;
+	
+	// pos on read
+	uint32_t 	qspos_r1;
+	uint32_t 	qspos_r2;
+	uint32_t 	qepos_r1;
+	uint32_t 	qepos_r2;
+
 	int 		mlen_r1;
 	int 		mlen_r2;
+
+	bool		r1_forward;
+	bool		r2_forward;
+
 	int 		type;
 	int32_t 	tlen;
 	uint16_t 	junc_num;
@@ -312,7 +330,7 @@ struct MatchedRead {
 
 	MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), chr("-") { }
 	
-	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type) {
+	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first) {
 		if (type > this->type)
 			return false;
 
@@ -327,13 +345,48 @@ struct MatchedRead {
 		this->type = type;
 		this->chr = chr;
 
-		spos_r1 = r1.start_pos - shift;
-		epos_r1 = r1.end_pos - shift;
-		mlen_r1 = r1.matched_len;
+		if (r1_first) {
+			spos_r1 = r1.spos - shift;
+			epos_r1 = r1.epos - shift;
 
-		spos_r2 = r2.start_pos - shift;
-		epos_r2 = r2.end_pos - shift;
-		mlen_r2 = r2.matched_len;
+			qspos_r1 = r1.qspos;
+			qepos_r1 = r1.qepos;
+
+			mlen_r1 = r1.matched_len;
+
+
+			spos_r2 = r2.spos - shift;
+			epos_r2 = r2.epos - shift;
+
+			qspos_r2 = r2.qspos;
+			qepos_r2 = r2.qepos;
+
+			mlen_r2 = r2.matched_len;
+
+			r1_forward = r1.dir > 0;
+			r2_forward = r2.dir > 0;
+		}
+		else {
+			spos_r1 = r2.spos - shift;
+			epos_r1 = r2.epos - shift;
+
+			qspos_r1 = r2.qspos;
+			qepos_r1 = r2.qepos;
+
+			mlen_r1 = r2.matched_len;
+
+
+			spos_r2 = r1.spos - shift;
+			epos_r2 = r1.epos - shift;
+
+			qspos_r2 = r1.qspos;
+			qepos_r2 = r1.qepos;
+
+			mlen_r2 = r1.matched_len;
+
+			r1_forward = r2.dir > 0;
+			r2_forward = r1.dir > 0;
+		}
 
 		this->tlen = tlen;
 		this->junc_num = jun_between + r1.junc_num + r2.junc_num;

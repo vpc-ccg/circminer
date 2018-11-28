@@ -127,9 +127,9 @@ void FASTQParser::extract_map_info(char* str) {
 }
 
 void FASTQParser::fill_map_info(int cnt) {
-	//assert(cnt == 1 or cnt == 12);
+	//assert(cnt == 1 or cnt == 18);
 	
-	if (cnt != 12) {
+	if (cnt != 18) {
 		current_record->mr.type = NOPROC_NOMATCH;
 		current_record->mr.tlen = INF;
 		current_record->mr.junc_num = 0;
@@ -140,14 +140,23 @@ void FASTQParser::fill_map_info(int cnt) {
 		int base = 10;
 		current_record->mr.type 	= atoi(tokens[1]);
 		current_record->mr.chr 		= tokens[2];
+		
 		current_record->mr.spos_r1 	= strtoul(tokens[3], &stop_string, base);
 		current_record->mr.epos_r1 	= strtoul(tokens[4], &stop_string, base);
 		current_record->mr.mlen_r1 	= atoi(tokens[5]);
-		current_record->mr.spos_r2 	= strtoul(tokens[6], &stop_string, base);
-		current_record->mr.epos_r2 	= strtoul(tokens[7], &stop_string, base);
-		current_record->mr.mlen_r2 	= atoi(tokens[8]);
-		current_record->mr.tlen 	= atoi(tokens[9]);
-		current_record->mr.junc_num = strtoul(tokens[10], &stop_string, base);
-		current_record->mr.gm_compatible = (tokens[11][0] == '1');
+		current_record->mr.qspos_r1 = strtoul(tokens[6], &stop_string, base);
+		current_record->mr.qepos_r1 = strtoul(tokens[7], &stop_string, base);
+		current_record->mr.r1_forward = (tokens[8][0] == '+');
+
+		current_record->mr.spos_r2 	= strtoul(tokens[9], &stop_string, base);
+		current_record->mr.epos_r2 	= strtoul(tokens[10], &stop_string, base);
+		current_record->mr.mlen_r2 	= atoi(tokens[11]);
+		current_record->mr.qspos_r2 = strtoul(tokens[12], &stop_string, base);
+		current_record->mr.qepos_r2 = strtoul(tokens[13], &stop_string, base);
+		current_record->mr.r2_forward = (tokens[14][0] == '+');
+		
+		current_record->mr.tlen 	= atoi(tokens[15]);
+		current_record->mr.junc_num = strtoul(tokens[16], &stop_string, base);
+		current_record->mr.gm_compatible = (tokens[17][0] == '1');
 	}
 }

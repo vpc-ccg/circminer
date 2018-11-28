@@ -167,7 +167,6 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 	int valid_kmer = 0;
 	int valid_kmer_ind = 0;
 	uint32_t match_len = kmer_size;
-	int32_t end_pos;
 
 	GIMatchedKmer* cur = mk_res;
 
