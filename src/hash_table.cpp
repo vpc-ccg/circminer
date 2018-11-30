@@ -5,7 +5,7 @@
 
 RegionalHashTable::RegionalHashTable (int ws) {
 	window_size = ws;
-	size = 1 << ws;
+	size = 1 << (2 * ws);	// HT size = 4^ws
 
 	table = (GIList*) malloc(size * sizeof(GIList));
 	memset(table, 0, size * sizeof(GIList));
@@ -53,10 +53,18 @@ void RegionalHashTable::create_table (char* seq, uint32_t start, int len) {
 	for (int i = 0; i <= len - window_size; i++) {
 		add_loc(hash_val(seq + i), loc++);
 	}
+
+	for (int i = 0; i < size; i++) {
+		fprintf(stderr, "table[%d].cnt = %d\n", i, table[i].cnt);
+	}
 }
 
-GeneralIndex* RegionalHashTable::find_hash (int hv) {
-	return table[hv].locs;
+GIList* RegionalHashTable::find_hash (int hv) {
+	if (hv < 0 or hv >= size)
+		return NULL;
+
+	fprintf(stdout, "Hash val: %d \t CNT: %d\n", hv, table[hv].cnt);
+	return &table[hv];
 }
 
 int RegionalHashTable::hash_val (char* seq) {

@@ -26,7 +26,7 @@ public:
 	int hash_val(char* seq);
 	void add_loc (int hv, uint32_t loc);
 
-	GeneralIndex* find_hash (int hv);
+	GIList* find_hash (int hv);
 
 };
 
