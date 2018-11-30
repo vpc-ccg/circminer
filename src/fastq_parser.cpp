@@ -2,11 +2,11 @@
 #include <cstring>
 #include "fastq_parser.h"
 
-FASTQParser::FASTQParser (bool read_state) : read_state(read_state) { 
+FASTQParser::FASTQParser () { 
 	input = NULL; 
 }
 
-FASTQParser::FASTQParser (char* filename, bool read_state) : read_state(read_state) {
+FASTQParser::FASTQParser (char* filename) {
 	init(filename);
 }
 
@@ -127,9 +127,9 @@ void FASTQParser::extract_map_info(char* str) {
 }
 
 void FASTQParser::fill_map_info(int cnt) {
-	//assert(cnt == 1 or cnt == 18);
+	//assert(cnt == 1 or cnt == FQCOMMENTCNT);
 	
-	if (cnt != 18) {
+	if (cnt != FQCOMMENTCNT) {
 		current_record->mr.type = NOPROC_NOMATCH;
 		current_record->mr.tlen = INF;
 		current_record->mr.junc_num = 0;

@@ -8,6 +8,8 @@
 
 #include "common.h"
 
+#define FQCOMMENTCNT 18
+
 typedef struct {
 	char *rname;
 	char *seq;
@@ -29,15 +31,14 @@ private:
 	Record* current_record;
 	size_t max_line_size;
 	int size;
-	bool read_state;
 
-	char tokens[12][100];
+	char tokens[FQCOMMENTCNT][100];
 
 	bool has_next (void);
 
 public:
-	FASTQParser (bool read_state);
-	FASTQParser (char* filename, bool read_state);
+	FASTQParser (void);
+	FASTQParser (char* filename);
 	~FASTQParser (void);
 
 	void init (char* filename);

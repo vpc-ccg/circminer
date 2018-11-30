@@ -6,23 +6,19 @@
 
 class ProcessCirc {
 private:
-	FILE* circ_file;
+	char fq_file1[FILE_NAME_LENGTH];
+	char fq_file2[FILE_NAME_LENGTH];
 
 	int window_size;
-	size_t max_line_size;
-	
-	char* line;
-	char tokens[12][100];
-
 	MatchedRead mr;
 
 public:
-	ProcessCirc (char* fname, int ws);
+	ProcessCirc (int last_round_num, int ws);
 	~ProcessCirc (void);
 
-	bool read_next (void);
-	void tokenize (void);
 	void do_process (void);
+
+	int get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos);
 };
 
 #endif

@@ -10,6 +10,7 @@
 #include "filter.h"
 #include "gene_annotation.h"
 #include "align.h"
+#include "process_circ.h"
 
 extern "C" {
 #include "mrsfast/Common.h"
@@ -24,15 +25,29 @@ using namespace std;
 GTFParser gtf_parser;
 Alignment alignment;
 
+int mapping(int& last_round_num);
+void circ_detect(int last_round_num);
+
 int main(int argc, char **argv) {
-	time_t pre_time, curr_time;
-	double diff_time;
-	time(&pre_time);
-	
 	int exit_c = parse_command( argc, argv );
 	if (exit_c == 1)
 		return 0;
 
+	int last_round_num = 1;
+	// int map_ret = mapping(last_round_num);
+	// if (map_ret == 1)
+	// 	return 1;
+
+	circ_detect(last_round_num);
+
+	return 0;
+}
+
+int mapping(int& last_round_num) {
+	time_t pre_time, curr_time;
+	double diff_time;
+	time(&pre_time);
+	
 	char* ref_file = referenceFilename;
 	char index_file [FILE_NAME_LENGTH];
 	strcpy(index_file, ref_file);
@@ -141,11 +156,12 @@ int main(int argc, char **argv) {
 		fprintf(stdout, "Contig: %s\n", getRefGenomeName());
 		contigName = getRefGenomeName();
 		int contigNum = atoi(contigName);
+		last_round_num = contigNum;
 
-		FASTQParser fq_parser1(fq_file1, !is_first);
+		FASTQParser fq_parser1(fq_file1);
 		Record* current_record1;
 
-		FASTQParser fq_parser2(!is_first);
+		FASTQParser fq_parser2;
 		Record* current_record2;
 		if (is_pe) {
 			fq_parser2.init(fq_file2);
@@ -225,6 +241,10 @@ int main(int argc, char **argv) {
 	free(bbc_r1.chains);
 	free(fbc_r2.chains);
 	free(bbc_r2.chains);
+}
 
-	return 0;
+void circ_detect(int last_round_num) {
+	int ws = 8;
+	ProcessCirc process_circ(last_round_num, ws);
+	process_circ.do_process();
 }
