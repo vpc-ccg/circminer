@@ -160,7 +160,8 @@ bool reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 // # valid kmers
 // is valid if: #fragments > 0 and < FRAGLIM
 int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int skip, int ll_step, GIMatchedKmer* mk_res, int& em_count) {
-	int i, occ;
+	int i, j;
+	int occ;
 	int dir;
 	int sum = 0;
 	int invalid_kmer = 0;
@@ -170,8 +171,16 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 
 	GIMatchedKmer* cur = mk_res;
 
+	// initialize
+	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer)) - 1;
+	for (j = 0; j < max_seg_cnt; j++) {
+		(cur+j)->frag_count = 0;
+		(cur+j)->frags = NULL;
+		(cur+j)->qpos = skip*j;
+	}
+
 	em_count = 0;
-	int j = -1 * ll_step;
+	j = -1 * ll_step;
 	for (i = shift; i < rseq_len; i += skip) {
 		j += ll_step;
 
@@ -249,11 +258,11 @@ int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* sta
 	return valid_nonov_kmer + valid_ov_kmer;
 }
 
-void pac2char(uint32_t start, int len, char* str) {
+bool pac2char(uint32_t start, int len, char* str) {
 	//fprintf(stderr, "extract pos: %d-%d\n", start, start+len-1);
 	int ref_len = getRefGenLength();
-	if (start + len - 1 > ref_len)
-		return;		// do not write ref seq if it goes out of the contig border
+	if (((int) start < 0) or (start + len - 1 > ref_len))
+		return false;		// do not write ref seq if it goes out of the contig border
 
 	char lookup[8] = { 'A', 'C', 'G', 'T', 'N', 'N', 'N', 'N' };
 	
@@ -280,7 +289,8 @@ void pac2char(uint32_t start, int len, char* str) {
 			crdata <<= 3;
 		}
 	}
-	//str[i] = '\0';
+	str[i] = '\0';
+	return true;
 }
 
 void print_hits(GIMatchedKmer* frag_l, int cnt) {

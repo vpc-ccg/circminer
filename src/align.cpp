@@ -150,35 +150,15 @@ int Alignment::global_alignment(char* s, int n, char* t, int m, int gap_pen, int
 	return dp[n][m];
 }
 
-void Alignment::global_banded_alignment(char* s, int n, char* t, int m) {
-	int i, j;
-	int penalty;
-
-	for (i = 0; i <= INDELTH; i++)
+int Alignment::global_alignment(char* s, int n, char* t, int m) {
+	for (int i = 0; i <= n; i++)
 		dp[i][0] = i;
 
-	for (j = 0; j <= INDELTH; j++)
+	for (int j = 0; j <= m; j++)
 		dp[0][j] = j;
 
-	for (j = INDELTH + 1; j <= m; j++) {
-		i = j - INDELTH;
-		dp[i][j] = dp[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
-	}
-	
-	for (j = 1; j <= m; j++) {
-		i = j + INDELTH;
-		dp[i][j] = dp[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
-	}
-
-	for (j = 1; j < INDELTH; j++) {
-		for (i = 1; i < j + INDELTH; i++) {
-			dp[i][j] = dp[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
-			dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
-		}
-	}
-
-	for (j = INDELTH; j <= m; j++) {
-		for (i = j - INDELTH + 1; i < j + INDELTH; i++) {
+	for (int i = 1; i <= n; i++) {
+		for (int j = 1; j <= m; j++) {
 			dp[i][j] = dp[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
 			dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
 		}
@@ -191,9 +171,88 @@ void Alignment::global_banded_alignment(char* s, int n, char* t, int m) {
 	//	fprintf(stderr, "\n");
 	//}
 
+	return dp[n][m];
+}
+
+int Alignment::global_alignment_reverse(char* s, int n, char* t, int m) {
+	for (int i = 0; i <= n; i++)
+		dp[i][m] = n - i;
+
+	for (int j = 0; j <= m; j++)
+		dp[n][j] = m - j;
+
+	for (int j = m - 1; j >= 0; j--) {
+		for (int i = n - 1; i >= 0; i--) {
+			dp[i][j] = dp[i+1][j+1] + diff_ch[s[i]][t[j]];
+			dp[i][j] = minM(minM(dp[i][j], dp[i+1][j] + 1), dp[i][j+1] + 1);
+		}
+	}
+
+	//fprintf(stderr, "DP\n");
+	//for (int j = 0; j <= m; j++) {
+	//	for (int i = 0; i <= n; i++)
+	//		fprintf(stderr, "%2d ", dp[i][j]);
+	//	fprintf(stderr, "\n");
+	//}
+
+	return dp[n][m];
+}
+
+
+void Alignment::global_banded_alignment(char* s, int n, char* t, int m) {
+	if (n <= INDELTH or m <= INDELTH) {
+		global_alignment(s, n, t, m);
+		return;
+	}
+
+	int i, j;
+	int penalty;
+
+	for (i = 0; i <= INDELTH; i++)
+		dp[i][0] = i;
+
+	for (j = 0; j <= INDELTH; j++)
+		dp[0][j] = j;
+
+	for (j = INDELTH + 1; j <= minM(m, n + INDELTH); j++) {
+		i = j - INDELTH;
+		dp[i][j] = dp[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
+	}
+	
+	for (j = 1; j <= minM(m, n - INDELTH); j++) {
+		i = j + INDELTH;
+		dp[i][j] = dp[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
+	}
+
+	for (j = 1; j < INDELTH; j++) {
+		for (i = 1; i < minM(j + INDELTH, n); i++) {
+			dp[i][j] = dp[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
+			dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+		}
+	}
+
+	for (j = INDELTH; j <= m; j++) {
+		for (i = j - INDELTH + 1; i < minM(j + INDELTH, n + 1); i++) {
+			dp[i][j] = dp[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
+			dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+		}
+	}
+
+	// fprintf(stderr, "DP\n");
+	// for (int j = 0; j <= m; j++) {
+	// 	for (int i = 0; i <= n; i++)
+	// 		fprintf(stderr, "%2d ", dp[i][j]);
+	// 	fprintf(stderr, "\n");
+	// }
+
 }
 
 void Alignment::global_banded_alignment_reverse(char* s, int n, char* t, int m) {
+	if (n <= INDELTH or m <= INDELTH) {
+		global_alignment_reverse(s, n, t, m);
+		return;
+	}
+
 	int i, j;
 	int penalty;
 
@@ -204,12 +263,12 @@ void Alignment::global_banded_alignment_reverse(char* s, int n, char* t, int m) 
 		dp[n][j] = m - j;
 
 	int _2indelth = 2 * INDELTH;
-	for (j = m - INDELTH - 1; j >= 0; j--) {
+	for (j = minM(m - INDELTH - 1, n - _2indelth - 1); j >= 0; j--) {
 		i = j + _2indelth;
 		dp[i][j] = dp[i+1][j+1] + diff_ch[s[i]][t[j]];
 	}
 	
-	for (j = m - 1; j >= 0; j--) {
+	for (j = minM(m, n) - 1; j >= 0; j--) {
 		i = j;
 		dp[i][j] = dp[i+1][j+1] + diff_ch[s[i]][t[j]];
 	}
@@ -222,38 +281,38 @@ void Alignment::global_banded_alignment_reverse(char* s, int n, char* t, int m) 
 	}
 
 	for (j = m - INDELTH; j >= 0; j--) {
-		for (i = j + _2indelth - 1; i > j; i--) {
+		for (i = minM(j + _2indelth, n) - 1; i > j; i--) {
 			dp[i][j] = dp[i+1][j+1] + diff_ch[s[i]][t[j]];
 			dp[i][j] = minM(minM(dp[i][j], dp[i+1][j] + 1), dp[i][j+1] + 1);
 		}
 	}
 
-	//fprintf(stderr, "DP\n");
-	//for (int j = 0; j <= m; j++) {
-	//	for (int i = 0; i <= n; i++)
-	//		fprintf(stderr, "%2d ", dp[i][j]);
-	//	fprintf(stderr, "\n");
-	//}
+	// fprintf(stderr, "DP\n");
+	// for (int j = 0; j <= m; j++) {
+	// 	for (int i = 0; i <= n; i++)
+	// 		fprintf(stderr, "%2d ", dp[i][j]);
+	// 	fprintf(stderr, "\n");
+	// }
 
 }
 
-void Alignment::hamming_distance_bottom(char* s, int n, char* t, int m) {
-	for (int i = n - 2*INDELTH; i <= n; i++)
+void Alignment::hamming_distance_bottom(char* s, int n, char* t, int m, int max_sclen) {
+	for (int i = maxM(0, n - 2*INDELTH); i <= n; i++)
 		hamm[i][m] = 0;
 
-	for (int j = m - 1; j >= m - SOFTCLIPTH; j--) {
-		for (int i = j - INDELTH; i <= j + INDELTH; i++) {
+	for (int j = m - 1; j >= max_sclen; j--) {
+		for (int i = maxM(0, j - INDELTH); i <= minM(j + INDELTH, n); i++) {
 			hamm[i][j] = hamm[i+1][j+1] + diff_ch[s[i]][t[j]];
 		}
 	}
 }
 
-void Alignment::hamming_distance_top(char* s, int n, char* t, int m) {
-	for (int i = 0; i <= 2*INDELTH; i++)
+void Alignment::hamming_distance_top(char* s, int n, char* t, int m, int max_sclen) {
+	for (int i = 0; i <= minM(2*INDELTH, n); i++)
 		hamm[i][0] = 0;
 
-	for (int j = 1; j <= SOFTCLIPTH; j++) {
-		for (int i = j; i <= j + 2*INDELTH; i++) {
+	for (int j = 1; j <= max_sclen; j++) {
+		for (int i = j; i <= minM(j + 2*INDELTH, n); i++) {
 			hamm[i][j] = hamm[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
 		}
 	}
@@ -280,18 +339,18 @@ void Alignment::hamming_distance(char* s, int n, char* t, int m) {
 	//}
 }
 
-int Alignment::local_alignment_right(char* s, int n, char* t, int m, int& sc_len, int& indel) {
-	int max_sclen = SOFTCLIPTH;
+int Alignment::local_alignment_right_sc(char* s, int n, char* t, int m, int& sc_len, int& indel) {
+	int max_sclen = minM(SOFTCLIPTH, m);
 	int max_indel = INDELTH;
 	int max_edit  = EDTH;
 
 	global_banded_alignment(s, n, t, m);
-	hamming_distance_bottom(s, n, t, m);
+	hamming_distance_bottom(s, n, t, m, max_sclen);
 
-	AlignCandid best(max_edit + 1, max_sclen + 1, max_indel + 1);
+	AlignCandid best(max_edit + 1, SOFTCLIPTH + 1, max_indel + 1);
 
 	for (int j = m; j >= m - max_sclen; j--) {
-		for (int i = j - max_indel; i <= j + max_indel; i++) {
+		for (int i = maxM(0, j - max_indel); i <= n; i++) {
 			if (dp[i][j] <= max_edit and (2 * hamm[i][j]) >= (m - j) and (!diff_ch[s[i-1]][t[j-1]]))
 				best = minM(best, AlignCandid(dp[i][j], m - j, j - i));
 		}
@@ -304,20 +363,41 @@ int Alignment::local_alignment_right(char* s, int n, char* t, int m, int& sc_len
 	return best.ed;
 }
 
-int Alignment::local_alignment_left(char* s, int n, char* t, int m, int& sc_len, int& indel) {
+int Alignment::local_alignment_right(char* s, int n, char* t, int m, int& indel) {
 	int max_sclen = SOFTCLIPTH;
 	int max_indel = INDELTH;
 	int max_edit  = EDTH;
 
-	global_banded_alignment_reverse(s, n, t, m);
-	hamming_distance_top(s, n, t, m);
+	global_banded_alignment(s, n, t, m);
 
 	AlignCandid best(max_edit + 1, max_sclen + 1, max_indel + 1);
 
+	for (int i = maxM(0, m - max_indel); i <= n; i++) {
+		if (dp[i][m] <= max_edit)
+			best = minM(best, AlignCandid(dp[i][m], 0, m - i));
+	}
+
+	//fprintf(stderr, "Right: Best: ed = %d\tindel = %d\n", best.ed, best.indel);
+
+	indel = best.indel;
+	return best.ed;
+}
+
+int Alignment::local_alignment_left_sc(char* s, int n, char* t, int m, int& sc_len, int& indel) {
+	int max_sclen = minM(SOFTCLIPTH, m);
+	int max_del   = INDELTH;
+	int max_edit  = EDTH;
+
+	global_banded_alignment_reverse(s, n, t, m);
+	hamming_distance_top(s, n, t, m, max_sclen);
+	
+	AlignCandid best(max_edit + 1, SOFTCLIPTH + 1, max_del + 1);
+
+	int max_ins = n - m;
 	for (int j = 0; j <= max_sclen; j++) {
-		for (int i = j; i <= j + 2*max_indel; i++) {
+		for (int i = j; i <= minM(j + max_del + max_ins, n); i++) {
 			if (dp[i][j] <= max_edit and (2 * hamm[i][j]) >= j and (!diff_ch[s[i]][t[j]]))
-				best = minM(best, AlignCandid(dp[i][j], j, i - j - max_indel));
+				best = minM(best, AlignCandid(dp[i][j], j, i - j - max_ins));
 		}
 	}
 
@@ -328,15 +408,36 @@ int Alignment::local_alignment_left(char* s, int n, char* t, int m, int& sc_len,
 	return best.ed;
 }
 
-int Alignment::local_alignment_left2(char* s, int n, char* t, int m, int& sc_len, int& indel) {
-	char sp[n];
-	char tp[m];
-	for (int i = 0; i < n; i++)
-		sp[i] = s[n-1-i];
-	
-	for (int j = 0; j < m; j++)
-		tp[j] = t[m-1-j];
+int Alignment::local_alignment_left(char* s, int n, char* t, int m, int& indel) {
+	int max_sclen = SOFTCLIPTH;
+	int max_del   = INDELTH;
+	int max_edit  = EDTH;
 
-	return local_alignment_right(sp, n, tp, m, sc_len, indel);
+	global_banded_alignment_reverse(s, n, t, m);
+	
+	AlignCandid best(max_edit + 1, max_sclen + 1, max_del + 1);
+
+	int max_ins = n - m;
+	for (int i = 0; i <= minM(max_del + max_ins, n); i++) {
+		if (dp[i][0] <= max_edit)
+			best = minM(best, AlignCandid(dp[i][0], 0, i - max_ins));
+	}
+
+	//fprintf(stderr, "Left: Best: ed = %d\tindel = %d\n", best.ed, best.indel);
+
+	indel = best.indel;
+	return best.ed;
 }
+
+// int Alignment::local_alignment_left2(char* s, int n, char* t, int m, int& sc_len, int& indel) {
+// 	char sp[n];
+// 	char tp[m];
+// 	for (int i = 0; i < n; i++)
+// 		sp[i] = s[n-1-i];
+	
+// 	for (int j = 0; j < m; j++)
+// 		tp[j] = t[m-1-j];
+
+// 	return local_alignment_right(sp, n, tp, m, sc_len, indel);
+// }
 

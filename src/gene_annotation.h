@@ -21,7 +21,15 @@ typedef struct {
 	uint32_t end;
 } ExonSeg;
 
-typedef struct GTFRecord {
+typedef struct {
+	uint32_t start;
+	uint32_t end;
+	uint32_t next_start;
+	uint32_t prev_end;
+	int exon_num_int;
+
+	bool forward_strand;
+
 	string chr;
 	string source;
 	string type;
@@ -29,17 +37,6 @@ typedef struct GTFRecord {
 	string trans_id;
 	string exon_num;
 	string gene_name;
-	uint32_t start;
-	uint32_t end;
-	int exon_num_int;
-	bool forward_strand;
-
-	uint32_t next_start;
-	uint32_t prev_end;
-
-	bool operator < (const GTFRecord& r) const {
-		return (chr == r.chr) ? (start < r.start) : (chr < r.chr);
-	}
 } GTFRecord;
 
 typedef struct {
@@ -56,8 +53,6 @@ private:
 	int len;
 	size_t max_line_size;
 
-	GTFRecord* current_record;
-	
 	map <string, map <UniqSeg, string> > merged_exons; 
 	map <string, map <GeneInfo, string> > merged_genes; 
 
@@ -84,7 +79,7 @@ public:
 	bool read_next (void);
 
 	void tokenize(char* line, int len, const string& delim, vector<string>& gtf_fields);
-	bool parse_gtf_rec (char* line, int len);
+	bool parse_gtf_rec (char* line, int len, GTFRecord* cr);
 	bool load_gtf (void);
 
 	int binary_search(const vector <ExonSeg>& seg, int beg, int end, bool on_start, uint32_t target);

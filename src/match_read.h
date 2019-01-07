@@ -17,7 +17,7 @@ void get_mate_name(char* fq1, char* fq2);
 
 int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* start);
 
-void pac2char(uint32_t start, int len, char* str);
+bool pac2char(uint32_t start, int len, char* str);
 
 void get_reference_chunk_left(uint32_t pos, int len, char* res_str);
 void get_reference_chunk_right(uint32_t pos, int len, char* res_str);

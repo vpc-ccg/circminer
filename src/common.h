@@ -23,6 +23,7 @@ using namespace std;
 
 #define MAXLINESIZE 400
 #define FILE_NAME_LENGTH 1000
+//#define LINELOG	50000
 #define LINELOG	100000
 #define ASCISIZE 128
 
@@ -328,7 +329,7 @@ struct MatchedRead {
 	bool		gm_compatible;
 	string		chr;
 
-	MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), chr("-") { }
+	MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), chr("-"), r1_forward(true), r2_forward(true) { }
 	
 	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first) {
 		if (type > this->type)

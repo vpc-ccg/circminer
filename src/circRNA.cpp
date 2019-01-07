@@ -34,11 +34,11 @@ int main(int argc, char **argv) {
 		return 0;
 
 	int last_round_num = 1;
-	// int map_ret = mapping(last_round_num);
-	// if (map_ret == 1)
-	// 	return 1;
+	int map_ret = mapping(last_round_num);
+	if (map_ret == 1)
+		return 1;
 
-	circ_detect(last_round_num);
+	//circ_detect(last_round_num);
 
 	return 0;
 }
@@ -140,6 +140,9 @@ int mapping(int& last_round_num) {
 	int cat_count;
 	bool is_first = true;
 	bool is_last = false;
+	Record* current_record1;
+	Record* current_record2;
+
 	do {
 		fprintf(stdout, "Started loading index...\n");
 	
@@ -159,10 +162,8 @@ int mapping(int& last_round_num) {
 		last_round_num = contigNum;
 
 		FASTQParser fq_parser1(fq_file1);
-		Record* current_record1;
 
 		FASTQParser fq_parser2;
-		Record* current_record2;
 		if (is_pe) {
 			fq_parser2.init(fq_file2);
 		}
@@ -171,13 +172,13 @@ int mapping(int& last_round_num) {
 		FilterRead filter_read(outputFilename, is_pe, contigNum, is_first, is_last, fq_file1, fq_file2);
 		is_first = false;
 
-		fprintf(stdout, "Started reading FASTQ file...\n");
 		int line = 0;
 		lookup_cnt = 0;
 
 		while ( (current_record1 = fq_parser1.get_next()) != NULL ) { // go line by line on fastq file
 			if (is_pe)
 				current_record2 = fq_parser2.get_next();
+
 			if (current_record1 == NULL)	// no new line
 				break;
 
@@ -186,18 +187,24 @@ int mapping(int& last_round_num) {
 				time(&curr_time);
 				diff_time = difftime(curr_time, pre_time);
 				pre_time = curr_time;
-				fprintf(stdout, "[P] %d reads in %.2f sec\t Look ups: %u\n", line, diff_time, lookup_cnt);
-				fflush(stdout);
+
+				//printf("[P] --- reads\n");
+
+				printf("[P] %d reads in %.2f sec\t Look ups: %u\n", line, diff_time, lookup_cnt);
+				//fprintf(stdout, "[P] %d reads in %.2f sec\t Look ups: %u\n", line, diff_time, lookup_cnt);
+				//fprintf(stderr, "#### Before flush\n");
+				//fflush(stdout);
+				//fprintf(stderr, "#### After flush\n");
 				lookup_cnt = 0;
 			}
 
 			int state;
 			if (is_pe) {
 				state = filter_read.process_read(current_record1, current_record2, kmer, fl, bl, fbc_r1, bbc_r1, fbc_r2, bbc_r2);
-				if (current_record1->mr.type == CONCRD or is_last)
-					filter_read.print_mapping(current_record1->rname, current_record1->mr);
-				if ((!is_last and current_record1->mr.type != CONCRD) or (is_last and current_record1->mr.type == CHIBSJ))
-					filter_read.write_read_category(current_record1, current_record2, current_record1->mr);
+				if (current_record1->mr->type == CONCRD or is_last)
+					filter_read.print_mapping(current_record1->rname, *(current_record1->mr));
+				if ((!is_last and current_record1->mr->type != CONCRD) or (is_last and current_record1->mr->type == CHIBSJ))
+					filter_read.write_read_category(current_record1, current_record2, *(current_record1->mr));
 			}
 			else {
 				state = filter_read.process_read(current_record1, kmer, fl, bl, fbc_r1, bbc_r1);

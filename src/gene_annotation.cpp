@@ -23,7 +23,6 @@ GTFParser::GTFParser(char* filename, const ContigLen* contig_len, int contig_cou
 GTFParser::~GTFParser(void) {
 	close_file(input);
 	free(line);
-	delete current_record;
 }
 
 void GTFParser::init(char* filename, const ContigLen* contig_len, int contig_count) {
@@ -32,7 +31,6 @@ void GTFParser::init(char* filename, const ContigLen* contig_len, int contig_cou
 	max_line_size = MAXLINESIZE;
 	line = (char*) malloc(max_line_size);
 
-	current_record = new GTFRecord;
 	set_contig_shift(contig_len, contig_count);
 
 	level["gene"] = 1;
@@ -91,7 +89,7 @@ void GTFParser::tokenize(char* line, int len, const string& delim, vector<string
 }
 
 // return true if valid
-bool GTFParser::parse_gtf_rec(char* line, int len) {
+bool GTFParser::parse_gtf_rec(char* line, int len, GTFRecord* cr) {
 	vector<string> gtf_fields (10);
 	vector<string> gtf_attr (MAXGTFATTR);
 	string major_delim = "\t";
@@ -104,24 +102,24 @@ bool GTFParser::parse_gtf_rec(char* line, int len) {
 		strcpy(attr_str, gtf_fields[8].c_str());
 		tokenize(attr_str, gtf_fields[8].length(), minor_delim, gtf_attr);
 
-		current_record->chr = gtf_fields[0];
-		current_record->source = gtf_fields[1];
-		current_record->type = gtf_fields[2];
-		current_record->start = atoi(gtf_fields[3].c_str());
-		current_record->end = atoi(gtf_fields[4].c_str());
-		current_record->forward_strand = (gtf_fields[6] == "+");
+		cr->chr = gtf_fields[0];
+		cr->source = gtf_fields[1];
+		cr->type = gtf_fields[2];
+		cr->start = atoi(gtf_fields[3].c_str());
+		cr->end = atoi(gtf_fields[4].c_str());
+		cr->forward_strand = (gtf_fields[6] == "+");
 
 		for (int i = 0; i < gtf_attr.size(); i += 2) {
 			if (gtf_attr[i] == "gene_id")
-				current_record->gene_id = gtf_attr[i+1];
+				cr->gene_id = gtf_attr[i+1];
 			else if (gtf_attr[i] == "transcript_id")
-				current_record->trans_id = gtf_attr[i+1];
+				cr->trans_id = gtf_attr[i+1];
 			else if (gtf_attr[i] == "exon_number") {
-				current_record->exon_num_int = atoi(gtf_attr[i+1].c_str());
-				current_record->exon_num = gtf_attr[i+1];
+				cr->exon_num_int = atoi(gtf_attr[i+1].c_str());
+				cr->exon_num = gtf_attr[i+1];
 			}
 			else if (gtf_attr[i] == "gene_name")
-				current_record->gene_name = gtf_attr[i+1];
+				cr->gene_name = gtf_attr[i+1];
 		}
 		return true;
 	}
@@ -131,16 +129,22 @@ bool GTFParser::parse_gtf_rec(char* line, int len) {
 }
 
 void copy_seg(GTFRecord* a, GTFRecord* b) {
-	a->chr = b->chr;
-	a->type = b->type;
 	a->start = b->start;
 	a->end = b->end;
-	a->gene_id = b->gene_id;
 	a->next_start = b->next_start;
 	a->prev_end = b->prev_end;
+
+	a->exon_num_int = b->exon_num_int;
+	
+	a->forward_strand = b->forward_strand;
+
+	a->chr = b->chr;
+	a->source = b->source;
+	a->type = b->type;
+	a->gene_id = b->gene_id;
 	a->trans_id = b->trans_id;
 	a->exon_num = b->exon_num;
-	a->forward_strand = b->forward_strand;
+	a->gene_name = b->gene_name;
 }
 
 void GTFParser::chrloc2conloc(string& chr, uint32_t& start, uint32_t& end) {
@@ -166,7 +170,10 @@ bool GTFParser::load_gtf(void) {
 
 	bool found;
 	UniqSeg seg;
+
+	GTFRecord* current_record = new GTFRecord;
 	GTFRecord* prev_record = new GTFRecord;
+	
 	prev_record->type = "";
 
 	while (has_next()) {
@@ -174,7 +181,7 @@ bool GTFParser::load_gtf(void) {
 			break;
 		}
  
-		found = parse_gtf_rec(line, len);
+		found = parse_gtf_rec(line, len, current_record);
 		if (!found) continue;
 
 		chrloc2conloc(current_record->chr, current_record->start, current_record->end);
@@ -329,6 +336,7 @@ bool GTFParser::load_gtf(void) {
 	}
 
 	delete prev_record;
+	delete current_record;
 	
 	return true;
 }

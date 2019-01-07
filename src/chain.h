@@ -16,6 +16,6 @@ typedef struct {
 	uint32_t count;
 } chain_cell_list;
 
-void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_list& best_chain);
+void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_list& best_chain);
 
 #endif	//__CHAIN_H__

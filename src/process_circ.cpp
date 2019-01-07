@@ -99,7 +99,7 @@ void ProcessCirc::do_process (void) {
 		line++;
 
 		fprintf(stdout, "Line: %d\n", line);
-		MatchedRead mr = current_record1->mr;
+		MatchedRead mr = *(current_record1->mr);
 		fprintf(stdout, "%s\n%s\n", current_record1->seq, current_record2->seq);
 		fprintf(stdout, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\n", 
 										current_record1->rname, mr.chr.c_str(), 

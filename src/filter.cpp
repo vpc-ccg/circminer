@@ -8,6 +8,7 @@
 #include "align.h"
 #include "common.h"
 #include "gene_annotation.h"
+#include "extend.h"
 
 extern "C" {
 #include "mrsfast/Common.h"
@@ -18,12 +19,9 @@ extern "C" {
 
 //set <GenRegion> trans_extensions;
 
-void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l, int& high_hits);
+void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits);
 int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir);
 int process_mates(const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, MatchedRead& mr, bool r1_forward);
-
-bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, int& err, int& sclen_right);
-bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, int& err, int& sclen_left);
 
 void overlap_to_epos(MatchedMate& mr);
 void overlap_to_spos(MatchedMate& mr);
@@ -95,7 +93,7 @@ FilterRead::~FilterRead (void) {
 }
 
 // SE mode
-int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedKmer*& fl, GIMatchedKmer*& bl, 
+int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
 								chain_list& forward_best_chain, chain_list& backward_best_chain) {
 	
 	vafprintf(1, stderr, "%s\n", current_record->rname);
@@ -131,7 +129,7 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 }
 
 // PE mode
-int FilterRead::process_read (	Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer*& fl, GIMatchedKmer*& bl, 
+int FilterRead::process_read (	Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
 								chain_list& forward_best_chain_r1, chain_list& backward_best_chain_r1, 
 								chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2) {
 
@@ -181,17 +179,17 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 	// Orphan / OEA
 	if (forward_best_chain_r1.best_chain_count + backward_best_chain_r1.best_chain_count + forward_best_chain_r2.best_chain_count + backward_best_chain_r2.best_chain_count <= 0) {
 		if ((fhh_r1 + bhh_r1 > 0) and (fhh_r2 + bhh_r2 > 0)) {
-			current_record1->mr.update_type(NOPROC_MANYHIT);
+			current_record1->mr->update_type(NOPROC_MANYHIT);
 			return NOPROC_MANYHIT;
 		}
 		else {
-			current_record1->mr.update_type(NOPROC_NOMATCH);
+			current_record1->mr->update_type(NOPROC_NOMATCH);
 			return NOPROC_NOMATCH;
 		}
 	}
 	if ((forward_best_chain_r1.best_chain_count + backward_best_chain_r1.best_chain_count <= 0) or 
 		(forward_best_chain_r2.best_chain_count + backward_best_chain_r2.best_chain_count <= 0)) {
-		current_record1->mr.update_type(OEANCH);
+		current_record1->mr->update_type(OEANCH);
 		return OEANCH;
 	}
 
@@ -206,13 +204,13 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 	int attempt1, attempt2;
 	if (fc_score_r1 + bc_score_r2 >= fc_score_r2 + bc_score_r1) {
 		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
-		attempt1 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, current_record1->mr, true);
+		attempt1 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, *(current_record1->mr), true);
 		if (attempt1 == CONCRD) {
 			return CONCRD;
 		}
 
 		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
-		attempt2 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, current_record1->mr, false);
+		attempt2 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, *(current_record1->mr), false);
 		if (attempt2 == CONCRD) {
 			return CONCRD;
 		}
@@ -221,13 +219,13 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 	}
 	else {
 		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
-		attempt1 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, current_record1->mr, false);
+		attempt1 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, *(current_record1->mr), false);
 		if (attempt1 == CONCRD) {
 			return CONCRD;
 		}
 
 		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
-		attempt2 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, current_record1->mr, true);
+		attempt2 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, *(current_record1->mr), true);
 		if (attempt2 == CONCRD) {
 			return CONCRD;
 		}
@@ -296,7 +294,7 @@ bool is_concord(const chain_t& a, int seq_len, MatchedMate& mr) {
 	return mr.is_concord;
 }
 
-void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer*& frag_l, int& high_hits) {
+void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits) {
 	int kmer_count = ceil(seq_len / kmer_size);
 	int forward_fragment_count, backward_fragment_count;
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
@@ -316,19 +314,22 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& bes
 
 bool extend_chain_left(const chain_t& ch, char* seq, int seq_len, int lb, MatchedMate& mr, int& err) {
 	bool left_ok = true;
-	int sclen_left = 0;
-	int err_left = 0;
 
 	uint32_t lm_pos = ch.frags[0].rpos;
 	int remain_beg = ch.frags[0].qpos;
 
 	left_ok = (remain_beg <= 0);
+	AlignRes best_alignment(lb);
 	
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		left_ok = extend_left(seq, lm_pos, remain_beg, lb, err_left, sclen_left);
+		left_ok = extend_left(seq, lm_pos, remain_beg, lb, best_alignment);
 	}
 	
+	int sclen_left = best_alignment.sclen;
+	int err_left = best_alignment.ed;
+	remain_beg -= best_alignment.covlen;
+
 	mr.spos = lm_pos;
 	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
 	mr.qspos += (left_ok) ? sclen_left : remain_beg;
@@ -341,18 +342,21 @@ bool extend_chain_left(const chain_t& ch, char* seq, int seq_len, int lb, Matche
 
 bool extend_chain_right(const chain_t& ch, char* seq, int seq_len, int ub, MatchedMate& mr, int& err) {
 	bool right_ok = true;
-	int sclen_right = 0;
-	int err_right = 0;
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
 	int remain_end = seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len);
 
 	right_ok = (remain_end <= 0);
+	AlignRes best_alignment(ub);
 
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
-		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end, ub, err_right, sclen_right);
+		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end, ub, best_alignment);
 	}
+
+	int sclen_right = best_alignment.sclen;
+	int err_right = best_alignment.ed;
+	remain_end -= best_alignment.covlen;
 
 	mr.epos = rm_pos;
 	mr.matched_len -= (right_ok)? sclen_right : remain_end;
@@ -464,21 +468,31 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 	int remain_beg = ch.frags[0].qpos;
 
 	left_ok = (remain_beg <= 0);
+	AlignRes best_alignment_left(MINLB);
 	
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		left_ok = extend_left(seq, lm_pos, remain_beg, MINLB, err_left, sclen_left);
+		left_ok = extend_left(seq, lm_pos, remain_beg, MINLB, best_alignment_left);
 	}
+
+	err_left = best_alignment_left.ed;
+	sclen_left = best_alignment_left.sclen;
+	remain_beg -= best_alignment_left.covlen;
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
 	int remain_end = seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len);
 
 	right_ok = (remain_end <= 0);
+	AlignRes best_alignment(MAXUB);
 
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
-		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end, MAXUB, err_right, sclen_right);
+		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end, MAXUB, best_alignment);
 	}
+
+	err_right = best_alignment.ed;
+	sclen_right = best_alignment.sclen;
+	remain_end -= best_alignment.covlen;
 
 	mr.spos = lm_pos;
 	mr.epos = rm_pos;
@@ -491,6 +505,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	mr.dir = dir;
 	
+	//fprintf(stderr, "############################# left_ok: %d\tright_ok: %d\terr_left: %d\terr_right: %d\n", left_ok, right_ok, err_left, err_right);
 	if (left_ok and right_ok and (err_left + err_right <= EDTH)) {
 		mr.is_concord = true;
 		mr.type = CONCRD;
@@ -668,69 +683,6 @@ bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& 
 			}
 	return false;
 }
-
-// bool are_chimeric(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, MatchedRead& mr) {
-// 	if (mms_size <= 0 or (mm.dir * mms[0].dir) == 1)	// empty / same orientation
-// 		return false;
-
-// 	ConShift con_shift = gtf_parser.get_shift(contigName, mm.spos);
-// 	uint32_t shift = con_shift.shift;
-	
-// 	overlap_to_epos(mm);
-// 	overlap_to_spos(mm);
-
-// 	for (int i = 0; i < mms_size; i++) {
-// 		MatchedMate omm = mms[i];
-
-// 		overlap_to_spos(omm);
-// 		overlap_to_epos(omm);
-		
-// 		//if (mm.spos <= omm.spos) {
-// 		if (mm.dir == 1) {
-// 			if (check_bsj(mm, omm, mr, con_shift.contig, shift))
-// 				return true;
-// 		}
-// 		else {
-// 			if(check_bsj(omm, mm, mr, con_shift.contig, shift))
-// 				return true;
-// 		}
-// 	}
-	
-// 	return false;
-// }
-
-// bool are_concordant(vector <MatchedMate>& mms, int mms_size, MatchedMate& mm, MatchedRead& mr) {
-// 	if (mms_size <= 0 or (mm.dir * mms[0].dir) == 1)	// empty / same orientation
-// 		return false;
-
-// 	ConShift con_shift = gtf_parser.get_shift(contigName, mm.spos);
-// 	uint32_t shift = con_shift.shift;
-	
-// 	overlap_to_epos(mm);
-// 	overlap_to_spos(mm);
-
-// 	for (int i = 0; i < mms_size; i++) {
-// 		MatchedMate omm = mms[i];
-
-// 		overlap_to_spos(omm);
-// 		overlap_to_epos(omm);
-		
-// 		if (mm.dir == 1) {
-// 			if (concordant_explanation(mm, omm, mr, con_shift.contig, shift))
-// 				return true;
-// 			check_chimeric(omm, mm, mr, con_shift.contig, shift);
-// 		}
-
-
-// 		if (mm.dir == -1) {
-// 			if (concordant_explanation(omm, mm, mr, con_shift.contig, shift))
-// 				return true;
-// 			check_chimeric(mm, omm, mr, con_shift.contig, shift);
-// 		}
-// 	}
-	
-// 	return false;
-// }
 
 bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
 	if (s == NULL or r == NULL)
@@ -941,7 +893,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 				r2_genic = (mm2.exons_spos != NULL) or (mm2.exons_epos != NULL);
 			}
 		}
-	
+		
 	int new_type = (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
 				: ((min_ret1 == ORPHAN) or (min_ret2 == ORPHAN)) ? ORPHAN 
 				: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD) and (r1_genic and r2_genic)) ? CHIFUS
@@ -950,300 +902,6 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 
 	mr.update_type(new_type);
 	return mr.type;
-}
-
-// pos is exclusive
-// [ pos+1, pos+len ]
-void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int covered, int remain, uint32_t ub, int& min_ed, int& sclen_best, uint32_t& rmpos_best, bool& consecutive) {
-	int len;
-	int sclen;
-	int indel;
-	int edit_dist;
-	uint32_t new_rmpos;
-	uint32_t exon_remain;
-
-	bool dummy_consec = false;
-
-	// if covered > 0 -> pos = (next_exon_beg - 1) = > search on (pos + 1)
-	uint32_t search_pos = (covered == 0) ? pos : pos + 1;
-	const IntervalInfo<UniqSeg>* overlapped_exon = gtf_parser.get_location_overlap(search_pos, true);
-
-	if (overlapped_exon == NULL or overlapped_exon->seg_list.size() == 0) { // there is enough distance to the end of exon / intron
-		//vafprintf(2, stderr, "Going for %lu - %lu\n", pos + 1, pos + remain);
-		
-		pac2char(pos + 1, remain, res_str);
-
-		len = covered + remain;
-		//edit_dist = alignment.hamming_distance_right(res_str - covered, len, seq, seq_len, sclen);
-		edit_dist = alignment.local_alignment_right(res_str - covered, len, seq, seq_len, sclen, indel);
-	
-		consecutive = true;
-		new_rmpos = pos + seq_len - indel;
-		
-		//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\n", new_rmpos, seq_len, indel);
-		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d\n", res_str - covered, seq, edit_dist);
-		
-		if (edit_dist <= EDTH)
-			if ((edit_dist < min_ed) or (edit_dist == min_ed and sclen < sclen_best) or (edit_dist == min_ed and sclen == sclen_best and new_rmpos < rmpos_best)) {	// less hamming distance, then less soft clip, then smaller junction distance
-				min_ed = edit_dist;
-				sclen_best = sclen;
-				rmpos_best = new_rmpos;
-		}
-
-		return;
-	}
-
-	set <GenRegion> trans_extensions;
-	//trans_extensions.clear();
-	GenRegion new_region;
-
-	for (int i = 0; i < overlapped_exon->seg_list.size(); i++) {
-		//vafprintf(2, stderr, "This exon: [%u-%u] -> %u\n", overlapped_exon->seg_list[i].start, overlapped_exon->seg_list[i].end, overlapped_exon->seg_list[i].next_exon_beg);
-		if (covered > 0 and overlapped_exon->seg_list[i].start != search_pos)	// when jump to the next exon
-			continue;
-
-		exon_remain = overlapped_exon->seg_list[i].end - pos;
-		//vafprintf(2, stderr, "Remain on exon: %u\n", exon_remain);
-		if (exon_remain >= remain) {	// exonic	
-			new_region.set(pos + remain, 0);
-			if (trans_extensions.find(new_region) != trans_extensions.end())
-				continue;
-
-			trans_extensions.insert(new_region);
-
-			//vafprintf(2, stderr, "Going for %lu - %lu\n", pos + 1, pos + remain);
-			
-			pac2char(pos + 1, remain, res_str);
-
-			len = covered + remain;
-
-			//edit_dist = alignment.hamming_distance_right(res_str - covered, len, seq, len, sclen);
-			edit_dist = alignment.local_alignment_right(res_str - covered, len, seq, seq_len, sclen, indel);
-		
-			consecutive = true;
-			new_rmpos = pos + seq_len - indel;
-			
-			//vafprintf(2, stderr, "rmpos: %lu\textend len: %d\n", new_rmpos, len);
-			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d\n", res_str - covered, seq, edit_dist);
-			
-			if (edit_dist <= EDTH)
-				if ((edit_dist < min_ed) or (edit_dist == min_ed and sclen < sclen_best) or (edit_dist == min_ed and sclen == sclen_best and new_rmpos < rmpos_best)) {	// less hamming distance, then less soft clip, then smaller junction distance
-					min_ed = edit_dist;
-					sclen_best = sclen;
-					rmpos_best = new_rmpos;
-				}
-			}
-		else {		// junction
-			if (overlapped_exon->seg_list[i].next_exon_beg == 0)	// should not be the last exon and partially mappable
-				continue;
-			
-			if (overlapped_exon->seg_list[i].next_exon_beg > ub)	// do not allow junction further than ub
-				continue;
-
-			new_region.set(overlapped_exon->seg_list[i].end, overlapped_exon->seg_list[i].next_exon_beg);
-			if (trans_extensions.find(new_region) != trans_extensions.end())
-				continue;
-
-			trans_extensions.insert(new_region);
-
-			pac2char(pos + 1, exon_remain, res_str);
-			get_seq_right(res_str + exon_remain, seq, seq_len, overlapped_exon->seg_list[i].next_exon_beg - 1, covered + exon_remain, remain - exon_remain, ub, min_ed, sclen_best, rmpos_best, dummy_consec);
-		}
-	}
-}
-
-// pos is exclusive
-// [ pos+1, pos+len ]
-bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, int& err, int& sclen) {
-	int seq_len = len;
-	int ref_len = len + INDELTH;
-
-	char res_str[ref_len+1];
-	res_str[ref_len] = '\0';
-	
-	uint32_t best_rmpos = 0;
-	int min_ed = EDTH + 1;
-	int sclen_best = SOFTCLIPTH;
-	bool consecutive = false;
-	int indel;
-	err = EDTH + 1;
-	
-	get_seq_right(res_str, seq, seq_len, pos, 0, ref_len, ub, min_ed, sclen_best, best_rmpos, consecutive);
-
-	if (min_ed <= EDTH) {
-		pos = best_rmpos - sclen_best;
-		err = min_ed;
-		sclen = sclen_best;
-		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
-		return true;
-	}
-	
-	if (consecutive)
-		return false;
-
-	// intron retentaion
-	pac2char(pos + 1, ref_len, res_str);	
-	//min_ed = alignment.hamming_distance_right(res_str, len, seq, len, sclen_best);
-	min_ed = alignment.local_alignment_right(res_str, ref_len, seq, seq_len, sclen_best, indel);
-	
-	//vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", pos, len);
-	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
-
-	if (min_ed <= EDTH) {
-		pos = pos + seq_len - indel - sclen_best;
-		err = min_ed;
-		sclen = sclen_best;
-		vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
-		return true;
-	}
-
-	return false;
-}
-
-// pos is exclusive
-// [ pos-len, pos-1 ]
-void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int covered, int remain, uint32_t lb, int& min_ed, int& sclen_best, uint32_t& lmpos_best, bool& consecutive) {
-	int len;
-	int sclen;
-	int indel;
-	int edit_dist;
-	uint32_t new_lmpos;
-	uint32_t exon_remain;
-
-	bool dummy_consec = false;
-	
-	// if covered > 0 -> pos = (prev_exon_end + 1) = > search on (pos - 1)
-	uint32_t search_pos = (covered == 0) ? pos : pos - 1;
-	const IntervalInfo <UniqSeg>* overlapped_exon = gtf_parser.get_location_overlap(search_pos, false);
-
-	if (overlapped_exon == NULL or overlapped_exon->seg_list.size() == 0) {
-		//vafprintf(2, stderr, "Going for %lu - %lu\n", pos - remain, pos - 1);
-
-		pac2char(pos - remain, remain, res_str);
-
-		len = covered + remain;
-		//edit_dist = alignment.hamming_distance_left(res_str, len, seq, len, sclen);
-		edit_dist = alignment.local_alignment_left(res_str, len, seq, seq_len, sclen, indel);
-		
-		consecutive = true;
-		new_lmpos = pos - seq_len + indel;
-
-		//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\t indel: %d\n", new_lmpos, seq_len, indel);
-		//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeftedit dist: %d\n", res_str, seq, edit_dist);
-
-		if (edit_dist <= EDTH)
-			if ((edit_dist < min_ed) or (edit_dist == min_ed and sclen < sclen_best) or (edit_dist == min_ed and sclen == sclen_best and new_lmpos > lmpos_best)) {	// less hamming distance, then less soft clip, then smaller junction distance
-				min_ed = edit_dist;
-				sclen_best = sclen;
-				lmpos_best = new_lmpos;
-		}
-
-		return;
-	}
-
-	set <GenRegion> trans_extensions;
-	//trans_extensions.clear();
-	GenRegion new_region;
-
-	for (int i = 0; i < overlapped_exon->seg_list.size(); i++) {
-		//vafprintf(2, stderr, "%u <- This exon: [%u-%u]\n", overlapped_exon->seg_list[i].prev_exon_end, overlapped_exon->seg_list[i].start, overlapped_exon->seg_list[i].end);
-		if (covered > 0 and overlapped_exon->seg_list[i].end != search_pos)	// when jump to prev exon
-			continue;
-
-		exon_remain = pos - overlapped_exon->seg_list[i].start;
-		//vafprintf(2, stderr, "Remain on exon: %u\n", exon_remain);
-		if (exon_remain >= remain) {
-			new_region.set(pos - remain, 0);
-			if (trans_extensions.find(new_region) != trans_extensions.end())
-				continue;
-
-			trans_extensions.insert(new_region);
-
-			//vafprintf(2, stderr, "Going for %lu - %lu\n", pos - remain, pos - 1);
-
-			pac2char(pos - remain, remain, res_str);
-
-			len = covered + remain;
-			//edit_dist = alignment.hamming_distance_left(res_str, len, seq, len, sclen);
-			edit_dist = alignment.local_alignment_left(res_str, len, seq, seq_len, sclen, indel);
-		
-			consecutive = true;
-			new_lmpos = pos - seq_len + indel;
-
-			//vafprintf(2, stderr, "lmpos: %lu\textend len: %d\n", new_lmpos, seq_len);
-			//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nLeft edit dist: %d\n", res_str, seq, edit_dist);
-
-			if (edit_dist <= EDTH)
-				if ((edit_dist < min_ed) or (edit_dist == min_ed and sclen < sclen_best) or (edit_dist == min_ed and sclen == sclen_best and new_lmpos > lmpos_best)) {	// less hamming distance, then less soft clip, then smaller junction distance
-					min_ed = edit_dist;
-					sclen_best = sclen;
-					lmpos_best = new_lmpos;
-				}
-			}
-		else {		// junction
-			if (overlapped_exon->seg_list[i].prev_exon_end == 0)	// should not be the first exon and partially mappable
-				continue;
-
-			if (overlapped_exon->seg_list[i].prev_exon_end < lb)
-				continue;
-
-			new_region.set(overlapped_exon->seg_list[i].start, overlapped_exon->seg_list[i].prev_exon_end);
-			if (trans_extensions.find(new_region) != trans_extensions.end())
-				continue;
-
-			trans_extensions.insert(new_region);
-
-			pac2char(overlapped_exon->seg_list[i].start, exon_remain, res_str + remain - exon_remain);
-			get_seq_left(res_str, seq, seq_len, overlapped_exon->seg_list[i].prev_exon_end + 1, covered + exon_remain, remain - exon_remain, lb, min_ed, sclen_best, lmpos_best, dummy_consec);
-		}
-	}
-}
-
-// pos is exclusive
-// [ pos-len, pos-1 ]
-bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, int& err, int& sclen) {
-	int seq_len = len;
-	int ref_len = len + INDELTH;
-	char res_str[ref_len+1];
-	res_str[ref_len] = '\0';
-	
-	uint32_t lmpos_best = 0;
-	int min_ed = EDTH + 1;
-	int sclen_best = SOFTCLIPTH;
-	bool consecutive = false;
-	int indel;
-	err = EDTH + 1;
-
-	get_seq_left(res_str, seq, seq_len, pos, 0, ref_len, lb, min_ed, sclen_best, lmpos_best, consecutive);
-	
-	if (min_ed <= EDTH) {
-		pos = lmpos_best + sclen_best;
-		err = min_ed;
-		sclen = sclen_best;
-		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
-		return true;
-	}
-
-	if (consecutive)
-		return false;
-
-	// intron retentaion
-	pac2char(pos - ref_len, ref_len, res_str);
-	//min_ed = alignment.hamming_distance_left(res_str, len, seq, len, sclen_best);
-	min_ed = alignment.local_alignment_left(res_str, ref_len, seq, seq_len, sclen_best, indel);
-	
-	//vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", pos, len);
-	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
-
-	if (min_ed <= EDTH) {
-		pos = pos - seq_len + indel + sclen_best;
-		err = min_ed;
-		sclen = sclen_best;
-		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
-		return true;
-	}
-
-	return false;
 }
 
 void overlap_to_epos(MatchedMate& mr) {

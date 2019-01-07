@@ -41,15 +41,25 @@ public:
 	int  hamming_distance_left (char* s, int n, char* t, int m, int& sc_len);
 	
 	int global_alignment(char* s, int n, char* t, int m, int gap_pen, int mm_pen);
+	int global_alignment(char* s, int n, char* t, int m);
+	int global_alignment_reverse(char* s, int n, char* t, int m);
+
 	void global_banded_alignment(char* s, int n, char* t, int m);
 	void global_banded_alignment_reverse(char* s, int n, char* t, int m);
 	
 	void hamming_distance(char* s, int n, char* t, int m);
-	void hamming_distance_bottom(char* s, int n, char* t, int m);
-	void hamming_distance_top(char* s, int n, char* t, int m);
+	void hamming_distance_bottom(char* s, int n, char* t, int m, int max_sclen);
+	void hamming_distance_top(char* s, int n, char* t, int m, int max_sclen);
 	
-	int local_alignment_right(char* s, int n, char* t, int m, int& sc_len, int& indel);
-	int local_alignment_left (char* s, int n, char* t, int m, int& sc_len, int& indel);
+	// in the following are prefix to global alignmen 
+	// prefix on s
+	// global on t
+	int local_alignment_right_sc(char* s, int n, char* t, int m, int& sc_len, int& indel);
+	int local_alignment_left_sc (char* s, int n, char* t, int m, int& sc_len, int& indel);
+
+	int local_alignment_right(char* s, int n, char* t, int m, int& indel);
+	int local_alignment_left (char* s, int n, char* t, int m, int& indel);
+
 	int local_alignment_left2(char* s, int n, char* t, int m, int& sc_len, int& indel);
 
 private:

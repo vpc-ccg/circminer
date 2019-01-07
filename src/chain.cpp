@@ -69,7 +69,7 @@ bool check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_ex
 // b(i, j) = inf     y_j >= y_i || max{y_i - y_j, x_i - x_j} > maxDist
 // b(i, j) = gap_cost
 // w_i = kmer size
-void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_list& best_chain) {
+void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_list& best_chain) {
 	best_chain.best_chain_count = 0;
 
 	int kmer_cnt = 2 * ceil(1.0 * seq_len / kmer) - 1;
@@ -108,6 +108,8 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer*& fragment_list, chain_
 	empty_chain_cell_list.count = 0;
 
 	// Ignore empty fragment list at the back
+	//fprintf(stderr, "Got here before frag list in chaining\n");
+	//fprintf(stderr, "frag list kmer count: %d\n", (fragment_list + kmer_cnt - 1)->frag_count); 
 	while ((kmer_cnt >= 1) and (fragment_list + kmer_cnt - 1)->frag_count <= 0)
 		kmer_cnt--;
 

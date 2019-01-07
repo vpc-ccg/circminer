@@ -30,10 +30,10 @@ public:
 	FilterRead (char* save_fname, bool pe, int round, bool first_round, bool last_round, char* fq_file1, char* fq_file2);
 	~FilterRead (void);
 
-	int process_read (	Record* current_record, int kmer_size, GIMatchedKmer*& fl, GIMatchedKmer*& bl, 
+	int process_read (	Record* current_record, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
 						chain_list& forward_best_chain, chain_list& backward_best_chain);
 
-	int process_read (	Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer*& fl, GIMatchedKmer*& bl, 
+	int process_read (	Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
 						chain_list& forward_best_chain_r1, chain_list& backward_best_chain_r1, 
 						chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2);
 

@@ -10,17 +10,25 @@
 
 #define FQCOMMENTCNT 18
 
-typedef struct {
-	char *rname;
-	char *seq;
-	char *rcseq;
-	char *comment;
-	char *qual;
+struct Record {
+	char* rname;
+	char* seq;
+	char* rcseq;
+	char* comment;
+	char* qual;
 
 	int seq_len;
 
-	MatchedRead mr;
-} Record;
+	MatchedRead* mr;
+
+	Record(void) {
+		mr = new MatchedRead;
+	}
+
+	~Record(void) {
+		delete mr;
+	}
+};
 
 
 class FASTQParser {
