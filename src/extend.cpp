@@ -8,8 +8,8 @@
 #include "match_read.h"
 #include "gene_annotation.h"
 
-void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int covered, int remain, uint32_t ub, AlignRes& best, AlignRes& curr, bool& consecutive);
-void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int covered, int remain, uint32_t lb,  AlignRes& best, AlignRes& curr, bool& consecutive);
+void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, bool had_junction, int remain, uint32_t ub, AlignRes& best, AlignRes& curr, bool& consecutive);
+void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, bool had_junction, int remain, uint32_t lb,  AlignRes& best, AlignRes& curr, bool& consecutive);
 
 
 // pos is exclusive
@@ -27,7 +27,7 @@ bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, AlignRes& best
 	best_alignment.set(pos, EDTH + 1, SOFTCLIPTH + 1, INDELTH + 1, 0);
 	AlignRes curr_alignment(ub);
 	
-	get_seq_right(res_str, seq, seq_len, pos, 0, ref_len, ub, best_alignment, curr_alignment, consecutive);
+	get_seq_right(res_str, seq, seq_len, pos, false, ref_len, ub, best_alignment, curr_alignment, consecutive);
 
 	uint32_t best_rmpos = best_alignment.pos;
 	int min_ed = best_alignment.ed;
@@ -36,28 +36,26 @@ bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, AlignRes& best
 	if (min_ed <= EDTH) {
 		pos = best_rmpos - sclen_best;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
-		if (best_alignment.covlen >= seq_len)
+		if (best_alignment.covlen + best_alignment.indel >= seq_len)
 			return true;
 	}
 	
-	if (best_alignment.covlen >= seq_len && consecutive)
+	if (best_alignment.covlen + best_alignment.indel >= seq_len && consecutive)
 		return false;
 
 	// intron retentaion
-	pos = orig_pos;
-	if (!pac2char(pos + 1, ref_len, res_str))
+	if (!pac2char(orig_pos + 1, ref_len, res_str))
 		return false;
 
-	//min_ed = alignment.hamming_distance_right(res_str, len, seq, len, sclen_best);
 	min_ed = alignment.local_alignment_right_sc(res_str, ref_len, seq, seq_len, sclen_best, indel);
 	
-	//vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", pos, len);
-	//vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
+	vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", orig_pos, len);
+	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
 	if (min_ed <= EDTH) {
-		curr_alignment.set(pos + seq_len - indel, min_ed, sclen_best, indel, seq_len);
+		curr_alignment.set(orig_pos + seq_len - indel, min_ed, sclen_best, indel, seq_len);
 		best_alignment.update_right(curr_alignment);
-		pos = pos + seq_len - indel - sclen_best;
+		pos = orig_pos + seq_len - indel - sclen_best;
 		vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -80,7 +78,7 @@ bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, AlignRes& best_
 	best_alignment.set(pos, EDTH + 1, SOFTCLIPTH + 1, INDELTH + 1, 0);
 	AlignRes curr_alignment(lb);
 
-	get_seq_left(res_str, seq, seq_len, pos, 0, ref_len, lb, best_alignment, curr_alignment, consecutive);
+	get_seq_left(res_str, seq, seq_len, pos, false, ref_len, lb, best_alignment, curr_alignment, consecutive);
 		
 	uint32_t lmpos_best = best_alignment.pos;
 	int min_ed = best_alignment.ed;
@@ -91,27 +89,26 @@ bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, AlignRes& best_
 	if (min_ed <= EDTH) {
 		pos = lmpos_best + sclen_best;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
-		if (best_alignment.covlen >= seq_len)
+		if (best_alignment.covlen + best_alignment.indel >= seq_len)
 			return true;
 	}
 
-	if (best_alignment.covlen >= seq_len && consecutive)
+	if (best_alignment.covlen + best_alignment.indel >= seq_len && consecutive)
 		return false;
 
 	// intron retentaion
-	pos = orig_pos;
-	if (!pac2char(pos - ref_len, ref_len, res_str))
+	if (!pac2char(orig_pos - ref_len, ref_len, res_str))
 		return false;
-	//min_ed = alignment.hamming_distance_left(res_str, len, seq, len, sclen_best);
+
 	min_ed = alignment.local_alignment_left_sc(res_str, ref_len, seq, seq_len, sclen_best, indel);
 	
-	vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", pos, len);
+	vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", orig_pos, len);
 	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", res_str, seq, min_ed);
 
 	if (min_ed <= EDTH) {
-		curr_alignment.set(pos - seq_len + indel, min_ed, sclen_best, indel, seq_len);
+		curr_alignment.set(orig_pos - seq_len + indel, min_ed, sclen_best, indel, seq_len);
 		best_alignment.update_left(curr_alignment);
-		pos = pos - seq_len + indel + sclen_best;
+		pos = orig_pos - seq_len + indel + sclen_best;
 		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 		return true;
 	}
@@ -123,7 +120,7 @@ bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, AlignRes& best_
 // runs recursivly on consezutive exons
 // pos is exclusive
 // [ pos+1, pos+len ]
-void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int covered, int remain, uint32_t ub, AlignRes& best, AlignRes& curr, bool& consecutive) {
+void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, bool had_junction, int remain, uint32_t ub, AlignRes& best, AlignRes& curr, bool& consecutive) {
 	if (seq_len <= 0)
 		return;
 	int sclen;
@@ -134,8 +131,8 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 
 	bool dummy_consec = false;
 
-	// if covered > 0 -> pos = (next_exon_beg - 1) = > search on (pos + 1)
-	uint32_t search_pos = (covered == 0) ? pos : pos + 1;
+	// if we are on an exon after a junction -> pos = (next_exon_beg - 1) = > search on (pos + 1)
+	uint32_t search_pos = (! had_junction) ? pos : pos + 1;
 	const IntervalInfo<UniqSeg>* overlapped_exon = gtf_parser.get_location_overlap(search_pos, true);
 
 	if (overlapped_exon == NULL or overlapped_exon->seg_list.size() == 0) { // there is enough distance to the end of exon / intron
@@ -170,7 +167,7 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 		curr.set(orig.pos, orig.ed, orig.sclen, orig.indel, orig.covlen);
 
 		vafprintf(2, stderr, "This exon: [%u-%u] -> %u\n", overlapped_exon->seg_list[i].start, overlapped_exon->seg_list[i].end, overlapped_exon->seg_list[i].next_exon_beg);
-		if (covered > 0 and overlapped_exon->seg_list[i].start != search_pos)	// when jump to the next exon
+		if (had_junction and overlapped_exon->seg_list[i].start != search_pos)	// when jump to the next exon
 			continue;
 
 		exon_remain = overlapped_exon->seg_list[i].end - pos;
@@ -184,7 +181,6 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 			trans_extensions.insert(new_region);
 
 			vafprintf(2, stderr, "Right 2 Going for %lu - %lu\n", pos + 1, pos + ref_remain);
-			
 			if (!pac2char(pos + 1, ref_remain, res_str))
 				return;
 
@@ -214,6 +210,7 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 
 			trans_extensions.insert(new_region);
 
+			vafprintf(2, stderr, "Right 3 Going for %lu - %lu\n", pos + 1, pos + exon_remain);
 			if (!pac2char(pos + 1, exon_remain, res_str))
 				return;
 
@@ -227,7 +224,7 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 			if (curr.ed + edit_dist <= EDTH) {
 				curr.update(edit_dist, 0, new_rmpos, indel, exon_remain - indel);
 				best.update_right(curr);
-				get_seq_right(res_str + exon_remain, seq + exon_remain + indel ,seq_len - exon_remain - indel, overlapped_exon->seg_list[i].next_exon_beg - 1, covered + exon_remain, remain - exon_remain, ub, best, curr, dummy_consec);
+				get_seq_right(res_str + exon_remain, seq + exon_remain + indel ,seq_len - exon_remain - indel, overlapped_exon->seg_list[i].next_exon_beg - 1, true, remain - exon_remain, ub, best, curr, dummy_consec);
 			}
 		}
 	}
@@ -236,7 +233,7 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, int cove
 
 // pos is exclusive
 // [ pos-len, pos-1 ]
-void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int covered, int remain, uint32_t lb, AlignRes& best, AlignRes& curr, bool& consecutive) {
+void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, bool had_junction, int remain, uint32_t lb, AlignRes& best, AlignRes& curr, bool& consecutive) {
 	if (seq_len <= 0)
 		return;
 
@@ -248,8 +245,8 @@ void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 
 	bool dummy_consec = false;
 	
-	// if covered > 0 -> pos = (prev_exon_end + 1) = > search on (pos - 1)
-	uint32_t search_pos = (covered == 0) ? pos : pos - 1;
+	// if we are on an exon after a junction -> pos = (prev_exon_end + 1) = > search on (pos - 1)
+	uint32_t search_pos = (! had_junction) ? pos : pos - 1;
 	const IntervalInfo <UniqSeg>* overlapped_exon = gtf_parser.get_location_overlap(search_pos, false);
 
 	if (overlapped_exon == NULL or overlapped_exon->seg_list.size() == 0) {
@@ -283,7 +280,7 @@ void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 		// reset to orig:
 		curr.set(orig.pos, orig.ed, orig.sclen, orig.indel, orig.covlen);
 		vafprintf(2, stderr, "%u <- This exon: [%u-%u]\n", overlapped_exon->seg_list[i].prev_exon_end, overlapped_exon->seg_list[i].start, overlapped_exon->seg_list[i].end);
-		if (covered > 0 and overlapped_exon->seg_list[i].end != search_pos)	// when jump to prev exon
+		if (had_junction and overlapped_exon->seg_list[i].end != search_pos)	// when jump to prev exon
 			continue;
 
 		exon_remain = pos - overlapped_exon->seg_list[i].start;
@@ -327,6 +324,8 @@ void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 
 			trans_extensions.insert(new_region);
 
+			vafprintf(2, stderr, "Left 3 Going for %lu - %lu\n", overlapped_exon->seg_list[i].start, overlapped_exon->seg_list[i].start + exon_remain - 1);
+
 			if (!pac2char(overlapped_exon->seg_list[i].start, exon_remain, res_str))
 				return;
 
@@ -334,13 +333,13 @@ void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, int cover
 			edit_dist = alignment.local_alignment_left(seq + seq_len - seq_remain, seq_remain, res_str, exon_remain, indel);
 			new_lmpos = pos - exon_remain + indel;
 
-			vafprintf(2, stderr, "lmpos: %lu\textend len: %d\tLeft edit dist: %d\n", new_lmpos, seq_len, edit_dist);
+			vafprintf(2, stderr, "lmpos: %lu\textend len: %d\tLeft edit dist: %d\n", new_lmpos, exon_remain, edit_dist);
 			vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\n", res_str, seq + seq_len - seq_remain);
 
 			if (curr.ed + edit_dist <= EDTH) {
 				curr.update(edit_dist, 0, new_lmpos, indel, exon_remain - indel);
 				best.update_left(curr);
-				get_seq_left(res_str, seq, seq_len - exon_remain - indel, overlapped_exon->seg_list[i].prev_exon_end + 1, covered + exon_remain, remain - exon_remain, lb, best, curr, dummy_consec);
+				get_seq_left(res_str, seq, seq_len - exon_remain - indel, overlapped_exon->seg_list[i].prev_exon_end + 1, true, remain - exon_remain, lb, best, curr, dummy_consec);
 			}
 		}
 	}

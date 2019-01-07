@@ -893,7 +893,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 				r2_genic = (mm2.exons_spos != NULL) or (mm2.exons_epos != NULL);
 			}
 		}
-		
+
 	int new_type = (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
 				: ((min_ret1 == ORPHAN) or (min_ret2 == ORPHAN)) ? ORPHAN 
 				: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD) and (r1_genic and r2_genic)) ? CHIFUS
