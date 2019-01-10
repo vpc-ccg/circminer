@@ -25,7 +25,7 @@ bool compare_frag(fragment_t a, fragment_t b) {
 	return a.qpos < b.qpos;
 }
 
-bool check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_exons, int read_dist, int& trans_dist) {
+bool check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_exons, int kmer, int read_dist, int& trans_dist) {
 	trans_dist = INF;
 	if (ol_exons == NULL)
 		return false;
@@ -177,7 +177,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 					if (abs(genome_dist - read_dist) <= EDTH) {
 						distt = genome_dist;
 					}
-					else if (check_junction(seg_start, pc_mk->frags[j].info, ol_exons, read_dist, trans_dist)) {
+					else if (check_junction(seg_start, pc_mk->frags[j].info, ol_exons, kmer, read_dist, trans_dist)) {
 						distt = trans_dist;
 					}
 					else {
@@ -410,7 +410,7 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 					if (abs(genome_dist - read_dist) <= EDTH) {
 						distt = genome_dist;
 					}
-					else if (check_junction(seg_start, pc_mk->frags[j].info, ol_exons, read_dist, trans_dist)) {
+					else if (check_junction(seg_start, pc_mk->frags[j].info, ol_exons, kmer, read_dist, trans_dist)) {
 						distt = trans_dist;
 					}
 					else {
