@@ -3,12 +3,16 @@
 #include <cstring>
 #include "hash_table.h"
 
+#define MAXHIT 1000
+
 RegionalHashTable::RegionalHashTable (int ws) {
 	window_size = ws;
 	size = 1 << (2 * ws);	// HT size = 4^ws
 
-	table = (GIList*) malloc(size * sizeof(GIList));
-	memset(table, 0, size * sizeof(GIList));
+	table = (GIMatchedKmer*) malloc(size * sizeof(GIMatchedKmer));
+	for (int i = 0; i < size; i++)
+		table[i].frags = (GeneralIndex*) malloc(MAXHIT * sizeof(GeneralIndex));
+	memset(table, 0, size * sizeof(GIMatchedKmer));
 	
 	kmer_count = (int*) malloc(size * sizeof(int));
 	memset(kmer_count, 0, size * sizeof(int));
@@ -24,8 +28,8 @@ RegionalHashTable::~RegionalHashTable (void) {
 	free(kmer_count);
 
 	for (int i = 0; i < size; i++) {
-		if (table[i].locs != NULL)
-			free(table[i].locs);
+		if (table[i].frags != NULL)
+			free(table[i].frags);
 	}
 	free(table);
 }
@@ -42,10 +46,10 @@ void RegionalHashTable::create_table (char* seq, uint32_t start, int len) {
 	// allocate memory
 	for (int i = 0; i < size; i++) {
 		if (kmer_count[i] == 0) {
-			table[i].locs = NULL;
+			table[i].frags = NULL;
 			continue;
 		}
-		table[i].locs = (GeneralIndex*) malloc(kmer_count[i] * sizeof(GeneralIndex));
+		table[i].frags = (GeneralIndex*) malloc(kmer_count[i] * sizeof(GeneralIndex));
 	}
 
 	// fill hash table
@@ -54,20 +58,28 @@ void RegionalHashTable::create_table (char* seq, uint32_t start, int len) {
 		add_loc(hash_val(seq + i), loc++);
 	}
 
-	for (int i = 0; i < size; i++) {
-		fprintf(stderr, "table[%d].cnt = %d\n", i, table[i].cnt);
-	}
+	//for (int i = 0; i < size; i++) {
+	//	fprintf(stderr, "table[%d].cnt = %d\n", i, table[i].cnt);
+	//}
 }
 
-GIList* RegionalHashTable::find_hash (int hv) {
+// GIList* RegionalHashTable::find_hash (int hv) const {
+// 	if (hv < 0 or hv >= size)
+// 		return NULL;
+
+// 	fprintf(stdout, "Hash val: %d \t CNT: %d\n", hv, table[hv].cnt);
+// 	return &table[hv];
+// }
+
+GIMatchedKmer* RegionalHashTable::find_hash (int hv) const {
 	if (hv < 0 or hv >= size)
 		return NULL;
 
-	fprintf(stdout, "Hash val: %d \t CNT: %d\n", hv, table[hv].cnt);
+	fprintf(stdout, "Hash val: %d \t CNT: %d\n", hv, table[hv].frag_count);
 	return &table[hv];
 }
 
-int RegionalHashTable::hash_val (char* seq) {
+int RegionalHashTable::hash_val (char* seq) const {
 	int i = 0;
 	int val = 0;
 
@@ -81,5 +93,6 @@ int RegionalHashTable::hash_val (char* seq) {
 }
 
 void RegionalHashTable::add_loc (int hv, uint32_t loc) {
-	table[hv].locs[table[hv].cnt++].info = loc;
+	if (table[hv].frag_count < MAXHIT)
+		table[hv].frags[table[hv].frag_count++].info = loc;
 }

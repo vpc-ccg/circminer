@@ -13,7 +13,8 @@ class RegionalHashTable {
 private:
 	int size;
 	int window_size;
-	GIList* table;
+	//GIList* table;
+	GIMatchedKmer* table;
 	int* kmer_count;
 
 	char nuc_hval[128];
@@ -23,10 +24,11 @@ public:
 	~RegionalHashTable (void);
 
 	void create_table (char* seq, uint32_t start, int len);
-	int hash_val(char* seq);
+	int hash_val(char* seq) const;
 	void add_loc (int hv, uint32_t loc);
 
-	GIList* find_hash (int hv);
+	//GIList* find_hash (int hv) const;
+	GIMatchedKmer* find_hash (int hv) const;
 
 };
 

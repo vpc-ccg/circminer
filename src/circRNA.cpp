@@ -34,11 +34,11 @@ int main(int argc, char **argv) {
 		return 0;
 
 	int last_round_num = 1;
-	int map_ret = mapping(last_round_num);
-	if (map_ret == 1)
-		return 1;
+	//int map_ret = mapping(last_round_num);
+	//if (map_ret == 1)
+	//	return 1;
 
-	//circ_detect(last_round_num);
+	circ_detect(last_round_num);
 
 	return 0;
 }

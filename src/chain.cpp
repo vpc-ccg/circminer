@@ -297,3 +297,235 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 	best_chain.best_chain_count = best_count;
 }
 
+// Assumption: fragment list sorted by reference position
+//
+// f(i) = max{max_{j>i}{f(j) + a(i, j) - b(i, j)}, w_i}
+// a(i, j) = min{min{y_i - y_j, x_i - x_j}, w_i}
+// b(i, j) = inf     y_j >= y_i || max{y_i - y_j, x_i - x_j} > maxDist
+// b(i, j) = gap_cost
+// w_i = kmer size
+void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_list& best_chain, int kmer, int kmer_cnt) {
+	best_chain.best_chain_count = 0;
+
+	int max_frag_cnt = FRAGLIM;
+	chain_cell dp[kmer_cnt][max_frag_cnt + 1];
+
+	int max_best = BESTCHAINLIM;
+	int best_count = 0;
+	double best_score = -1;
+	chain_cell best_indices[max_best];
+
+	int distr, distt;
+	int genome_dist;
+	int trans_dist;
+	int read_dist;
+
+	double a_score, b_score;
+	double temp_score;
+
+	int i, j;
+	int ii, jj;
+	int lb_ind[kmer_cnt];
+	uint32_t max_lpos_lim;
+	uint32_t read_remain;
+	uint32_t seg_start;
+	uint32_t seg_end;
+	uint32_t max_exon_end;
+	GIMatchedKmer* cur_mk;
+	GIMatchedKmer* pc_mk;	// previously calculated matched kmer
+	const IntervalInfo<UniqSeg>* ol_exons;
+
+	map <double, chain_cell_list> score2chain;
+	
+	chain_cell tmp_cell;
+	chain_cell_list empty_chain_cell_list;
+	empty_chain_cell_list.count = 0;
+
+	// Ignore empty fragment list at the back
+	while ((kmer_cnt >= 1) and (fragment_list + kmer_cnt - 1)->frag_count <= 0)
+		kmer_cnt--;
+
+	if (kmer_cnt <= 0)
+		return;
+
+	// Initialize dp array
+	for (ii = kmer_cnt - 1; ii >= 0; ii--) {
+		cur_mk = fragment_list + ii;
+		for (i = 0; i < cur_mk->frag_count; i++) {
+			dp[ii][i].score = kmer;
+			dp[ii][i].prev_list = -1;
+			dp[ii][i].prev_ind = -1;
+		}
+	}
+		
+	// Updating stage
+	for (ii = kmer_cnt - 2; ii >= 0; ii--) {
+		cur_mk = fragment_list + ii;
+		read_remain = seq_len - cur_mk->qpos - kmer;
+		//memset(lb_ind, 0, kmer_cnt * sizeof(int));
+		for (int k = 0; k < kmer_cnt; k++)
+			lb_ind[k] = 0;
+		
+		for (i = 0; i < cur_mk->frag_count; i++) {
+			seg_start = cur_mk->frags[i].info;
+			seg_end = cur_mk->frags[i].info + kmer - 1;
+					
+			//max_lpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end);	// = 0 means not found
+			max_lpos_lim = -1;
+
+			for (jj = ii+1; jj < kmer_cnt; jj++) {
+				pc_mk = fragment_list + jj;
+				if (pc_mk->frag_count <= 0 or lb_ind[jj] >= pc_mk->frag_count)	// no fragment left in pc_mk to chain
+					continue;
+
+				if (cur_mk->frags[i].info + MAX_INTRON < pc_mk->frags[lb_ind[jj]].info)	// will not chain to any fragment in this list
+					continue;
+
+				while ((lb_ind[jj] < pc_mk->frag_count) and (pc_mk->frags[lb_ind[jj]].info <= cur_mk->frags[i].info))	// skip fragments starting before target
+				{
+					lb_ind[jj]++;
+				}
+
+				if (lb_ind[jj] >= pc_mk->frag_count)	// no more fragment from pre are in range for the remaining of the t
+					continue;
+
+				if (max_lpos_lim == -1)
+				{
+					max_lpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end, ol_exons);	// = 0 means not found
+					//vafprintf(2, stderr, "[%d-%d] -> upper bound: %u\n", seg_start, seg_end, max_lpos_lim);
+				}
+
+				distr = pc_mk->qpos - cur_mk->qpos - kmer;
+				read_dist = distr;
+
+				j = lb_ind[jj];
+				while ((j < pc_mk->frag_count) and (pc_mk->frags[j].info <= max_lpos_lim)) {
+					if (max_exon_end == 0 or (pc_mk->frags[j].info + kmer -1) <= max_exon_end)
+						// allowed to put on genome
+						genome_dist = pc_mk->frags[j].info - seg_end - 1;
+					else
+						genome_dist = INF;
+
+					//fprintf(stderr, "Genome dist: %d\nRead dist: %d\n\n", genome_dist, read_dist);
+					if (abs(genome_dist - read_dist) <= EDTH) {
+						distt = genome_dist;
+					}
+					else if (check_junction(seg_start, pc_mk->frags[j].info, ol_exons, read_dist, trans_dist)) {
+						distt = trans_dist;
+					}
+					else {
+						j++;
+						continue;
+					}
+
+					temp_score = dp[jj][j].score + score_alpha(distr, distt, kmer) - score_beta(distr, distt, kmer);
+
+					if (temp_score > dp[ii][i].score) {
+						dp[ii][i].score = temp_score;
+						dp[ii][i].prev_list = jj;
+						dp[ii][i].prev_ind = j;
+
+						if (score2chain.find(temp_score) == score2chain.end()) {
+							score2chain[temp_score] = empty_chain_cell_list;
+						}
+						
+						if (score2chain[temp_score].count < max_best) {
+							tmp_cell.score = dp[ii][i].score;
+							tmp_cell.prev_list = ii;
+							tmp_cell.prev_ind = i;
+							score2chain[temp_score].chain_list[score2chain[temp_score].count++] = tmp_cell;
+						}
+
+					}
+					j++;
+				}
+			}
+		}
+	}
+
+	// Finding best score
+	
+	//for (ii = kmer_cnt - 1; ii >= 0; ii--) {
+	//	cur_mk = fragment_list + ii;
+	//	for (i = 0; i < cur_mk->frag_count; i++) {
+	//		if (dp[ii][i].score > best_score) {
+	//			best_score = dp[ii][i].score;
+	//			best_count = 1;
+	//			best_indices[0].prev_list = ii;
+	//			best_indices[0].prev_ind = i;
+	//		}
+	//		else if (dp[ii][i].score == best_score and best_count < max_best) {
+	//			best_indices[best_count].prev_list = ii;
+	//			best_indices[best_count].prev_ind = i;
+	//			best_count++;
+	//		}
+	//	}
+	//}
+
+	// Back-tracking
+	chain_cell best_index;	
+	int tmp_list_ind;
+
+	//best_chain.best_chain_count = best_count;
+	//for (j = 0; j < best_count; j++) {
+	//	best_index = best_indices[j];
+	
+	uint32_t spos;
+	best_count = 0;
+	best_score = (score2chain.rbegin() != score2chain.rend()) ? score2chain.rbegin()->first : kmer;
+	
+	set <uint32_t> repeats;
+	map <double, chain_cell_list>::reverse_iterator it;
+	
+	for (it = score2chain.rbegin(); it != score2chain.rend(); ++it) {
+		for (int l = 0; l < it->second.count; l++) {
+			if (best_count >= max_best)
+				break;
+			
+			best_index = it->second.chain_list[l];
+			spos = (fragment_list + best_index.prev_list)->frags[best_index.prev_ind].info;
+			if (best_index.score < best_score and repeats.find(spos) != repeats.end())
+				continue;
+			
+			i = 0;
+			j = best_count++;
+			while (best_index.prev_list != -1) {
+				best_chain.chains[j].frags[i].rpos = (fragment_list + best_index.prev_list)->frags[best_index.prev_ind].info;
+				best_chain.chains[j].frags[i].qpos = (fragment_list + best_index.prev_list)->qpos;
+				best_chain.chains[j].frags[i].len = kmer;
+				
+				if (i != 0) {
+					repeats.insert(best_chain.chains[j].frags[i].rpos);
+				}
+				
+				tmp_list_ind = best_index.prev_list;
+				best_index.prev_list = dp[best_index.prev_list][best_index.prev_ind].prev_list;
+				best_index.prev_ind = dp[tmp_list_ind][best_index.prev_ind].prev_ind;
+				
+				i++;
+			}
+
+			best_chain.chains[j].score = best_index.score;
+			best_chain.chains[j].chain_len = i;
+		}
+	}
+
+	// add chains of size 1
+	if (best_count == 0) {
+		for (ii = kmer_cnt - 1; ii >= 0; ii--) {
+			cur_mk = fragment_list + ii;
+			for (i = 0; i < cur_mk->frag_count; i++) {
+				if (best_count >= max_best)
+					break;
+				j = best_count++;
+				best_chain.chains[j].frags[0].rpos = cur_mk->frags[i].info;
+				best_chain.chains[j].frags[0].qpos = cur_mk->qpos;
+				best_chain.chains[j].frags[0].len = kmer;
+				best_chain.chains[j].score = dp[ii][i].score;
+				best_chain.chains[j].chain_len = 1;
+			}
+		}
+	}
+	
+	best_chain.best_chain_count = best_count;
+}
