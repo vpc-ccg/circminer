@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <ctime>
 #include <cmath>
 
 #include "common.h"
@@ -34,19 +33,20 @@ int main(int argc, char **argv) {
 		return 0;
 
 	int last_round_num = 1;
-	//int map_ret = mapping(last_round_num);
-	//if (map_ret == 1)
-	//	return 1;
+	int map_ret = mapping(last_round_num);
+	if (map_ret == 1)
+		return 1;
 
-	circ_detect(last_round_num);
+	//circ_detect(last_round_num);
 
 	return 0;
 }
 
 int mapping(int& last_round_num) {
-	time_t pre_time, curr_time;
-	double diff_time;
-	time(&pre_time);
+	double cputime_start = get_cpu_time();
+	double realtime_start = get_real_time();
+	double cputime_curr;
+	double realtime_curr;
 	
 	char* ref_file = referenceFilename;
 	char index_file [FILE_NAME_LENGTH];
@@ -127,10 +127,13 @@ int mapping(int& last_round_num) {
 	else 
 		fprintf(stdout, "GTF file successfully loaded!\n");
 
-	time(&curr_time);
-	diff_time = difftime(curr_time, pre_time);
-	fprintf(stdout, "[P] Loaded GTF in %.2f sec\n", diff_time);
-	pre_time = curr_time;
+	cputime_curr = get_cpu_time();
+	realtime_curr = get_real_time();
+
+	fprintf(stdout, "[P] Loaded GTF in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+
+	cputime_start = cputime_curr;
+	realtime_start = realtime_curr;
 
 	/*****************/
 	/**Mapping Reads**/
@@ -148,13 +151,17 @@ int mapping(int& last_round_num) {
 	
 		flag = loadHashTable ( &tmpTime );  			// Reading a fragment
 
-		time(&curr_time);
-		diff_time = difftime(curr_time, pre_time);
-		pre_time = curr_time;
-		time_t fq_start_t = curr_time;
+		cputime_curr = get_cpu_time();
+		realtime_curr = get_real_time();
 
-		fprintf(stdout, "[P] Loaded genome index successfully in %.2f sec\n", diff_time);
+		fprintf(stdout, "[P] Loaded genome index successfully in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
 		fprintf(stdout, "Winodw size: %d\nChecksum Len: %d\n", WINDOW_SIZE, checkSumLength);
+
+		cputime_start = cputime_curr;
+		realtime_start = realtime_curr;
+
+		double fq_cputime_start = cputime_curr;
+		double fq_realtime_start = realtime_curr;
 
 		fprintf(stdout, "Contig: %s\n", getRefGenomeName());
 		contigName = getRefGenomeName();
@@ -184,17 +191,15 @@ int mapping(int& last_round_num) {
 
 			line++;
 			if (line % LINELOG == 0) {
-				time(&curr_time);
-				diff_time = difftime(curr_time, pre_time);
-				pre_time = curr_time;
+				cputime_curr = get_cpu_time();
+				realtime_curr = get_real_time();
 
-				//printf("[P] --- reads\n");
+				fprintf(stdout, "[P] %d reads in %.2lf CPU sec (%.2lf real sec)\t Look ups: %u\n", line, cputime_curr - cputime_start, realtime_curr - realtime_start, lookup_cnt);
+				fflush(stdout);
+				
+				cputime_start = cputime_curr;
+				realtime_start = realtime_curr;
 
-				printf("[P] %d reads in %.2f sec\t Look ups: %u\n", line, diff_time, lookup_cnt);
-				//fprintf(stdout, "[P] %d reads in %.2f sec\t Look ups: %u\n", line, diff_time, lookup_cnt);
-				//fprintf(stderr, "#### Before flush\n");
-				//fflush(stdout);
-				//fprintf(stderr, "#### After flush\n");
 				lookup_cnt = 0;
 			}
 
@@ -212,9 +217,10 @@ int mapping(int& last_round_num) {
 			}
 		}
 
-		time(&curr_time);
-		diff_time = difftime(curr_time, fq_start_t);
-		fprintf(stdout, "[P] Mapping in %.2f sec\n", diff_time);
+		cputime_curr = get_cpu_time();
+		realtime_curr = get_real_time();
+
+		fprintf(stdout, "[P] Mapping in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
 
 	} while (flag);
 

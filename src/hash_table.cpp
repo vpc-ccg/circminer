@@ -75,7 +75,6 @@ GIMatchedKmer* RegionalHashTable::find_hash (int hv) const {
 	if (hv < 0 or hv >= size)
 		return NULL;
 
-	fprintf(stdout, "Hash val: %d \t CNT: %d\n", hv, table[hv].frag_count);
 	return &table[hv];
 }
 

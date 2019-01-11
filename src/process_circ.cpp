@@ -27,8 +27,13 @@ void ProcessCirc::do_process (void) {
 	/**Loading Hash Table**/
 	/**********************/
 
-	int	flag;
+	double cputime_start = get_cpu_time();
+	double realtime_start = get_real_time();
+	double cputime_curr;
+	double realtime_curr;
+
 	double tmpTime;
+	int	flag;
 	checkSumLength = 5;
 
 	char index_file [FILE_NAME_LENGTH];
@@ -50,7 +55,17 @@ void ProcessCirc::do_process (void) {
 	if (!initLoadingHashTableMeta(index_file, &orig_contig_len, &contig_cnt))
 		return;
 
+	fprintf(stdout, "Started loading index...\n");
+
 	flag = loadHashTable ( &tmpTime );  			// Reading a fragment
+
+	cputime_curr = get_cpu_time();
+	realtime_curr = get_real_time();
+
+	fprintf(stdout, "[P] Loaded genome index successfully in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+
+	cputime_start = cputime_curr;
+	realtime_start = realtime_curr;
 
 	/**********************/
 	/**Finised Loading HT**/
@@ -59,9 +74,6 @@ void ProcessCirc::do_process (void) {
 	/*******************/
 	/**GTF Parser Init**/
 	/*******************/
-	time_t pre_time, curr_time;
-	double diff_time;
-	time(&pre_time);
 
 	gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
 	if (! gtf_parser.load_gtf()) {
@@ -71,14 +83,20 @@ void ProcessCirc::do_process (void) {
 	else 
 		fprintf(stdout, "GTF file successfully loaded!\n");
 
-	time(&curr_time);
-	diff_time = difftime(curr_time, pre_time);
-	fprintf(stdout, "[P] Loaded GTF in %.2f sec\n", diff_time);
-	pre_time = curr_time;
+	cputime_curr = get_cpu_time();
+	realtime_curr = get_real_time();
+
+	fprintf(stdout, "[P] Loaded GTF in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+
+	cputime_start = cputime_curr;
+	realtime_start = realtime_curr;
 
 	/*******************/
 	/**Finished GTF PI**/
 	/*******************/
+
+	double fq_cputime_start = cputime_curr;
+	double fq_realtime_start = realtime_curr;
 
 	contigName = getRefGenomeName();
 
@@ -101,17 +119,28 @@ void ProcessCirc::do_process (void) {
 			break;
 
 		line++;
+		fprintf(stderr, "Line: %d\n", line);
 
-		fprintf(stdout, "Line: %d\n", line);
+		if (line % LINELOG == 0) {
+			cputime_curr = get_cpu_time();
+			realtime_curr = get_real_time();
+
+			fprintf(stdout, "[P] %d reads in %.2lf CPU sec (%.2lf real sec)\t Look ups: %u\n", line, cputime_curr - cputime_start, realtime_curr - realtime_start, lookup_cnt);
+			fflush(stdout);
+
+			cputime_start = cputime_curr;
+			realtime_start = realtime_curr;
+			
+			lookup_cnt = 0;
+		}
+
 		MatchedRead mr = *(current_record1->mr);
-		fprintf(stdout, "%s\n%s\n", current_record1->seq, current_record2->seq);
-		fprintf(stdout, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\n", 
+		fprintf(stderr, "%s\n%s\n", current_record1->seq, current_record2->seq);
+		fprintf(stderr, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\n", 
 										current_record1->rname, mr.chr.c_str(), 
 										mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1,  
 										mr.spos_r2, mr.epos_r2, mr.mlen_r2, mr.qspos_r2, mr.qepos_r2, 
 										mr.tlen, mr.junc_num, mr.gm_compatible, mr.type);
-
-		fprintf(stderr, "%s\n", current_record1->rname);
 
 		bool r1_partial = mr.mlen_r1 < mr.mlen_r2;
 		char* remain_seq = (r1_partial) ? ((mr.r1_forward) ? current_record1->seq : current_record1->rcseq) : 
@@ -125,7 +154,7 @@ void ProcessCirc::do_process (void) {
 		const IntervalInfo<GeneInfo>* gene_info = gtf_parser.get_gene_overlap(mr.spos_r1, false);
 		bool found = (gene_info != NULL);
 		if (! found) {
-			fprintf(stdout, "Gene not found!\n");
+			fprintf(stderr, "Gene not found!\n");
 			continue;
 		}
 		fprintf(stderr, "# Gene overlaps: %d\n", gene_info->seg_list.size());
@@ -140,19 +169,19 @@ void ProcessCirc::do_process (void) {
 			RegionalHashTable regional_ht(window_size);
 			regional_ht.create_table(gene_seq, 0, gene_len);
 
-			fprintf(stdout, "R%d partial: [%d-%d]\n", (int) (!r1_partial) + 1, qspos, qepos);
-			fprintf(stdout, "%s\n", remain_seq);
+			fprintf(stderr, "R%d partial: [%d-%d]\n", (int) (!r1_partial) + 1, qspos, qepos);
+			fprintf(stderr, "%s\n", remain_seq);
 
 			// for (int i = qspos - 1; i <= qepos - window_size; i += 3) {
 			// 	GIList* gl = regional_ht.find_hash(regional_ht.hash_val(remain_seq + i));
 			// 	if (gl == NULL) {
-			// 		fprintf(stdout, "Hash val not found!!!\n");
+			// 		fprintf(stderr, "Hash val not found!!!\n");
 			// 	}
-			// 	fprintf(stdout, "Occ: %d\n", gl->cnt);
+			// 	fprintf(stderr, "Occ: %d\n", gl->cnt);
 			// 	for (int j = 0; j < gl->cnt; j++) {
-			// 		fprintf(stdout, "%d\t", gl->locs[j].info);
+			// 		fprintf(stderr, "%d\t", gl->locs[j].info);
 			// 	}
-			// 	fprintf(stdout, "\n");
+			// 	fprintf(stderr, "\n");
 
 			// }
 
@@ -161,6 +190,11 @@ void ProcessCirc::do_process (void) {
 
 		}
 	}
+
+	cputime_curr = get_cpu_time();
+	realtime_curr = get_real_time();
+
+	fprintf(stdout, "[P] Mapping in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
 }
 
 void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, uint32_t gene_len) {
@@ -172,10 +206,10 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, const RegionalHashTabl
 	for (int i = qspos - 1; i <= qepos - window_size; i += step) {
 		GIMatchedKmer* gl = regional_ht.find_hash(regional_ht.hash_val(remain_seq + i));
 		if (gl == NULL) {
-			fprintf(stdout, "Hash val not found!!!\n");
+			fprintf(stderr, "Hash val not found!!!\n");
 		}
 
-		fprintf(stdout, "Occ: %d\n", gl->frag_count);
+		fprintf(stderr, "Occ: %d\n", gl->frag_count);
 		
 		for (int j = 0; j < gl->frag_count; j++) {
 			int bin_id = gl->frags[j].info / BINSIZE;
@@ -184,20 +218,15 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, const RegionalHashTabl
 			if (bins[bin_id] > bins[max_id])
 				max_id = bin_id;
 
-			fprintf(stdout, "%d - %d\t", gl->frags[j].info, bins[bin_id]);
+			fprintf(stderr, "%d - %d\t", gl->frags[j].info, bins[bin_id]);
 		}
-		fprintf(stdout, "\n");
+		fprintf(stderr, "\n");
 	}	
-	fprintf(stdout, "Biggest bin: bin[%d][%d - %d] = %d\n", max_id, max_id * BINSIZE, (max_id+1) * BINSIZE - 1, bins[max_id]);
+	fprintf(stderr, "Biggest bin: bin[%d][%d - %d] = %d\n", max_id, max_id * BINSIZE, (max_id+1) * BINSIZE - 1, bins[max_id]);
 
 }
 
 void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift) {
-	int bin_num = gene_len / BINSIZE + 1;
-	int bins[bin_num];
-	int max_id = 0;
-	memset(bins, 0, bin_num * sizeof(int));
-
 	int kmer_cnt = ((qepos - qspos + 1) - window_size) / step + 1;
 	GIMatchedKmer* fl = (GIMatchedKmer*) malloc(kmer_cnt * sizeof(GIMatchedKmer));
 	// Initialize
@@ -213,33 +242,22 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTab
 			fl[l].frag_count = 0;
 			fl[l].frags = NULL;
 			l++;
-			fprintf(stdout, "Hash val not found!!!\n");
+			fprintf(stderr, "Hash val not found!!!\n");
 			continue;
 		}
 
 		fl[l].frag_count = gl->frag_count;
 		fl[l].frags = gl->frags;
 
-		fprintf(stdout, "Occ: %d\n", fl[l].frag_count);
+		fprintf(stderr, "Occ: %d\n", fl[l].frag_count);
 		
 		for (int j = 0; j < fl[l].frag_count; j++) {
-			int bin_id = fl[l].frags[j].info / BINSIZE;
-			bins[bin_id]++;
-
-			if (bins[bin_id] > bins[max_id])
-				max_id = bin_id;
-
-			// fprintf(stdout, "%d - %d\t", fl[l].frags[j].info, bins[bin_id]);
-
 			fl[l].frags[j].info += shift;
-
-			// fprintf(stdout, "%d - %d\t", fl[l].frags[j].info, bins[bin_id]);
-
+			fprintf(stderr, "%d\t", fl[l].frags[j].info);
 		}
-		// fprintf(stdout, "\n");
+		fprintf(stderr, "\n");
 		l++;
-	}	
-	fprintf(stdout, "Biggest bin: bin[%d][%d - %d] = %d\n", max_id, max_id * BINSIZE, (max_id+1) * BINSIZE - 1, bins[max_id]);
+	}
 
 	chain_list bc;
 	bc.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));

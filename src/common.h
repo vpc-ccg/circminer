@@ -461,6 +461,9 @@ void close_file(FILE* fp);
 // verbose-aware fprintf
 void vafprintf(int verbosity, FILE *stream, const char *format, ...);
 
+double get_cpu_time();
+double get_real_time();
+
 //--------------------------------\\
 
 #endif	//__COMMON_H__
