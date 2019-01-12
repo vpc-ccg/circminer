@@ -33,11 +33,11 @@ int main(int argc, char **argv) {
 		return 0;
 
 	int last_round_num = 1;
-	int map_ret = mapping(last_round_num);
-	if (map_ret == 1)
-		return 1;
+	// int map_ret = mapping(last_round_num);
+	// if (map_ret == 1)
+	// 	return 1;
 
-	//circ_detect(last_round_num);
+	circ_detect(last_round_num);
 
 	return 0;
 }
@@ -121,7 +121,7 @@ int mapping(int& last_round_num) {
 
 	gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
 	if (! gtf_parser.load_gtf()) {
-		fprintf(stderr, "Error in reading GTF file.\n");
+		fprintf(stdout, "Error in reading GTF file.\n");
 		exit(1);
 	}
 	else 

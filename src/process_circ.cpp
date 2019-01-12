@@ -77,7 +77,7 @@ void ProcessCirc::do_process (void) {
 
 	gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
 	if (! gtf_parser.load_gtf()) {
-		fprintf(stderr, "Error in reading GTF file.\n");
+		fprintf(stdout, "Error in reading GTF file.\n");
 		exit(1);
 	}
 	else 
@@ -119,7 +119,7 @@ void ProcessCirc::do_process (void) {
 			break;
 
 		line++;
-		fprintf(stderr, "Line: %d\n", line);
+		vafprintf(2, stderr, "Line: %d\n", line);
 
 		if (line % LINELOG == 0) {
 			cputime_curr = get_cpu_time();
@@ -134,67 +134,90 @@ void ProcessCirc::do_process (void) {
 			lookup_cnt = 0;
 		}
 
-		MatchedRead mr = *(current_record1->mr);
-		fprintf(stderr, "%s\n%s\n", current_record1->seq, current_record2->seq);
-		fprintf(stderr, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\n", 
-										current_record1->rname, mr.chr.c_str(), 
-										mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1,  
-										mr.spos_r2, mr.epos_r2, mr.mlen_r2, mr.qspos_r2, mr.qepos_r2, 
-										mr.tlen, mr.junc_num, mr.gm_compatible, mr.type);
-
-		bool r1_partial = mr.mlen_r1 < mr.mlen_r2;
-		char* remain_seq = (r1_partial) ? ((mr.r1_forward) ? current_record1->seq : current_record1->rcseq) : 
-										  ((mr.r2_forward) ? current_record2->seq : current_record2->rcseq) ;
-		uint32_t qspos = (r1_partial) ? (((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (1) : (mr.qepos_r1 + 1)) :
-										(((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (1) : (mr.qepos_r2 + 1)) ;
-
-		uint32_t qepos = (r1_partial) ? (((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (mr.qspos_r1 - 1) : (current_record1->seq_len)) :
-										(((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (mr.qspos_r2 - 1) : (current_record2->seq_len)) ;
-
-		const IntervalInfo<GeneInfo>* gene_info = gtf_parser.get_gene_overlap(mr.spos_r1, false);
-		bool found = (gene_info != NULL);
-		if (! found) {
-			fprintf(stderr, "Gene not found!\n");
-			continue;
-		}
-		fprintf(stderr, "# Gene overlaps: %d\n", gene_info->seg_list.size());
-
-		for (int i = 0; i < gene_info->seg_list.size(); i++) {
-			uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
-			char gene_seq[gene_len + 1];
-			gene_seq[gene_len] = '\0';
-			pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
-			//fprintf(stderr, "Gene: %s\n", gene_seq);
-
-			RegionalHashTable regional_ht(window_size);
-			regional_ht.create_table(gene_seq, 0, gene_len);
-
-			fprintf(stderr, "R%d partial: [%d-%d]\n", (int) (!r1_partial) + 1, qspos, qepos);
-			fprintf(stderr, "%s\n", remain_seq);
-
-			// for (int i = qspos - 1; i <= qepos - window_size; i += 3) {
-			// 	GIList* gl = regional_ht.find_hash(regional_ht.hash_val(remain_seq + i));
-			// 	if (gl == NULL) {
-			// 		fprintf(stderr, "Hash val not found!!!\n");
-			// 	}
-			// 	fprintf(stderr, "Occ: %d\n", gl->cnt);
-			// 	for (int j = 0; j < gl->cnt; j++) {
-			// 		fprintf(stderr, "%d\t", gl->locs[j].info);
-			// 	}
-			// 	fprintf(stderr, "\n");
-
-			// }
-
-			//binning(qspos, qepos, regional_ht, remain_seq, gene_len);
-			chaining(qspos, qepos, regional_ht, remain_seq, gene_len, gene_info->seg_list[i].start);
-
-		}
+		call_circ(current_record1, current_record2);
 	}
 
 	cputime_curr = get_cpu_time();
 	realtime_curr = get_real_time();
 
 	fprintf(stdout, "[P] Mapping in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
+}
+
+// PE
+void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
+	MatchedRead mr = *(current_record1->mr);
+	vafprintf(2, stderr, "%s\n%s\n", current_record1->seq, current_record2->seq);
+	vafprintf(2, stderr, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\n", 
+									current_record1->rname, mr.chr.c_str(), 
+									mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1,  
+									mr.spos_r2, mr.epos_r2, mr.mlen_r2, mr.qspos_r2, mr.qepos_r2, 
+									mr.tlen, mr.junc_num, mr.gm_compatible, mr.type);
+
+	bool r1_partial = mr.mlen_r1 < mr.mlen_r2;
+	char* remain_seq = (r1_partial) ? ((mr.r1_forward) ? current_record1->seq : current_record1->rcseq) : 
+									  ((mr.r2_forward) ? current_record2->seq : current_record2->rcseq) ;
+	uint32_t qspos = (r1_partial) ? (((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (1) : (mr.qepos_r1 + 1)) :
+									(((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (1) : (mr.qepos_r2 + 1)) ;
+
+	uint32_t qepos = (r1_partial) ? (((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (mr.qspos_r1 - 1) : (current_record1->seq_len)) :
+									(((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (mr.qspos_r2 - 1) : (current_record2->seq_len)) ;
+
+	const IntervalInfo<GeneInfo>* gene_info = gtf_parser.get_gene_overlap(mr.spos_r1, false);
+	bool found = (gene_info != NULL);
+	if (! found) {
+		vafprintf(2, stderr, "Gene not found!\n");
+		return;
+	}
+	vafprintf(2, stderr, "# Gene overlaps: %d\n", gene_info->seg_list.size());
+
+	for (int i = 0; i < gene_info->seg_list.size(); i++) {
+		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
+		char gene_seq[gene_len + 1];
+		gene_seq[gene_len] = '\0';
+		pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
+		//vafprintf(2, stderr, "Gene: %s\n", gene_seq);
+
+		RegionalHashTable regional_ht(window_size);
+		regional_ht.create_table(gene_seq, 0, gene_len);
+
+		vafprintf(2, stderr, "R%d partial: [%d-%d]\n", (int) (!r1_partial) + 1, qspos, qepos);
+		vafprintf(2, stderr, "%s\n", remain_seq);
+
+		// for (int i = qspos - 1; i <= qepos - window_size; i += 3) {
+		// 	GIList* gl = regional_ht.find_hash(regional_ht.hash_val(remain_seq + i));
+		// 	if (gl == NULL) {
+		// 		vafprintf(2, stderr, "Hash val not found!!!\n");
+		// 	}
+		// 	vafprintf(2, stderr, "Occ: %d\n", gl->cnt);
+		// 	for (int j = 0; j < gl->cnt; j++) {
+		// 		vafprintf(2, stderr, "%d\t", gl->locs[j].info);
+		// 	}
+		// 	vafprintf(2, stderr, "\n");
+
+		// }
+
+		//binning(qspos, qepos, regional_ht, remain_seq, gene_len);
+		uint32_t rspos, repos;
+		chaining(qspos, qepos, regional_ht, remain_seq, gene_len, gene_info->seg_list[i].start, rspos, repos);
+
+		vafprintf(2, stderr, "Coordinates: [%d-%d]\n", rspos, repos);
+
+		if (!(rspos == 0 and repos == 0)) { // found valid chaining
+			//check_circ_validity();
+			uint32_t start_bp;
+			uint32_t end_bp;
+			if (qspos == 1) {
+				start_bp = (r1_partial) ? mr.spos_r1 : mr.spos_r2;
+				end_bp = repos;
+			}
+			else {
+				start_bp = rspos;
+				end_bp = (r1_partial) ? mr.epos_r1 : mr.epos_r2;
+			}
+			fprintf(stderr, "%s\t%s\t%d\t%d\n", current_record1->rname, mr.chr.c_str(), start_bp, end_bp);
+		}
+
+	}
 }
 
 void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, uint32_t gene_len) {
@@ -206,10 +229,10 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, const RegionalHashTabl
 	for (int i = qspos - 1; i <= qepos - window_size; i += step) {
 		GIMatchedKmer* gl = regional_ht.find_hash(regional_ht.hash_val(remain_seq + i));
 		if (gl == NULL) {
-			fprintf(stderr, "Hash val not found!!!\n");
+			vafprintf(2, stderr, "Hash val not found!!!\n");
 		}
 
-		fprintf(stderr, "Occ: %d\n", gl->frag_count);
+		vafprintf(2, stderr, "Occ: %d\n", gl->frag_count);
 		
 		for (int j = 0; j < gl->frag_count; j++) {
 			int bin_id = gl->frags[j].info / BINSIZE;
@@ -218,15 +241,16 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, const RegionalHashTabl
 			if (bins[bin_id] > bins[max_id])
 				max_id = bin_id;
 
-			fprintf(stderr, "%d - %d\t", gl->frags[j].info, bins[bin_id]);
+			vafprintf(2, stderr, "%d - %d\t", gl->frags[j].info, bins[bin_id]);
 		}
-		fprintf(stderr, "\n");
+		vafprintf(2, stderr, "\n");
 	}	
-	fprintf(stderr, "Biggest bin: bin[%d][%d - %d] = %d\n", max_id, max_id * BINSIZE, (max_id+1) * BINSIZE - 1, bins[max_id]);
+	vafprintf(2, stderr, "Biggest bin: bin[%d][%d - %d] = %d\n", max_id, max_id * BINSIZE, (max_id+1) * BINSIZE - 1, bins[max_id]);
 
 }
 
-void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift) {
+void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift, uint32_t& rspos, uint32_t& repos) {
+	int seq_len = qepos - qspos + 1;
 	int kmer_cnt = ((qepos - qspos + 1) - window_size) / step + 1;
 	GIMatchedKmer* fl = (GIMatchedKmer*) malloc(kmer_cnt * sizeof(GIMatchedKmer));
 	// Initialize
@@ -242,20 +266,20 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTab
 			fl[l].frag_count = 0;
 			fl[l].frags = NULL;
 			l++;
-			fprintf(stderr, "Hash val not found!!!\n");
+			vafprintf(2, stderr, "Hash val not found!!!\n");
 			continue;
 		}
 
 		fl[l].frag_count = gl->frag_count;
 		fl[l].frags = gl->frags;
 
-		fprintf(stderr, "Occ: %d\n", fl[l].frag_count);
+		vafprintf(2, stderr, "Occ: %d\n", fl[l].frag_count);
 		
 		for (int j = 0; j < fl[l].frag_count; j++) {
 			fl[l].frags[j].info += shift;
-			fprintf(stderr, "%d\t", fl[l].frags[j].info);
+			vafprintf(2, stderr, "%d\t", fl[l].frags[j].info);
 		}
-		fprintf(stderr, "\n");
+		vafprintf(2, stderr, "\n");
 		l++;
 	}
 
@@ -267,10 +291,37 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTab
 	chain_seeds_sorted_kbest2(qepos, fl, bc, window_size, kmer_cnt);
 
 	vafprintf(1, stderr, "Chaining score:%.4f,\t len: %lu\n", bc.chains[0].score, (unsigned long)bc.best_chain_count);
-	for (int j = 0; j < bc.best_chain_count; j++)
-		for (int i = 0; i < bc.chains[j].chain_len; i++) {
-			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, bc.chains[j].frags[i].rpos, bc.chains[j].frags[i].qpos, bc.chains[j].frags[i].len);
+
+	int allowed_missed_kmers = (qepos - qspos + 1) / 20 * 3 + 1;
+	vafprintf(2, stderr, "Allowed missing kmers: %d\n", allowed_missed_kmers);
+
+	rspos = 0;
+	repos = 0;
+	uint32_t curr_rspos, curr_repos;
+	int least_miss = INF;
+	int least_miss_ind = -1;
+	int missing;
+	for (int j = 0; j < bc.best_chain_count; j++) {
+		missing = kmer_cnt - bc.chains[j].chain_len;
+		vafprintf(2, stderr, "Actual missing: %d\n", missing);
+		if (missing > least_miss)
+			break;
+
+		curr_rspos = bc.chains[j].frags[0].rpos - bc.chains[j].frags[0].qpos;
+		curr_repos = bc.chains[j].frags[bc.chains[j].chain_len - 1].rpos + (seq_len - 1 - bc.chains[j].frags[bc.chains[j].chain_len - 1].qpos);
+		uint32_t curr_qlen = bc.chains[j].frags[bc.chains[j].chain_len - 1].qpos - bc.chains[j].frags[0].qpos;
+		uint32_t qlen = (least_miss_ind != -1) ? bc.chains[least_miss_ind].frags[bc.chains[least_miss_ind].chain_len - 1].qpos - bc.chains[least_miss_ind].frags[0].qpos : 0;
+		if (missing < least_miss or (missing == least_miss and curr_qlen > qlen)) {
+			least_miss = missing;
+			least_miss_ind = j;
+			rspos = curr_rspos;
+			repos = curr_repos;
 		}
+
+		for (int i = 0; i < bc.chains[j].chain_len; i++) {
+			vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, bc.chains[j].frags[i].rpos, bc.chains[j].frags[i].qpos, bc.chains[j].frags[i].len);
+		}
+	}
 
 	for (int i = 0; i < BESTCHAINLIM; i++)
 		free(bc.chains[i].frags);
@@ -278,6 +329,7 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTab
 	free(bc.chains);
 
 }
+
 
 int ProcessCirc::get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos) {
 
