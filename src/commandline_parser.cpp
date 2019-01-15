@@ -4,7 +4,7 @@ using namespace std;
 
 bool pairedEnd = false;
 int kmer = 19;
-int maxReadLength = 76;
+int maxReadLength = 120;
 int verboseMode = 0;
 char gtfFilename[FILE_NAME_LENGTH];
 char referenceFilename[FILE_NAME_LENGTH];

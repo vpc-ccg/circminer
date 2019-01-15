@@ -675,6 +675,10 @@ uint32_t GTFParser::get_interval_epos(int interval_ind) {
 	return exons_int_map[contigName].get_node(interval_ind)->epos;
 }
 
+const IntervalInfo<UniqSeg>* GTFParser::get_interval(int interval_ind) {
+	return exons_int_map[contigName].get_node(interval_ind);
+}
+
 GeneInfo* GTFParser::get_gene_info(const string& gid) {
 	return &gid2ginfo[contigName][gid];
 }

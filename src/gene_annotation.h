@@ -93,6 +93,7 @@ public:
 	const IntervalInfo<GeneInfo>* get_gene_overlap(uint32_t loc, bool use_mask);
 
 	uint32_t get_interval_epos(int interval_ind);
+	const IntervalInfo<UniqSeg>* get_interval(int interval_ind);
 
 	ConShift get_shift(const string& contig, uint32_t loc);
 
