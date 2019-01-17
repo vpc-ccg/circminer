@@ -329,7 +329,7 @@ bool extend_chain_left(const chain_t& ch, char* seq, int seq_len, int lb, Matche
 	
 	int sclen_left = best_alignment.sclen;
 	int err_left = best_alignment.ed;
-	remain_beg -= best_alignment.covlen;
+	remain_beg -= best_alignment.rcovlen;
 
 	mr.spos = lm_pos;
 	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
@@ -358,7 +358,7 @@ bool extend_chain_right(const chain_t& ch, char* seq, int seq_len, int ub, Match
 
 	int sclen_right = best_alignment.sclen;
 	int err_right = best_alignment.ed;
-	remain_end -= best_alignment.covlen;
+	remain_end -= best_alignment.rcovlen;
 
 	mr.epos = rm_pos;
 	mr.matched_len -= (right_ok)? sclen_right : remain_end;
@@ -480,7 +480,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	err_left = best_alignment_left.ed;
 	sclen_left = best_alignment_left.sclen;
-	remain_beg -= best_alignment_left.covlen;
+	remain_beg -= best_alignment_left.rcovlen;
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
 	int remain_end = seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len);
@@ -495,7 +495,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	err_right = best_alignment.ed;
 	sclen_right = best_alignment.sclen;
-	remain_end -= best_alignment.covlen;
+	remain_end -= best_alignment.rcovlen;
 
 	mr.spos = lm_pos;
 	mr.epos = rm_pos;
