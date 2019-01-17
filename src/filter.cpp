@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <cstring>
+#include <algorithm>
 #include <set>
 
 #include "filter.h"
@@ -334,6 +335,7 @@ bool extend_chain_left(const chain_t& ch, char* seq, int seq_len, int lb, Matche
 	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
 	mr.qspos += (left_ok) ? sclen_left : remain_beg;
 	mr.sclen_left = sclen_left;
+	mr.left_ed = best_alignment.ed;
 
 	err = err_left;
 
@@ -362,6 +364,7 @@ bool extend_chain_right(const chain_t& ch, char* seq, int seq_len, int ub, Match
 	mr.matched_len -= (right_ok)? sclen_right : remain_end;
 	mr.qepos -= (right_ok)? sclen_right : remain_end;
 	mr.sclen_right = sclen_right;
+	mr.right_ed = best_alignment.ed;
 
 	err = err_right;
 
@@ -502,6 +505,9 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	mr.qspos = 1 + (left_ok) ? sclen_left : remain_beg;
 	mr.qepos = seq_len - (right_ok) ? sclen_right: remain_end;
+
+	mr.right_ed = best_alignment.ed;
+	mr.left_ed  = best_alignment_left.ed;
 
 	mr.dir = dir;
 	

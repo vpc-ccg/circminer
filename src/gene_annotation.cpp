@@ -423,7 +423,7 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 		// find end of intron
 		// To be modified
 		max_end = spos;
-		while (near_border[contigName[0]-'1'][max_end] & 1)
+		while (near_border[contigName[0]-'1'][max_end] & 2)
 			max_end++;
 		max_end--;
 
@@ -471,7 +471,7 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	uint32_t epos = spos + mlen - 1;
 
 	//fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
-	if (!(near_border[contigName[0]-'1'][spos] & 1))		// intronic
+	if (!(near_border[contigName[0]-'1'][spos] & 1))		// if not near any border, skip lookup
 	{
 		//fprintf(stderr, "skip lookup\n");
 		ol_exons = NULL;
@@ -487,7 +487,7 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 		// find end of intron
 		// To be modified
 		max_end = spos;
-		while (near_border[contigName[0]-'1'][max_end] & 1)
+		while (near_border[contigName[0]-'1'][max_end] & 2)
 			max_end++;
 		max_end--;
 
@@ -518,6 +518,17 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 		else
 			return max_end - mlen + 1;
 	}
+
+	// loc excluded
+	// int32_t min2end = min_end - epos;
+	// if (max_end > 0 and min2end >= mlen) {	// exonic	
+	// 	ol_exons = ov_res;
+
+	// 	if (min2end < rlen and max_next_exon != 0)	// junction is allowed
+	// 		return max_next_exon + mlen - 1;
+	// 	else
+	// 		return max_end - mlen + 1;
+	// }
 
 	else {	// on exon boundary
 		ol_exons = NULL;

@@ -23,7 +23,6 @@ using namespace std;
 
 #define MAXLINESIZE 400
 #define FILE_NAME_LENGTH 1000
-//#define LINELOG	50000
 #define LINELOG	100000
 #define ASCISIZE 128
 
@@ -249,6 +248,8 @@ struct MatchedMate {
 	uint32_t 	qepos;
 
 	uint16_t	junc_num;
+	int 		right_ed;
+	int 		left_ed;
 	int			sclen_right;
 	int			sclen_left;
 	int 		matched_len;
@@ -272,7 +273,7 @@ struct MatchedMate {
 
 	const IntervalInfo<GeneInfo>* gene_info;
 
-	MatchedMate() : type(ORPHAN), junc_num(0), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), 
+	MatchedMate() : type(ORPHAN), junc_num(0), right_ed(EDTH+1), left_ed(EDTH+1), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), 
 					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), exons_spos(NULL), exons_epos(NULL), 
 					exon_ind_spos(-1), exon_ind_epos(-1), gene_info(NULL) { }
 
@@ -295,6 +296,7 @@ struct MatchedMate {
 
 		looked_up_spos = mm.looked_up_spos;
 		looked_up_epos = mm.looked_up_epos;
+		looked_up_gene = mm.looked_up_gene;
 
 		exons_spos	= mm.exons_spos;
 		exons_epos	= mm.exons_epos;
@@ -323,23 +325,29 @@ struct MatchedRead {
 	bool		r1_forward;
 	bool		r2_forward;
 
+	int 		edit_dist;
 	int 		type;
 	int32_t 	tlen;
 	uint16_t 	junc_num;
 	bool		gm_compatible;
 	string		chr;
 
-	MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), chr("-"), r1_forward(true), r2_forward(true) { }
+	MatchedRead() : type(NOPROC_NOMATCH), edit_dist(EDTH+1), tlen(INF), junc_num(0), gm_compatible(false), chr("-"), r1_forward(true), r2_forward(true) { }
 	
 	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first) {
 		if (type > this->type)
 			return false;
 
+		int edit_dist = r1.right_ed + r1.left_ed + r2.right_ed + r2.left_ed;
+
 		if (type == this->type) {
 			if (this->gm_compatible and !gm_compatible)
 				return false;
 
-			if ((this->gm_compatible == gm_compatible) and (this->tlen < tlen))
+			if ((this->gm_compatible == gm_compatible) and (this->edit_dist < edit_dist))
+				return false;
+
+			if ((this->gm_compatible == gm_compatible) and (this->edit_dist == edit_dist) and (this->tlen < tlen))
 				return false;
 		}
 
@@ -389,6 +397,7 @@ struct MatchedRead {
 			r2_forward = r1.dir > 0;
 		}
 
+		this->edit_dist = edit_dist;
 		this->tlen = tlen;
 		this->junc_num = jun_between + r1.junc_num + r2.junc_num;
 		this->gm_compatible = gm_compatible;
@@ -404,12 +413,15 @@ struct MatchedRead {
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
-typedef struct {
+struct MatePair {
 	float score;
 	chain_t forward;
 	chain_t reverse;
-} MatePair;
 
+	bool operator < (const MatePair& r) const {
+		return score > r.score;
+	}
+};
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 struct GenRegion {
