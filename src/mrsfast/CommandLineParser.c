@@ -69,7 +69,7 @@ char					*unmappedOutput;
 char					*mappingOutputPath;
 char					*concordantStatOutput;
 short					maxHits = 0;
-unsigned char			WINDOW_SIZE = 12;
+unsigned char			WINDOW_SIZE = 14;
 unsigned int			CONTIG_SIZE;
 unsigned int			CONTIG_MAX_SIZE;
 unsigned int			THREAD_COUNT = 1;

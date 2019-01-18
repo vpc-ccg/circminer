@@ -98,7 +98,8 @@ int mapping(int& last_round_num) {
 
 	int	flag;
 	double tmpTime;
-	checkSumLength = 5;
+
+	checkSumLength = (WINDOW_SIZE > kmer) ? 0 : kmer - WINDOW_SIZE;
 
 	initCommon();
 	
