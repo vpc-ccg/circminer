@@ -507,7 +507,7 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 		}
 	}
 
-	if (max_end > 0) {	// exonic	
+	if (max_end > 0 and max_end >= epos) {	// exonic	
 		ol_exons = ov_res;
 
 		// loc excluded
@@ -531,6 +531,7 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	// }
 
 	else {	// on exon boundary
+		max_end = 0;
 		ol_exons = NULL;
 		return 0;
 	}

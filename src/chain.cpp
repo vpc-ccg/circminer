@@ -168,11 +168,13 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 
 				j = lb_ind[jj];
 				while ((j < pc_mk->frag_count) and (pc_mk->frags[j].info <= max_lpos_lim)) {
-					if (max_exon_end == 0 or (pc_mk->frags[j].info + kmer -1) <= max_exon_end)
+					if (max_exon_end == 0 or (pc_mk->frags[j].info + kmer -1) <= max_exon_end) {
 						// allowed to put on genome
 						genome_dist = pc_mk->frags[j].info - seg_end - 1;
-					else
+					}
+					else {
 						genome_dist = INF;
+					}
 
 					if (abs(genome_dist - read_dist) <= EDTH) {
 						distt = genome_dist;
