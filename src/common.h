@@ -141,6 +141,7 @@ struct UniqSeg {
 	uint32_t end;
 	uint32_t next_exon_beg;
 	uint32_t prev_exon_end;
+	vector<uint32_t> trans_id;
 
 	friend ostream& operator<<(ostream& os, const UniqSeg& us);
 
@@ -149,7 +150,11 @@ struct UniqSeg {
 	UniqSeg(const string& gid, uint32_t s, uint32_t e, uint32_t n, uint32_t p) : 
 			start(s), end(e), next_exon_beg(n), prev_exon_end(p), gene_id(gid) {}
 
-	UniqSeg(const UniqSeg& other) : start(other.start), end(other.end), next_exon_beg(other.next_exon_beg), prev_exon_end(other.prev_exon_end), gene_id(other.gene_id) {}
+	UniqSeg(const UniqSeg& other) : start(other.start), end(other.end), next_exon_beg(other.next_exon_beg), prev_exon_end(other.prev_exon_end), gene_id(other.gene_id) {
+		trans_id.clear();
+		for (int i = 0; i < other.trans_id.size(); i++)
+			trans_id.push_back(other.trans_id[i]);
+	}
 
 	UniqSeg& operator = (const UniqSeg& other) {
 		if (this == &other)
@@ -160,6 +165,10 @@ struct UniqSeg {
 		next_exon_beg 	= other.next_exon_beg;
 		prev_exon_end 	= other.prev_exon_end;
 		gene_id 		= other.gene_id;
+		
+		trans_id.clear();
+		for (int i = 0; i < other.trans_id.size(); i++)
+			trans_id.push_back(other.trans_id[i]);
 
 		return *this;
 	}
@@ -195,7 +204,10 @@ struct UniqSeg {
 
 // Temporary, just for testing --will be deleted
 inline ostream& operator<<(ostream& os, const UniqSeg& us) {
-	os << us.prev_exon_end << " [" << us.gene_id << ": " << us.start << "-" << us.end << "] " << us.next_exon_beg;
+	os << "(";
+	for (int i = 0; i < us.trans_id.size(); i++)
+		os << us.trans_id[i] << ", ";
+	os << ") " << us.prev_exon_end << " [" << us.gene_id << ": " << us.start << "-" << us.end << "] " << us.next_exon_beg;
 	return os;
 }
 

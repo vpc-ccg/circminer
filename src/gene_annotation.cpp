@@ -134,6 +134,7 @@ void copy_seg(GTFRecord* a, GTFRecord* b) {
 	a->next_start = b->next_start;
 	a->prev_end = b->prev_end;
 
+	a->trans_id_int = b->trans_id_int;
 	a->exon_num_int = b->exon_num_int;
 	
 	a->forward_strand = b->forward_strand;
@@ -145,6 +146,22 @@ void copy_seg(GTFRecord* a, GTFRecord* b) {
 	a->trans_id = b->trans_id;
 	a->exon_num = b->exon_num;
 	a->gene_name = b->gene_name;
+}
+
+void add2merged_exons(map <UniqSeg, string>& mymap, UniqSeg& seg, GTFRecord* rec) {
+	map <UniqSeg, string>:: iterator it = mymap.find(seg);
+	if (it != mymap.end()) {	// found seg
+		string tmp_str = mymap[seg];
+		seg = it->first;
+		seg.trans_id.push_back(rec->trans_id_int);
+		mymap.erase(it);
+		mymap[seg] = tmp_str + "\t" + rec->trans_id + "-" + rec->exon_num;
+	}
+	else {
+		seg.trans_id.clear();
+		seg.trans_id.push_back(rec->trans_id_int);
+		mymap[seg] = rec->trans_id + "-" + rec->exon_num;
+	}
 }
 
 void GTFParser::chrloc2conloc(string& chr, uint32_t& start, uint32_t& end) {
@@ -170,6 +187,7 @@ bool GTFParser::load_gtf(void) {
 
 	bool found;
 	UniqSeg seg;
+	string tmp_str;
 
 	GTFRecord* current_record = new GTFRecord;
 	GTFRecord* prev_record = new GTFRecord;
@@ -207,6 +225,10 @@ bool GTFParser::load_gtf(void) {
 			}
 		}
 
+		if (current_record->type == "transcript") {
+			transcript_ids[current_record->chr].push_back(current_record->trans_id);
+		}
+
 		if (current_record->type == "exon") {
 			///
 			//
@@ -227,6 +249,7 @@ bool GTFParser::load_gtf(void) {
 			}
 			//
 			///
+			current_record->trans_id_int = transcript_ids[current_record->chr].size() - 1;
 			if (prev_record->type != "exon") {
 				//prev_record = current_record;
 				copy_seg(prev_record, current_record);
@@ -249,13 +272,8 @@ bool GTFParser::load_gtf(void) {
 				seg.next_exon_beg	= prev_record->next_start;
 				seg.prev_exon_end	= prev_record->prev_end;
 
-				if (merged_exons[prev_record->chr].find(seg) != merged_exons[prev_record->chr].end()) {	// found seg
-					merged_exons[prev_record->chr][seg] += "\t" + prev_record->trans_id + "-" + prev_record->exon_num;
-				}
-				else {
-					merged_exons[prev_record->chr][seg] = prev_record->trans_id + "-" + prev_record->exon_num;
-				}
-				//prev_record = current_record;
+				add2merged_exons(merged_exons[prev_record->chr], seg, prev_record);
+				
 				copy_seg(prev_record, current_record);
 			}
 		}
@@ -272,12 +290,7 @@ bool GTFParser::load_gtf(void) {
 			seg.next_exon_beg	= prev_record->next_start;
 			seg.prev_exon_end	= prev_record->prev_end;
 
-			if (merged_exons[prev_record->chr].find(seg) != merged_exons[prev_record->chr].end()) {	// found seg
-				merged_exons[prev_record->chr][seg] += "\t" + prev_record->trans_id + "-" + prev_record->exon_num;
-			}
-			else {
-				merged_exons[prev_record->chr][seg] = prev_record->trans_id + "-" + prev_record->exon_num;
-			}
+			add2merged_exons(merged_exons[prev_record->chr], seg, prev_record);
 
 			prev_record->type = "";
 		}
@@ -298,21 +311,22 @@ bool GTFParser::load_gtf(void) {
 		seg.next_exon_beg	= prev_record->next_start;
 		seg.prev_exon_end	= prev_record->prev_end;
 
-		if (merged_exons[prev_record->chr].find(seg) != merged_exons[prev_record->chr].end()) {	// found seg
-			merged_exons[prev_record->chr][seg] += "\t" + prev_record->trans_id + "-" + prev_record->exon_num;
-		}
-		else {
-			merged_exons[prev_record->chr][seg] = prev_record->trans_id + "-" + prev_record->exon_num;
-		}
+		add2merged_exons(merged_exons[prev_record->chr], seg, prev_record);
 	}
 	//////
+
+	//fprintf(stdout, "162: %s\n", transcript_ids[merged_exons.begin()->first][162].c_str());
 
 	map <string, map <UniqSeg, string> >:: iterator con_it;
 	for (con_it = merged_exons.begin(); con_it != merged_exons.end(); con_it++) {
 		exons_int_map[con_it->first].build(con_it->second);
 		//exons_int_map[con_it->first].print();
+
+		// construct transcript to segment table
+		trans2seg[con_it->first].resize(transcript_ids[con_it->first].size());
+		exons_int_map[con_it->first].build_trans2seg_table(transcript_ids[con_it->first].size(), trans2seg[con_it->first], trans_start_ind[con_it->first]);
 	}
-	
+
 	map <string, map <GeneInfo, string> >:: iterator it;
 	for (it = merged_genes.begin(); it != merged_genes.end(); it++) {
 		genes_int_map[it->first].build(it->second);
@@ -689,6 +703,10 @@ uint32_t GTFParser::get_interval_epos(int interval_ind) {
 
 const IntervalInfo<UniqSeg>* GTFParser::get_interval(int interval_ind) {
 	return exons_int_map[contigName].get_node(interval_ind);
+}
+
+int GTFParser::get_trans_start_ind(const string& contig, uint32_t tid) {
+	return trans_start_ind[contig][tid];
 }
 
 GeneInfo* GTFParser::get_gene_info(const string& gid) {

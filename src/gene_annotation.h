@@ -26,6 +26,7 @@ typedef struct {
 	uint32_t end;
 	uint32_t next_start;
 	uint32_t prev_end;
+	uint32_t trans_id_int;
 	int exon_num_int;
 
 	bool forward_strand;
@@ -65,10 +66,15 @@ private:
 	map <string, vector<ConShift> > con2chr;
 	map <string, int> level;
 
+	map <string, vector <int> > trans_start_ind;
+
 	void set_contig_shift(const ContigLen* contig_len, int contig_count);
 	void chrloc2conloc(string& chr, uint32_t& start, uint32_t& end);
 
 public:
+	map <string, vector <string> > transcript_ids;
+	map <string, vector < vector <uint8_t> > > trans2seg;
+
 	GTFParser (void);
 	GTFParser (char* filename, const ContigLen* contig_len, int contig_count);
 	~GTFParser (void);
@@ -98,6 +104,8 @@ public:
 	ConShift get_shift(const string& contig, uint32_t loc);
 
 	GeneInfo* get_gene_info(const string& gid);
+
+	int get_trans_start_ind(const string& contig, uint32_t tid);
 
 	void print_record(const GTFRecord& r);
 };

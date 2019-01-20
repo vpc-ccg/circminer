@@ -120,6 +120,8 @@ void FlatIntervalTree<T>::build(map <T, string>& sorted_list) {
 			}
 		}
 	}
+
+	fprintf(stdout, "#disjoint_intervals = %d\n", disjoint_intervals.size());
 }
 // assumption: target is not less than list[0]
 // input interval: [, )
@@ -172,6 +174,52 @@ IntervalInfo<T>* FlatIntervalTree<T>::find_ind(uint32_t pos, int& ind) {
 template <class T>
 IntervalInfo<T>* FlatIntervalTree<T>::get_node(int ind) {
 	return &disjoint_intervals[ind];
+}
+
+template <class T>
+void FlatIntervalTree<T>::build_trans2seg_table(int trans_cnt, vector <vector <uint8_t> >& trans2seg, vector <int>& starts) {
+	//fprintf(stdout, "trans cnt: %d\n", trans_cnt);
+	//vector <int> starts(trans_cnt, INF);
+	starts.clear();
+	for (int i = 0; i < trans_cnt; i++)
+		starts.push_back(INF);
+	
+	vector <int> ends(trans_cnt, 0);
+
+	int tid;
+	for (int i = 0; i < disjoint_intervals.size(); i++) {
+		//sort(disjoint_intervals[i].seg_list.begin(), disjoint_intervals[i].seg_list.end());
+		for (int j = 0; j < disjoint_intervals[i].seg_list.size(); j++) {
+			for (int k = 0; k < disjoint_intervals[i].seg_list[j].trans_id.size(); k++) {
+				tid = disjoint_intervals[i].seg_list[j].trans_id[k];
+				//fprintf(stdout, "tid: %d\n", tid);
+				if (i < starts[tid])
+					starts[tid] = i;
+				if (i > ends[tid])
+					ends[tid] = i;
+			}
+		}
+	}
+
+	// alloc and init
+	for (int i = 0; i < trans_cnt; i++) {
+		int s = ends[i] - starts[i] + 1;
+		trans2seg[i].resize(s);
+		for (int j = 0; j < s; j++) {
+			trans2seg[i][j] = 0;
+		}
+	}
+
+	for (int i = 0; i < disjoint_intervals.size(); i++) {
+		for (int j = 0; j < disjoint_intervals[i].seg_list.size(); j++) {
+			uint8_t state = (disjoint_intervals[i].spos == disjoint_intervals[i].seg_list[j].start) ? 1 : 
+							((disjoint_intervals[i].epos == disjoint_intervals[i].seg_list[j].end) ? 3 : 2);
+			for (int k = 0; k < disjoint_intervals[i].seg_list[j].trans_id.size(); k++) {
+				tid = disjoint_intervals[i].seg_list[j].trans_id[k];
+				trans2seg[tid][i - starts[tid]] = state;
+			}
+		}
+	}
 }
 
 template <class T>

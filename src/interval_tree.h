@@ -30,6 +30,8 @@ public:
 
 	IntervalInfo<T>* get_node(int ind);
 
+	void build_trans2seg_table(int trans_cnt, vector <vector <uint8_t> >& trans2seg, vector <int>& starts);
+
 	void print();
 };
 
