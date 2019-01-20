@@ -562,56 +562,65 @@ bool same_gene(uint32_t sme, const IntervalInfo<GeneInfo>* smg, uint32_t lms, co
 	return false;
 }
 
-// returns tlen
-// -1 if not accessable
-int tlen_recursive(const IntervalInfo<UniqSeg>* curr_region, const IntervalInfo<UniqSeg>* last_region, uint32_t curr_pos, uint32_t last_pos, 
-						int curr_it_ind, int last_it_ind, int curr_exon_ind, int last_exon_ind) {
-	
-	if (curr_it_ind > last_it_ind)
-		return -1;
+// calculate tlen including sm.epos and lm.spos
+int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num) {
+	const IntervalInfo<UniqSeg>* this_region;
+	uint32_t tid;
+	int start_ind;
+	int start_table_ind;
+	int end_table_ind;
+	int tlen;
+	int min_tlen = INF;
+	int this_it_ind;
+	int in;
 
-	if (curr_it_ind == last_it_ind) {
-		//fprintf(stdout, "[F] {%d, %d}\n", curr_exon_ind, last_exon_ind);
-		if (curr_exon_ind == last_exon_ind or last_region->seg_list[last_exon_ind].same_exon(curr_region->seg_list[curr_exon_ind])) {
-			//fprintf(stdout, "[F] (%d, %d) [%d-%d] -> %d\n", curr_it_ind, last_it_ind, curr_pos, last_pos, last_pos - curr_pos + 1);
-			return last_pos - curr_pos + 1;
-		}
-		else
-			return -1;
-	}
-
-	//fprintf(stdout, "[M] for [%d-%d]\n", curr_pos, last_pos);
-	int this_dist = curr_region->seg_list[curr_exon_ind].end - curr_pos + 1;
-
-	int this_it_ind = curr_it_ind;
-
-	bool found_next = false;
-	while (this_it_ind < last_it_ind) {
-		this_it_ind++;
-		const IntervalInfo<UniqSeg>* this_region = gtf_parser.get_interval(this_it_ind);
-		for (int i = 0; i < this_region->seg_list.size(); i++) {
-			if (! this_region->seg_list[i].next_exon(curr_region->seg_list[curr_exon_ind]))
+	for (int i = 0; i < sm.exons_epos->seg_list.size(); i++) {
+		for (int j = 0; j < sm.exons_epos->seg_list[i].trans_id.size(); j++) {
+			tid = sm.exons_epos->seg_list[i].trans_id[j];
+			start_ind = gtf_parser.get_trans_start_ind(contigName, tid);
+			start_table_ind = sm.exon_ind_epos - start_ind;
+			if (start_table_ind < 0)	// assert
+				continue;
+			
+			end_table_ind = lm.exon_ind_spos - start_ind;
+			if (end_table_ind >= gtf_parser.trans2seg[contigName][tid].size() or gtf_parser.trans2seg[contigName][tid][end_table_ind] == 0)	// transcript does not contain lm exon
 				continue;
 
-			found_next = true;
-			int tlen = tlen_recursive(this_region, last_region, curr_region->seg_list[curr_exon_ind].next_exon_beg, last_pos, this_it_ind, last_it_ind, i, last_exon_ind);
-			if (tlen >= 0) {
-				//fprintf(stdout, "[I] (%d, %d) [%d-%d] -> %d\n", curr_it_ind, last_it_ind, curr_pos, curr_region->seg_list[curr_exon_ind].end, this_dist);
-				return this_dist + tlen;
+			if (start_table_ind == end_table_ind) {
+				in = 0;
+				tlen = lm.spos - sm.epos + 1;
+			}
+			else {
+				bool pre_zero = false;
+				in = 0;
+				tlen = sm.exons_epos->epos - sm.epos + 1;
+				this_it_ind = sm.exon_ind_epos;
+				for (int k = start_table_ind + 1; k < end_table_ind; k++) {
+					this_it_ind++;
+					if (gtf_parser.trans2seg[contigName][tid][k] != 0) {
+						this_region = gtf_parser.get_interval(this_it_ind);
+						tlen += this_region->epos - this_region->spos + 1;
+						pre_zero = false;
+					}
+					else {
+						if (!pre_zero)
+							in++;
+						pre_zero = true;
+					}
+				}
+				tlen += lm.spos - lm.exons_spos->spos + 1;
+			}
+
+			//fprintf(stdout, "tr[%d]: %s\ttlen: %d\tintrons: %d\n", tid, gtf_parser.transcript_ids[contigName][tid].c_str(), tlen, in);
+
+			if (tlen < min_tlen) {
+				intron_num = in;
+				min_tlen = tlen;
 			}
 		}
 	}
-	
-	return -1;
-}
 
-// calculate tlen including sm.epos and lm.spos
-int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int i, int j) {
-	int cdna_dist = tlen_recursive(sm.exons_epos, lm.exons_spos, sm.epos, lm.spos, sm.exon_ind_epos, lm.exon_ind_spos, i, j);
-	if (cdna_dist < 0)
-		return -1;
-	else
-		return cdna_dist + lm.matched_len - 1 + sm.matched_len - 1;
+	return (min_tlen == INF) ? -1 : min_tlen + sm.matched_len - 1 + lm.matched_len - 1;
 }
 
 // sm should start before lm
@@ -651,37 +660,19 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 			mr.update(sm, lm, chr, shift, tlen, 0, false, DISCRD, r1_sm);
 	}
 	else {
-		for (int i = 0; i < sm.exons_epos->seg_list.size(); i++)
-			for (int j = 0; j < lm.exons_spos->seg_list.size(); j++)
-				if (sm.exons_epos->seg_list[i].same_exon(lm.exons_spos->seg_list[j])) {
-					// end1 and start2 on same exon
-					tlen = lm.spos - sm.epos - 1 + sm.matched_len + lm.matched_len;
-					if (tlen <= MAXTLEN)
-						mr.update(sm, lm, chr, shift, tlen, 0, true, CONCRD, r1_sm);
-					else
-						mr.update(sm, lm, chr, shift, tlen, 0, true, DISCRD, r1_sm);
-				}
-				else if (lm.exons_spos->seg_list[j].next_exon(sm.exons_epos->seg_list[i])) {
-					// start2 on next exon
-					intron_gap = lm.exons_spos->seg_list[j].start - sm.exons_epos->seg_list[i].end;
-					tlen = lm.spos - sm.epos - (lm.exons_spos->seg_list[j].start - sm.exons_epos->seg_list[i].end) + sm.matched_len + lm.matched_len;
-					if (tlen <= MAXTLEN)
-						mr.update(sm, lm, chr, shift, tlen, 1, true, CONCRD, r1_sm);
-					else
-						mr.update(sm, lm, chr, shift, tlen, 1, true, DISCRD, r1_sm);
-				}
-				else if (lm.exons_spos->seg_list[j].same_gene(sm.exons_epos->seg_list[i])) {
-					//tlen = lm.spos - sm.epos - 1 + sm.matched_len + lm.matched_len;
-					tlen = calc_tlen(sm, lm, i , j);
-					//fprintf(stdout, "tlen: %d\n", tlen);
-					if (tlen >= 0 and tlen <= MAXTLEN)
-						mr.update(sm, lm, chr, shift, tlen, 2, true, CONCRD, r1_sm);
-					else {
-						if (tlen < 0)
-							tlen = lm.spos - sm.epos - 1 + sm.matched_len + lm.matched_len;
-						mr.update(sm, lm, chr, shift, tlen, 2, true, DISCRD, r1_sm);
-					}
-				}
+		int intron_num;
+		tlen = calc_tlen(sm, lm, intron_num);
+		//fprintf(stdout, "tlen: %d\n", tlen);
+		if (tlen >= 0 and tlen <= MAXTLEN) {
+			mr.update(sm, lm, chr, shift, tlen, intron_num, true, CONCRD, r1_sm);
+		}
+		else {
+			if (tlen < 0) {
+				tlen = lm.spos - sm.epos - 1 + sm.matched_len + lm.matched_len;
+				intron_num = 0;
+			}
+			mr.update(sm, lm, chr, shift, tlen, intron_num, true, DISCRD, r1_sm);
+		}
 	}
 
 	if (mr.type == CONCRD)
