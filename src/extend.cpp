@@ -9,6 +9,7 @@
 #include "gene_annotation.h"
 
 void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, bool had_junction, int remain, uint32_t ub, AlignRes& best, AlignRes& curr, bool& consecutive);
+
 void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, bool had_junction, int remain, uint32_t lb,  AlignRes& best, AlignRes& curr, bool& consecutive);
 
 
@@ -42,10 +43,10 @@ bool extend_right(char* seq, uint32_t& pos, int len, uint32_t ub, AlignRes& best
 			return true;
 	}
 	
-	if (best_alignment.qcovlen >= seq_len && consecutive)
+	if (consecutive)
 		return false;
 
-	// intron retentaion
+	// intron retention
 	if (!pac2char(orig_pos + 1, ref_len, res_str))
 		return false;
 
@@ -95,10 +96,10 @@ bool extend_left(char* seq, uint32_t& pos, int len, uint32_t lb, AlignRes& best_
 			return true;
 	}
 
-	if (best_alignment.qcovlen >= seq_len && consecutive)
+	if (consecutive)
 		return false;
 
-	// intron retentaion
+	// intron retention
 	if (!pac2char(orig_pos - ref_len, ref_len, res_str))
 		return false;
 
@@ -188,7 +189,7 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, bool had
 
 			edit_dist = alignment.local_alignment_right_sc(res_str, ref_remain, seq, seq_len, sclen, indel);
 		
-			consecutive = true;
+			consecutive = (ref_remain == remain);
 			new_rmpos = pos + seq_len - indel;
 			
 			vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\tsclen: %d\n", new_rmpos, seq_len, indel, edit_dist, sclen);
@@ -218,6 +219,7 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, bool had
 
 			int seq_remain = minM(exon_remain + INDELTH, seq_len);
 			edit_dist = alignment.local_alignment_right(seq, seq_remain, res_str, exon_remain, indel);
+
 			new_rmpos = pos + exon_remain - indel;
 
 			vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\tsclen: %d\n", new_rmpos, exon_remain, indel, edit_dist, sclen);
@@ -231,7 +233,6 @@ void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, bool had
 		}
 	}
 }
-
 
 // pos is exclusive
 // [ pos-len, pos-1 ]
@@ -302,7 +303,7 @@ void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, bool had_
 
 			edit_dist = alignment.local_alignment_left_sc(res_str, ref_remain, seq, seq_len, sclen, indel);
 		
-			consecutive = true;
+			consecutive = (ref_remain == remain);
 			new_lmpos = pos - seq_len + indel;
 
 			vafprintf(2, stderr, "lmpos: %lu\textend len: %d, indel: %d\tLeft edit dist: %d\n", new_lmpos, seq_len, indel, edit_dist);
