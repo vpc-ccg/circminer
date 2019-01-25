@@ -741,6 +741,20 @@ bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& 
 	return false;
 }
 
+bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
+	if (s == NULL or r == NULL)
+		return false;
+
+	for (int i = 0; i < s->seg_list.size(); i++)
+		for (int j = 0; j < r->seg_list.size(); j++)
+			for (int k = 0; k < s->seg_list[i].trans_id.size(); k++)
+				for (int l = 0; l < r->seg_list[j].trans_id.size(); l++)
+					if (s->seg_list[i].trans_id[k] == r->seg_list[j].trans_id[l])
+						return true;
+
+	return false;
+}
+
 bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
 	if (s == NULL or r == NULL)
 		return false;
@@ -801,7 +815,7 @@ void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chai
 
 			tlen = (fs < rs) ? (re - fs) : (fe - rs);
 
-			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_gene(forward_exon_list[i], reverse_exon_list[j]))
+			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_transcript(forward_exon_list[i], reverse_exon_list[j]))
 				or (forward_exon_list[i] != NULL and same_gene(forward_exon_list[i], rs, re))
 				or (reverse_exon_list[j] != NULL and same_gene(reverse_exon_list[j], fs, fe))
 				or (tlen <= MAXDISCRDTLEN)) {
