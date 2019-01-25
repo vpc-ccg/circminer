@@ -10,6 +10,10 @@ template <class T> class IntervalInfo {
 public:
 	uint32_t spos;
 	uint32_t epos;
+	uint32_t max_end;
+	uint32_t min_end;
+	uint32_t max_next_exon;
+
 	vector<T> seg_list;
 
 public:

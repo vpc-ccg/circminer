@@ -173,6 +173,8 @@ IntervalInfo<T>* FlatIntervalTree<T>::find_ind(uint32_t pos, int& ind) {
 
 template <class T>
 IntervalInfo<T>* FlatIntervalTree<T>::get_node(int ind) {
+	if (ind < 0 or ind >= disjoint_intervals.size())
+		return NULL;
 	return &disjoint_intervals[ind];
 }
 
@@ -187,9 +189,23 @@ void FlatIntervalTree<T>::build_trans2seg_table(int trans_cnt, vector <vector <u
 	vector <int> ends(trans_cnt, 0);
 
 	int tid;
+	uint32_t max_end = 0;
+	uint32_t min_end = 1e9;
+	uint32_t max_next_exon = 0;
 	for (int i = 0; i < disjoint_intervals.size(); i++) {
-		//sort(disjoint_intervals[i].seg_list.begin(), disjoint_intervals[i].seg_list.end());
+		max_end = 0;
+		min_end = 1e9;
+		max_next_exon = 0;
 		for (int j = 0; j < disjoint_intervals[i].seg_list.size(); j++) {
+			// store max exon end and min exon end per segment
+			max_end = maxM(max_end, disjoint_intervals[i].seg_list[j].end);
+			min_end = minM(min_end, disjoint_intervals[i].seg_list[j].end);
+			max_next_exon = maxM(max_next_exon, disjoint_intervals[i].seg_list[j].next_exon_beg);
+
+			disjoint_intervals[i].max_end = max_end;
+			disjoint_intervals[i].min_end = min_end;
+			disjoint_intervals[i].max_next_exon = max_next_exon;
+			
 			for (int k = 0; k < disjoint_intervals[i].seg_list[j].trans_id.size(); k++) {
 				tid = disjoint_intervals[i].seg_list[j].trans_id[k];
 				//fprintf(stdout, "tid: %d\n", tid);
