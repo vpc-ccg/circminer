@@ -429,6 +429,26 @@ struct MatePair {
 	float score;
 	chain_t forward;
 	chain_t reverse;
+	vector <uint32_t> common_tid;
+
+	MatePair() : score(-1) {}
+	MatePair(const MatePair& other) : score(other.score), forward(other.forward), reverse(other.reverse) {
+		common_tid.clear();
+		for (int i = 0; i < other.common_tid.size(); i++)
+			common_tid.push_back(other.common_tid[i]);
+	}
+
+	MatePair& operator = (const MatePair& other) {
+		score = other.score;
+		forward = other.forward;
+		reverse = other.reverse;
+
+		common_tid.clear();
+		for (int i = 0; i < other.common_tid.size(); i++)
+			common_tid.push_back(other.common_tid[i]);
+
+		return *this;
+	}
 
 	bool operator < (const MatePair& r) const {
 		return score > r.score;

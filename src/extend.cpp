@@ -9,9 +9,242 @@
 #include "gene_annotation.h"
 
 void get_seq_right(char* res_str, char* seq, int seq_len, uint32_t pos, bool had_junction, int remain, uint32_t ub, AlignRes& best, AlignRes& curr, bool& consecutive);
+void get_seq_left (char* res_str, char* seq, int seq_len, uint32_t pos, bool had_junction, int remain, uint32_t lb, AlignRes& best, AlignRes& curr, bool& consecutive);
 
-void get_seq_left(char* res_str, char* seq, int seq_len, uint32_t pos, bool had_junction, int remain, uint32_t lb,  AlignRes& best, AlignRes& curr, bool& consecutive);
+void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, uint32_t ub,  AlignRes& best, bool& consecutive);
+void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, uint32_t lb,  AlignRes& best, bool& consecutive);
 
+
+// pos is exclusive
+// [ pos+1, pos+len ]
+bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, int len, uint32_t ub, AlignRes& best_alignment) {
+	int seq_len = len;
+	int ref_len = len + INDELTH;
+	uint32_t orig_pos = pos;
+
+	char ref_seq[maxReadLength + 4 * INDELTH];
+	ref_seq[ref_len] = '\0';
+	
+	int indel;
+	bool consecutive = false;
+	AlignRes curr_alignment(ub);
+	best_alignment.set(pos, EDTH + 1, SOFTCLIPTH + 1, INDELTH + 1, 0);
+	
+	//get_seq_right(res_str, seq, seq_len, pos, false, ref_len, ub, best_alignment, curr_alignment, consecutive);
+	for (int i = 0; i < common_tid.size(); i++) {
+		extend_right_trans(common_tid[i], pos, ref_seq, ref_len, seq, seq_len, ub, best_alignment, consecutive);
+		//best_alignment.print();
+		if (best_alignment.qcovlen >= seq_len and best_alignment.ed == 0 and best_alignment.sclen == 0) {
+			pos = best_alignment.pos - best_alignment.sclen;
+			return true;
+		}
+	}
+
+	uint32_t best_rmpos = best_alignment.pos;
+	int min_ed = best_alignment.ed;
+	int sclen_best = best_alignment.sclen;
+
+	//vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\tCovered len: %d\n", min_ed, best_rmpos, best_alignment.rcovlen);
+
+	if (min_ed <= EDTH) {
+		pos = best_rmpos - sclen_best;
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
+		if (best_alignment.qcovlen >= seq_len)
+			return true;
+	}
+	
+	if (consecutive)
+		return false;
+
+	// intron retention
+	if (!pac2char(orig_pos + 1, ref_len, ref_seq))
+		return false;
+
+	min_ed = alignment.local_alignment_right_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
+	
+	vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", orig_pos, len);
+	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", ref_seq, seq, min_ed);
+
+	if (min_ed <= EDTH) {
+		curr_alignment.set(orig_pos + seq_len - indel, min_ed, sclen_best, indel, seq_len);
+		best_alignment.update_right(curr_alignment);
+		pos = orig_pos + seq_len - indel - sclen_best;
+		vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
+		return true;
+	}
+
+	return false;
+}
+
+// pos is exclusive
+// [ pos-len, pos-1 ]
+bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, int len, uint32_t lb, AlignRes& best_alignment) {
+	int seq_len = len;
+	int ref_len = len + INDELTH;
+	uint32_t orig_pos = pos;
+
+	char ref_seq[maxReadLength + 4 * INDELTH];
+	ref_seq[ref_len] = '\0';
+	
+	int indel;
+	bool consecutive = false;
+	AlignRes curr_alignment(lb);
+	best_alignment.set(pos, EDTH + 1, SOFTCLIPTH + 1, INDELTH + 1, 0);
+
+	//get_seq_left(res_str, seq, seq_len, pos, false, ref_len, lb, best_alignment, curr_alignment, consecutive);
+	for (int i = 0; i < common_tid.size(); i++)
+		extend_left_trans(common_tid[i], pos, ref_seq, ref_len, seq, seq_len, lb, best_alignment, consecutive);
+		
+	uint32_t lmpos_best = best_alignment.pos;
+	int min_ed = best_alignment.ed;
+	int sclen_best = best_alignment.sclen;
+
+	//vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\tCovered len: %d\n", min_ed, lmpos_best, best_alignment.rcovlen);
+
+	if (min_ed <= EDTH) {
+		pos = lmpos_best + sclen_best;
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
+		if (best_alignment.qcovlen >= seq_len)
+			return true;
+	}
+
+	if (consecutive)
+		return false;
+
+	// intron retention
+	if (!pac2char(orig_pos - ref_len, ref_len, ref_seq))
+		return false;
+
+	min_ed = alignment.local_alignment_left_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
+	
+	vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", orig_pos, len);
+	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", ref_seq, seq, min_ed);
+
+	if (min_ed <= EDTH) {
+		curr_alignment.set(orig_pos - seq_len + indel, min_ed, sclen_best, indel, seq_len);
+		best_alignment.update_left(curr_alignment);
+		pos = orig_pos - seq_len + indel + sclen_best;
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
+		return true;
+	}
+
+	return false;
+}
+
+// returns true iff extension was successful
+bool extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, int qseq_len, int& indel, AlignRes& best, AlignRes& curr) {
+	vafprintf(2, stderr, "Middle Right Ext Going for %lu - %lu\n", pos + 1, pos + exon_len);
+	if (!pac2char(pos + 1, exon_len, ref_seq))
+		return false;
+
+	int seq_remain = minM(exon_len + INDELTH, qseq_len);
+	int edit_dist = alignment.local_alignment_right(qseq, seq_remain, ref_seq, exon_len, indel);
+
+	uint32_t new_rmpos = pos + exon_len - indel;
+
+	vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\n", new_rmpos, exon_len, indel, edit_dist);
+	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\n", ref_seq, qseq);
+
+	if (curr.ed + edit_dist <= EDTH) {
+		curr.update(edit_dist, 0, new_rmpos, indel, exon_len);
+		best.update_right(curr);
+		return true;
+	}
+	return false;
+}
+
+void extend_right_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, int qseq_len, AlignRes& best, AlignRes& curr) {
+	vafprintf(2, stderr, "Final Right Ext Going for %lu - %lu\n", pos + 1, pos + ref_len);
+	if (!pac2char(pos + 1, ref_len, ref_seq))
+		return;
+
+	int sclen, indel;
+	int edit_dist = alignment.local_alignment_right_sc(ref_seq, ref_len, qseq, qseq_len, sclen, indel);
+
+	uint32_t new_rmpos = pos + qseq_len - indel;
+	
+	vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\tsclen: %d\n", new_rmpos, qseq_len, indel, edit_dist, sclen);
+	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\n", ref_seq, qseq);
+	
+	if (curr.ed + edit_dist <= EDTH) {
+		curr.update(edit_dist, sclen, new_rmpos, indel, qseq_len);
+		best.update_right(curr);
+	}
+}
+
+// [pos + 1, pos + len]
+void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, uint32_t ub, AlignRes& best, bool& consecutive) {
+	consecutive = false;
+	AlignRes curr(ub);
+
+	int it_ind;
+	const IntervalInfo<UniqSeg>* it_seg = gtf_parser.get_location_overlap_ind(pos, false, it_ind);
+	if (it_seg == NULL) {	// probably wrong chaining to intron 
+		return;
+		it_seg = gtf_parser.get_interval(it_ind);
+		int diff = pos - it_seg->epos;
+		qseq -= diff;
+		qseq_len += diff;
+		ref_len += diff;
+		pos = gtf_parser.get_interval(it_ind + 1)->spos - 1;
+	}
+	
+	int it_ind_start = gtf_parser.get_trans_start_ind(contigName, tid);
+	int rel_ind = it_ind - it_ind_start;
+	int curr_exon_start_ind = rel_ind;
+	int curr_exon_end_ind = rel_ind;
+	
+	uint32_t rspos = pos;
+	int exon_len = it_seg->epos - pos;
+	int remain_ref_len = ref_len;
+	int covered = 0;
+	int indel;
+
+	for (int i = rel_ind + 1; i < gtf_parser.trans2seg[contigName][tid].size(); i++) {
+		if (exon_len >= qseq_len - covered)
+			break;
+		if (gtf_parser.trans2seg[contigName][tid][i] == 1) {
+			// go for alignment
+			indel = 0;
+			if (exon_len > 0) {
+				if (rspos + exon_len > ub) {
+					return;
+				}
+
+				int remain_qseq_len = minM(exon_len + INDELTH, qseq_len - covered);
+				bool success = extend_right_middle(rspos, ref_seq, exon_len, qseq + covered, remain_qseq_len, indel, best, curr);
+				if (! success)
+					return;
+			}
+			//
+
+			remain_ref_len -= exon_len;
+			covered += exon_len + indel;
+			exon_len = 0;
+			curr_exon_start_ind = i + it_ind_start;
+			curr_exon_end_ind = i + it_ind_start;
+			it_seg = gtf_parser.get_interval(i + it_ind_start);
+			rspos = it_seg->spos - 1;
+		}
+		if (gtf_parser.trans2seg[contigName][tid][i] != 0) {
+			it_seg = gtf_parser.get_interval(i + it_ind_start);
+			curr_exon_end_ind = i + it_ind_start;
+			exon_len += it_seg->epos - it_seg->spos + 1;
+		}
+	}
+
+	if (covered >= qseq_len or rspos + qseq_len - covered > ub)
+		return;
+
+	consecutive = (rspos == pos);
+
+	remain_ref_len = minM(remain_ref_len, exon_len);
+	extend_right_end(rspos, ref_seq, remain_ref_len, qseq + covered, qseq_len - covered, best, curr);
+}
+
+void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, uint32_t lb,  AlignRes& best, bool& consecutive) {
+
+}
 
 // pos is exclusive
 // [ pos+1, pos+len ]

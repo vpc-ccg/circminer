@@ -342,6 +342,35 @@ bool extend_chain_left(const chain_t& ch, char* seq, int seq_len, int lb, Matche
 	return left_ok;
 }
 
+bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int seq_len, int lb, MatchedMate& mr, int& err) {
+	bool left_ok = true;
+
+	uint32_t lm_pos = ch.frags[0].rpos;
+	int remain_beg = ch.frags[0].qpos;
+
+	left_ok = (remain_beg <= 0);
+	AlignRes best_alignment(lb);
+	
+	char remain_str_beg[remain_beg+5];
+	if (remain_beg > 0) {
+		left_ok = extend_left(seq, lm_pos, remain_beg, lb, best_alignment);
+	}
+	
+	int sclen_left = best_alignment.sclen;
+	int err_left = best_alignment.ed;
+	remain_beg -= best_alignment.rcovlen;
+
+	mr.spos = lm_pos;
+	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
+	mr.qspos += (left_ok) ? sclen_left : remain_beg;
+	mr.sclen_left = sclen_left;
+	mr.left_ed = best_alignment.ed;
+
+	err = err_left;
+
+	return left_ok;
+}
+
 bool extend_chain_right(const chain_t& ch, char* seq, int seq_len, int ub, MatchedMate& mr, int& err) {
 	bool right_ok = true;
 
@@ -354,6 +383,35 @@ bool extend_chain_right(const chain_t& ch, char* seq, int seq_len, int ub, Match
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
 		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end, ub, best_alignment);
+	}
+
+	int sclen_right = best_alignment.sclen;
+	int err_right = best_alignment.ed;
+	remain_end -= best_alignment.rcovlen;
+
+	mr.epos = rm_pos;
+	mr.matched_len -= (right_ok)? sclen_right : remain_end;
+	mr.qepos -= (right_ok)? sclen_right : remain_end;
+	mr.sclen_right = sclen_right;
+	mr.right_ed = best_alignment.ed;
+
+	err = err_right;
+
+	return right_ok;
+}
+
+bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int seq_len, int ub, MatchedMate& mr, int& err) {
+	bool right_ok = true;
+
+	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
+	int remain_end = seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len);
+
+	right_ok = (remain_end <= 0);
+	AlignRes best_alignment(ub);
+
+	char remain_str_end[remain_end+5];
+	if (remain_end > 0) {
+		right_ok = extend_right(common_tid, seq + seq_len - remain_end, rm_pos, remain_end, ub, best_alignment);
 	}
 
 	int sclen_right = best_alignment.sclen;
@@ -442,6 +500,65 @@ void extend_both_mates(const chain_t& lch, const chain_t& rch, char* lseq, char*
 		update_match_mate_info(rlok, rrok, rlerr, rrerr, rmm);
 	}
 }
+
+void extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
+	bool l_extend = true;
+	lmm.is_concord = false;
+	if (lch.chain_len <= 0) {
+		lmm.type = ORPHAN;
+		lmm.matched_len = 0;
+		l_extend = false;
+	}
+
+	bool r_extend = true;
+	rmm.is_concord = false;
+	if (rch.chain_len <= 0) {
+		rmm.type = ORPHAN;
+		rmm.matched_len = 0;
+		r_extend = false;
+	}
+
+	bool llok;
+	bool lrok;
+	bool rlok;
+	bool rrok;
+
+	int llerr;
+	int lrerr;
+	int rlerr;
+	int rrerr;
+
+	if (l_extend) {
+		lmm.matched_len = lseq_len;
+		lmm.qspos = 1;
+		lmm.qepos = lseq_len;
+		llok = extend_chain_left(common_tid, lch, lseq, lseq_len, MINLB, lmm, llerr);
+	}
+
+	if (r_extend) {
+		rmm.matched_len = rseq_len;
+		rmm.qspos = 1;
+		rmm.qepos = rseq_len;
+		rlok = extend_chain_left(common_tid, rch, rseq, rseq_len, (l_extend) ? lmm.spos : MINLB, rmm, rlerr);
+	}
+	
+	if (r_extend) {
+		rrok = extend_chain_right(common_tid, rch, rseq, rseq_len, MAXUB, rmm, rrerr);
+	}
+	
+	if (l_extend) {
+		lrok = extend_chain_right(common_tid, lch, lseq, lseq_len, (r_extend) ? rmm.epos : MAXUB, lmm, lrerr);
+	}
+	
+	if (l_extend) {
+		update_match_mate_info(llok, lrok, llerr, lrerr, lmm);
+	}
+
+	if (r_extend) {
+		update_match_mate_info(rlok, rrok, rlerr, rrerr, rmm);
+	}
+}
+
 
 // return:
 // CONCRD:0 if mapped to both sides
@@ -741,18 +858,55 @@ bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& 
 	return false;
 }
 
-bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
+bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, MatePair& mp) {
+	mp.common_tid.clear();
 	if (s == NULL or r == NULL)
 		return false;
 
-	for (int i = 0; i < s->seg_list.size(); i++)
-		for (int j = 0; j < r->seg_list.size(); j++)
-			for (int k = 0; k < s->seg_list[i].trans_id.size(); k++)
-				for (int l = 0; l < r->seg_list[j].trans_id.size(); l++)
-					if (s->seg_list[i].trans_id[k] == r->seg_list[j].trans_id[l])
-						return true;
+	// fprintf(stderr, "In same_transcript\nseg size1 = %d\tseg size2 = %d\n", s->seg_list.size(), r->seg_list.size());
+	vector<uint32_t> seg1_tid;
+	vector<uint32_t> seg2_tid;
 
-	return false;
+	for (int i = 0; i < s->seg_list.size(); i++)
+		for (int k = 0; k < s->seg_list[i].trans_id.size(); k++)
+			seg1_tid.push_back(s->seg_list[i].trans_id[k]);
+
+	for (int j = 0; j < r->seg_list.size(); j++)
+		for (int l = 0; l < r->seg_list[j].trans_id.size(); l++)
+			seg2_tid.push_back(r->seg_list[j].trans_id[l]);
+
+	for (int i = 0; i < seg1_tid.size(); i++)
+		for (int j = 0; j < seg2_tid.size(); j++) {
+			uint32_t tid1 = seg1_tid[i];
+			uint32_t tid2 = seg2_tid[j];
+			// fprintf(stderr, "tr[%d]: %s\ttr[%d]: %s", tid1, gtf_parser.transcript_ids[contigName][tid1].c_str(), tid2, gtf_parser.transcript_ids[contigName][tid2].c_str());
+			if (tid1 == tid2) {
+				//fprintf(stderr, "\ttid: %d\n", tid1);
+				mp.common_tid.push_back(tid1);
+				break;
+			}
+			// fprintf(stderr, "\n" );
+		}
+
+	// for (int i = 0; i < s->seg_list.size(); i++)
+	// 	for (int j = 0; j < r->seg_list.size(); j++) {
+	// 		fprintf(stderr, "trans size[%d] = %d\ttrans size[%d] = %d\n", i, s->seg_list[i].trans_id.size(), j, r->seg_list[j].trans_id.size());
+	// 		for (int k = 0; k < s->seg_list[i].trans_id.size(); k++) {
+	// 			for (int l = 0; l < r->seg_list[j].trans_id.size(); l++) {
+	// 				int tid1 = s->seg_list[i].trans_id[k];
+	// 				int tid2 = r->seg_list[j].trans_id[l];
+	// 				fprintf(stderr, "tr[%d][%d]: %s\ttr[%d][%d]: %s", i, tid1, gtf_parser.transcript_ids[contigName][tid1].c_str(), j, tid2, gtf_parser.transcript_ids[contigName][tid2].c_str());
+	// 				if (tid1 == tid2) {
+	// 					fprintf(stderr, "\ttid: %d\n", tid1);
+	// 					mp.common_tid.push_back(tid1);
+	// 					break;
+	// 				}
+	// 				fprintf(stderr, "\n" );
+	// 			}
+	// 		}
+	// 	}
+
+	return mp.common_tid.size() != 0;
 }
 
 bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
@@ -815,12 +969,12 @@ void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chai
 
 			tlen = (fs < rs) ? (re - fs) : (fe - rs);
 
-			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_transcript(forward_exon_list[i], reverse_exon_list[j]))
+			MatePair temp;
+			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_transcript(forward_exon_list[i], reverse_exon_list[j], temp))
 				or (forward_exon_list[i] != NULL and same_gene(forward_exon_list[i], rs, re))
 				or (reverse_exon_list[j] != NULL and same_gene(reverse_exon_list[j], fs, fe))
 				or (tlen <= MAXDISCRDTLEN)) {
 				//or (forward_exon_list[i] == NULL and reverse_exon_list[j] == NULL and tlen <= MAXTLEN)) {
-				MatePair temp;
 				temp.forward = forward_chain.chains[i];
 				temp.reverse = reverse_chain.chains[j];
 				temp.score = forward_chain.chains[i].score + reverse_chain.chains[j].score;
@@ -854,6 +1008,10 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 	vafprintf(1, stderr, "#pairs = %d\n", mate_pairs.size());
 	for (int i = 0; i < mate_pairs.size(); i++) {
 		vafprintf(2, stderr, "Mate[%d]: %d, %d\n", i, mate_pairs[i].forward.frags[0].rpos, mate_pairs[i].reverse.frags[0].rpos);
+		// fprintf(stderr, "# common_tid: %d\n", mate_pairs[i].common_tid.size());
+		// for (int k = 0; k < mate_pairs[i].common_tid.size(); k++)
+		// 	fprintf(stderr, "%d, ", mate_pairs[i].common_tid[k]);
+		// fprintf(stderr, "---\n");
 		MatchedMate r1_mm;
 		MatchedMate r2_mm;
 
@@ -865,7 +1023,8 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 		uint32_t reverse_end   = mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].rpos + mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].len - 1;
 		
 		if (forward_start <= reverse_end) {
-			extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, forward_rec->seq, backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
+			//extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, forward_rec->seq, backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
+			extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, mate_pairs[i].common_tid, forward_rec->seq, backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
 			
 			if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
 				ConShift con_shift = gtf_parser.get_shift(contigName, r1_mm.spos);
@@ -896,7 +1055,8 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 		}
 
 		if (forward_start > reverse_start) {
-			extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
+			//extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
+			extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
 			
 			if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
 				ConShift con_shift = gtf_parser.get_shift(contigName, r2_mm.spos);
