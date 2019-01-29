@@ -34,6 +34,20 @@ void Alignment::init(void) {
 }
 
 // dir > 0
+// return edit distance, soft clipped length
+int Alignment::hamming_distance(char* s, char* t, int n) {
+	int ed = 0;
+
+	for (int i = 0; i < n; i++) {
+		ed += diff_ch[s[i]][t[i]];
+		if (ed > EDTH)
+			return ed;
+	}
+
+	return ed;
+}
+
+// dir > 0
 bool Alignment::hamming_match_right(char* s, int n, char* t, int m) {
 	int mm_th = SOFTCLIPTH / 2;
 	int min_len = minM(n, m);
@@ -428,16 +442,3 @@ int Alignment::local_alignment_left(char* s, int n, char* t, int m, int& indel) 
 	indel = best.indel;
 	return best.ed;
 }
-
-// int Alignment::local_alignment_left2(char* s, int n, char* t, int m, int& sc_len, int& indel) {
-// 	char sp[n];
-// 	char tp[m];
-// 	for (int i = 0; i < n; i++)
-// 		sp[i] = s[n-1-i];
-	
-// 	for (int j = 0; j < m; j++)
-// 		tp[j] = t[m-1-j];
-
-// 	return local_alignment_right(sp, n, tp, m, sc_len, indel);
-// }
-

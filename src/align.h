@@ -88,6 +88,8 @@ public:
 	~Alignment(void);
 	void init(void);
 
+	int hamming_distance(char* s, char* t, int n);
+
 	bool hamming_match_right(char* s, int n, char* t, int m);
 	bool hamming_match_left (char* s, int n, char* t, int m);
 
@@ -113,8 +115,6 @@ public:
 
 	int local_alignment_right(char* s, int n, char* t, int m, int& indel);
 	int local_alignment_left (char* s, int n, char* t, int m, int& indel);
-
-	int local_alignment_left2(char* s, int n, char* t, int m, int& sc_len, int& indel);
 
 private:
 	int dp[MAXSTRSIZE][MAXSTRSIZE];
