@@ -333,15 +333,19 @@ struct MatchedRead {
 	bool		r1_forward;
 	bool		r2_forward;
 
-	int 		edit_dist;
+	int 		ed_r1;
+	int 		ed_r2;
 	int 		type;
 	int32_t 	tlen;
 	uint16_t 	junc_num;
 	bool		gm_compatible;
-	string		chr;
-
-	MatchedRead() : type(NOPROC_NOMATCH), edit_dist(EDTH+1), tlen(INF), junc_num(0), gm_compatible(false), chr("-"), r1_forward(true), r2_forward(true) { }
 	
+	string		chr_r1;
+	string		chr_r2;
+
+	MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), chr_r1("-"), chr_r2("-"), r1_forward(true), r2_forward(true), ed_r1(EDTH+1), ed_r2(EDTH+1) { }
+	
+	// assuming r1 and r2 are on same chr
 	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first) {
 		if (type > this->type)
 			return false;
@@ -352,15 +356,16 @@ struct MatchedRead {
 			if (this->gm_compatible and !gm_compatible)
 				return false;
 
-			if ((this->gm_compatible == gm_compatible) and (this->edit_dist < edit_dist))
+			if ((this->gm_compatible == gm_compatible) and (this->ed_r1 + this->ed_r2 < edit_dist))
 				return false;
 
-			if ((this->gm_compatible == gm_compatible) and (this->edit_dist == edit_dist) and (this->tlen < tlen))
+			if ((this->gm_compatible == gm_compatible) and (this->ed_r1 + this->ed_r2 == edit_dist) and (this->tlen < tlen))
 				return false;
 		}
 
 		this->type = type;
-		this->chr = chr;
+		this->chr_r1 = chr;
+		this->chr_r2 = chr;
 
 		if (r1_first) {
 			spos_r1 = r1.spos - shift;
@@ -370,6 +375,7 @@ struct MatchedRead {
 			qepos_r1 = r1.qepos;
 
 			mlen_r1 = r1.matched_len;
+			ed_r1 = r1.right_ed + r1.left_ed;
 
 
 			spos_r2 = r2.spos - shift;
@@ -379,6 +385,7 @@ struct MatchedRead {
 			qepos_r2 = r2.qepos;
 
 			mlen_r2 = r2.matched_len;
+			ed_r2 = r2.right_ed + r2.left_ed;
 
 			r1_forward = r1.dir > 0;
 			r2_forward = r2.dir > 0;
@@ -391,6 +398,7 @@ struct MatchedRead {
 			qepos_r1 = r2.qepos;
 
 			mlen_r1 = r2.matched_len;
+			ed_r1 = r2.right_ed + r2.left_ed;
 
 
 			spos_r2 = r1.spos - shift;
@@ -400,12 +408,12 @@ struct MatchedRead {
 			qepos_r2 = r1.qepos;
 
 			mlen_r2 = r1.matched_len;
+			ed_r2 = r1.right_ed + r1.left_ed;
 
 			r1_forward = r2.dir > 0;
 			r2_forward = r1.dir > 0;
 		}
 
-		this->edit_dist = edit_dist;
 		this->tlen = tlen;
 		this->junc_num = jun_between + r1.junc_num + r2.junc_num;
 		this->gm_compatible = gm_compatible;

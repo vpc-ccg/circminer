@@ -8,7 +8,7 @@
 
 #include "common.h"
 
-#define FQCOMMENTCNT 18
+#define FQCOMMENTCNT 21
 
 struct Record {
 	char* rname;

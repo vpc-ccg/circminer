@@ -147,10 +147,10 @@ void ProcessCirc::do_process (void) {
 void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 	MatchedRead mr = *(current_record1->mr);
 	vafprintf(2, stderr, "%s\n%s\n", current_record1->seq, current_record2->seq);
-	vafprintf(2, stderr, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\n", 
-									current_record1->rname, mr.chr.c_str(), 
-									mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1,  
-									mr.spos_r2, mr.epos_r2, mr.mlen_r2, mr.qspos_r2, mr.qepos_r2, 
+	vafprintf(2, stderr, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\t%d\n", 
+									current_record1->rname, 
+									mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, mr.ed_r1, 
+									mr.chr_r2.c_str(), mr.spos_r2, mr.epos_r2, mr.mlen_r2, mr.qspos_r2, mr.qepos_r2, mr.ed_r2,
 									mr.tlen, mr.junc_num, mr.gm_compatible, mr.type);
 
 	bool r1_partial = mr.mlen_r1 < mr.mlen_r2;
@@ -214,7 +214,7 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 				start_bp = rspos;
 				end_bp = (r1_partial) ? mr.epos_r1 : mr.epos_r2;
 			}
-			fprintf(stderr, "%s\t%s\t%d\t%d\n", current_record1->rname, mr.chr.c_str(), start_bp, end_bp);
+			fprintf(stderr, "%s\t%s\t%d\t%d\n", current_record1->rname, mr.chr_r1.c_str(), start_bp, end_bp);
 		}
 
 	}
