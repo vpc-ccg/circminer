@@ -270,7 +270,6 @@ bool GTFParser::load_gtf(void) {
 				seg.end 			= prev_record->end;
 				seg.gene_id			= prev_record->gene_id;
 				seg.next_exon_beg	= prev_record->next_start;
-				seg.prev_exon_end	= prev_record->prev_end;
 
 				add2merged_exons(merged_exons[prev_record->chr], seg, prev_record);
 				
@@ -288,7 +287,6 @@ bool GTFParser::load_gtf(void) {
 			seg.end 			= prev_record->end;
 			seg.gene_id			= prev_record->gene_id;
 			seg.next_exon_beg	= prev_record->next_start;
-			seg.prev_exon_end	= prev_record->prev_end;
 
 			add2merged_exons(merged_exons[prev_record->chr], seg, prev_record);
 
@@ -309,7 +307,6 @@ bool GTFParser::load_gtf(void) {
 		seg.end 			= prev_record->end;
 		seg.gene_id			= prev_record->gene_id;
 		seg.next_exon_beg	= prev_record->next_start;
-		seg.prev_exon_end	= prev_record->prev_end;
 
 		add2merged_exons(merged_exons[prev_record->chr], seg, prev_record);
 	}

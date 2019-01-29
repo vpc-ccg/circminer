@@ -140,17 +140,16 @@ struct UniqSeg {
 	uint32_t start;
 	uint32_t end;
 	uint32_t next_exon_beg;
-	uint32_t prev_exon_end;
 	vector<uint32_t> trans_id;
 
 	friend ostream& operator<<(ostream& os, const UniqSeg& us);
 
 	UniqSeg() : 
-			start(0), end(0), next_exon_beg(0), prev_exon_end(0), gene_id("") {}
-	UniqSeg(const string& gid, uint32_t s, uint32_t e, uint32_t n, uint32_t p) : 
-			start(s), end(e), next_exon_beg(n), prev_exon_end(p), gene_id(gid) {}
+			start(0), end(0), next_exon_beg(0), gene_id("") {}
+	UniqSeg(const string& gid, uint32_t s, uint32_t e, uint32_t n) : 
+			start(s), end(e), next_exon_beg(n), gene_id(gid) {}
 
-	UniqSeg(const UniqSeg& other) : start(other.start), end(other.end), next_exon_beg(other.next_exon_beg), prev_exon_end(other.prev_exon_end), gene_id(other.gene_id) {
+	UniqSeg(const UniqSeg& other) : start(other.start), end(other.end), next_exon_beg(other.next_exon_beg), gene_id(other.gene_id) {
 		trans_id.clear();
 		for (int i = 0; i < other.trans_id.size(); i++)
 			trans_id.push_back(other.trans_id[i]);
@@ -163,7 +162,6 @@ struct UniqSeg {
 		start 			= other.start;
 		end 			= other.end;
 		next_exon_beg 	= other.next_exon_beg;
-		prev_exon_end 	= other.prev_exon_end;
 		gene_id 		= other.gene_id;
 		
 		trans_id.clear();
@@ -180,13 +178,11 @@ struct UniqSeg {
 			return end < r.end;
 		if (gene_id != r.gene_id)
 			return gene_id < r.gene_id;
-		if (next_exon_beg != r.next_exon_beg)
-			return next_exon_beg > r.next_exon_beg;		// for backward move after binary search
-		return prev_exon_end < r.prev_exon_end;
+		return next_exon_beg > r.next_exon_beg;		// for backward move after binary search
 	}
 	
 	bool operator == (const UniqSeg& r) const {
-		return (start == r.start and end == r.end and gene_id == r.gene_id and next_exon_beg == r.next_exon_beg and prev_exon_end == r.prev_exon_end);
+		return (start == r.start and end == r.end and gene_id == r.gene_id and next_exon_beg == r.next_exon_beg);
 	}
 
 	bool same_gene(const UniqSeg& r) const {
@@ -198,7 +194,7 @@ struct UniqSeg {
 	}
 
 	bool next_exon(const UniqSeg& r) const {	// is this next exon of r?
-		return (r.next_exon_beg == start and prev_exon_end == r.end);
+		return (r.next_exon_beg == start);
 	}
 };
 
@@ -207,7 +203,7 @@ inline ostream& operator<<(ostream& os, const UniqSeg& us) {
 	os << "(";
 	for (int i = 0; i < us.trans_id.size(); i++)
 		os << us.trans_id[i] << ", ";
-	os << ") " << us.prev_exon_end << " [" << us.gene_id << ": " << us.start << "-" << us.end << "] " << us.next_exon_beg;
+	os << ") " << " [" << us.gene_id << ": " << us.start << "-" << us.end << "] " << us.next_exon_beg;
 	return os;
 }
 
