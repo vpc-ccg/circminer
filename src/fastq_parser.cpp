@@ -55,21 +55,22 @@ bool FASTQParser::has_next (void) {
 }
 
 bool FASTQParser::read_next (void) {
-	current_record->rname[0] = '@';	// already read it in has_next()
-	char * skip_at = current_record->rname + 1;
-
-	int rname_len = 1;
-	rname_len += getline(&skip_at, &max_line_size, input);
-	extract_map_info(skip_at);
+	int rname_len = getline(&current_record->rname, &max_line_size, input);
+	extract_map_info(current_record->rname);
 
 	getline(&current_record->seq, &max_line_size, input);
+	current_record->seq_len = strlen(current_record->seq) - 1;	// skipping newline at the end
+
 	getline(&current_record->comment, &max_line_size, input);
-	getline(&current_record->qual, &max_line_size, input);
-	
 	assert(current_record->comment[0] == '+');
 
-	current_record->seq_len = strlen(current_record->seq) - 1;	// skipping newline at the end
-	current_record->rname[rname_len - 1] = '\0';
+	getline(&current_record->qual, &max_line_size, input);
+	
+	if (current_record->rname[rname_len - 3] == '/')
+		current_record->rname[rname_len - 3] = '\0';
+	else
+		current_record->rname[rname_len - 1] = '\0';
+
 	//current_record->seq[current_record->seq_len] = '\0';
 
 	set_reverse_comp();
