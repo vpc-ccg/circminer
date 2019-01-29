@@ -353,7 +353,7 @@ bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, c
 	
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		left_ok = extend_left(seq, lm_pos, remain_beg, lb, best_alignment);
+		left_ok = extend_left(common_tid, seq, lm_pos, remain_beg, lb, best_alignment);
 	}
 	
 	int sclen_left = best_alignment.sclen;
