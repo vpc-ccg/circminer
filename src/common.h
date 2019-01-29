@@ -475,6 +475,26 @@ struct GenRegion {
 	}
 };
 
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
+struct AllCoord {
+	uint32_t rspos;
+	uint32_t rlen;
+	uint32_t qspos;
+	uint32_t qlen;
+
+	AllCoord (uint32_t rs, uint32_t rl, uint32_t qs, uint32_t ql) : rspos(rs), rlen(rl), qspos(qs), qlen(ql) {}
+
+	bool operator < (const AllCoord& r) const {
+		if (rspos != r.rspos)
+			return rspos < r.rspos;
+		if (qspos != r.qspos)
+			return qspos < r.qspos;
+		if (rlen != r.rlen)
+			return rlen < r.rlen;
+		return qlen < r.qlen;
+	}
+};
 //---------- Global Variables ----------\\
 
 extern bool pairedEnd;
