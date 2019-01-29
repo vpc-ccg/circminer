@@ -313,35 +313,6 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& bes
 			high_hits++;
 }
 
-bool extend_chain_left(const chain_t& ch, char* seq, int seq_len, int lb, MatchedMate& mr, int& err) {
-	bool left_ok = true;
-
-	uint32_t lm_pos = ch.frags[0].rpos;
-	int remain_beg = ch.frags[0].qpos;
-
-	left_ok = (remain_beg <= 0);
-	AlignRes best_alignment(lb);
-	
-	char remain_str_beg[remain_beg+5];
-	if (remain_beg > 0) {
-		left_ok = extend_left(seq, lm_pos, remain_beg, lb, best_alignment);
-	}
-	
-	int sclen_left = best_alignment.sclen;
-	int err_left = best_alignment.ed;
-	remain_beg -= best_alignment.rcovlen;
-
-	mr.spos = lm_pos;
-	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
-	mr.qspos += (left_ok) ? sclen_left : remain_beg;
-	mr.sclen_left = sclen_left;
-	mr.left_ed = best_alignment.ed;
-
-	err = err_left;
-
-	return left_ok;
-}
-
 bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int seq_len, int lb, MatchedMate& mr, int& err) {
 	bool left_ok = true;
 
@@ -369,35 +340,6 @@ bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, c
 	err = err_left;
 
 	return left_ok;
-}
-
-bool extend_chain_right(const chain_t& ch, char* seq, int seq_len, int ub, MatchedMate& mr, int& err) {
-	bool right_ok = true;
-
-	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
-	int remain_end = seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len);
-
-	right_ok = (remain_end <= 0);
-	AlignRes best_alignment(ub);
-
-	char remain_str_end[remain_end+5];
-	if (remain_end > 0) {
-		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end, ub, best_alignment);
-	}
-
-	int sclen_right = best_alignment.sclen;
-	int err_right = best_alignment.ed;
-	remain_end -= best_alignment.rcovlen;
-
-	mr.epos = rm_pos;
-	mr.matched_len -= (right_ok)? sclen_right : remain_end;
-	mr.qepos -= (right_ok)? sclen_right : remain_end;
-	mr.sclen_right = sclen_right;
-	mr.right_ed = best_alignment.ed;
-
-	err = err_right;
-
-	return right_ok;
 }
 
 bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int seq_len, int ub, MatchedMate& mr, int& err) {
@@ -441,64 +383,6 @@ void update_match_mate_info(bool lok, bool rok, int lerr, int rerr, MatchedMate&
 	}
 	else
 		mm.type = ORPHAN;
-}
-
-void extend_both_mates(const chain_t& lch, const chain_t& rch, char* lseq, char* rseq, int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
-	bool l_extend = true;
-	lmm.is_concord = false;
-	if (lch.chain_len <= 0) {
-		lmm.type = ORPHAN;
-		lmm.matched_len = 0;
-		l_extend = false;
-	}
-
-	bool r_extend = true;
-	rmm.is_concord = false;
-	if (rch.chain_len <= 0) {
-		rmm.type = ORPHAN;
-		rmm.matched_len = 0;
-		r_extend = false;
-	}
-
-	bool llok;
-	bool lrok;
-	bool rlok;
-	bool rrok;
-
-	int llerr;
-	int lrerr;
-	int rlerr;
-	int rrerr;
-
-	if (l_extend) {
-		lmm.matched_len = lseq_len;
-		lmm.qspos = 1;
-		lmm.qepos = lseq_len;
-		llok = extend_chain_left(lch, lseq, lseq_len, MINLB, lmm, llerr);
-	}
-
-	if (r_extend) {
-		rmm.matched_len = rseq_len;
-		rmm.qspos = 1;
-		rmm.qepos = rseq_len;
-		rlok = extend_chain_left(rch, rseq, rseq_len, (l_extend) ? lmm.spos : MINLB, rmm, rlerr);
-	}
-	
-	if (r_extend) {
-		rrok = extend_chain_right(rch, rseq, rseq_len, MAXUB, rmm, rrerr);
-	}
-	
-	if (l_extend) {
-		lrok = extend_chain_right(lch, lseq, lseq_len, (r_extend) ? rmm.epos : MAXUB, lmm, lrerr);
-	}
-	
-	if (l_extend) {
-		update_match_mate_info(llok, lrok, llerr, lrerr, lmm);
-	}
-
-	if (r_extend) {
-		update_match_mate_info(rlok, rrok, rlerr, rrerr, rmm);
-	}
 }
 
 void extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
@@ -589,10 +473,11 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	left_ok = (remain_beg <= 0);
 	AlignRes best_alignment_left(MINLB);
-	
+	vector <uint32_t> empty;
+
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		left_ok = extend_left(seq, lm_pos, remain_beg, MINLB, best_alignment_left);
+		left_ok = extend_left(empty, seq, lm_pos, remain_beg, MINLB, best_alignment_left);
 	}
 
 	err_left = best_alignment_left.ed;
@@ -607,7 +492,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
-		right_ok = extend_right(seq + seq_len - remain_end, rm_pos, remain_end, MAXUB, best_alignment);
+		right_ok = extend_right(empty, seq + seq_len - remain_end, rm_pos, remain_end, MAXUB, best_alignment);
 	}
 
 	err_right = best_alignment.ed;
