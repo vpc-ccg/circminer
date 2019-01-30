@@ -255,14 +255,18 @@ struct MatchedMate {
 	uint32_t 	qspos;
 	uint32_t 	qepos;
 
-	uint16_t	junc_num;
 	int 		right_ed;
 	int 		left_ed;
+	int 		middle_ed;
+
 	int			sclen_right;
 	int			sclen_left;
 	int 		matched_len;
 	int 		dir;
 	int 		type;
+
+	uint16_t	junc_num;
+
 	bool 		is_concord;
 
 	bool		left_ok;
@@ -281,7 +285,7 @@ struct MatchedMate {
 
 	const IntervalInfo<GeneInfo>* gene_info;
 
-	MatchedMate() : type(ORPHAN), junc_num(0), right_ed(EDTH+1), left_ed(EDTH+1), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), 
+	MatchedMate() : type(ORPHAN), junc_num(0), right_ed(EDTH+1), left_ed(EDTH+1), middle_ed(EDTH+1), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), 
 					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), exons_spos(NULL), exons_epos(NULL), 
 					exon_ind_spos(-1), exon_ind_epos(-1), gene_info(NULL) { }
 
@@ -291,12 +295,16 @@ struct MatchedMate {
 		qspos 		= mm.qspos;
 		qepos		= mm.qepos;
 
-		junc_num	= mm.junc_num;
+		right_ed	= mm.right_ed;
+		left_ed		= mm.left_ed;
+		middle_ed	= mm.middle_ed;
+
 		sclen_right	= mm.sclen_right;
 		sclen_left	= mm.sclen_left;
 		matched_len	= mm.matched_len;
 		dir			= mm.dir;
 		type		= mm.type;
+		junc_num	= mm.junc_num;
 		is_concord	= mm.is_concord;
 
 		left_ok 	= mm.left_ok;
@@ -506,6 +514,9 @@ extern bool pairedEnd;
 extern int kmer;
 extern int maxReadLength;
 extern int verboseMode;
+extern int scanLevel;
+extern int max_ed;
+extern int max_sc;
 
 extern char gtfFilename[FILE_NAME_LENGTH];
 extern char referenceFilename[FILE_NAME_LENGTH];

@@ -6,6 +6,10 @@ bool pairedEnd = false;
 int kmer = 19;
 int maxReadLength = 120;
 int verboseMode = 0;
+int scanLevel = 0;
+int max_ed = EDTH;
+int max_sc = SOFTCLIPTH;
+
 char gtfFilename[FILE_NAME_LENGTH];
 char referenceFilename[FILE_NAME_LENGTH];
 char fastqFilename[FILE_NAME_LENGTH];
@@ -40,49 +44,74 @@ int parse_command( int argc, char *argv[] )
 		{"rlen", required_argument, 0, 'l'},
 		{"output", required_argument, 0, 'o'},
 		{"verbose", required_argument, 0, 'd'},
+		{"scan_lev", required_argument, 0, 's'},
+		{"max_ed", required_argument, 0, 'e'},
+		{"max_sc", required_argument, 0, 'c'},
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:l:o:d:", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:l:o:d:s:e:c:", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
-			case 'h':
+			case 'h': {
 				printHELP();
 				return 1;
-			case 'v':
+			}
+			case 'v': {
 				fprintf(stdout, "%s.%s\n", versionNumberMajor, versionNumberMinor);
 				return 1;
-			case 'f':
+			}
+			case 'f': {
 				strncpy(fastqFilename, optarg, FILE_NAME_LENGTH );
 				break;
-			case 'r':
+			}
+			case 'r': {
 				strncpy(referenceFilename, optarg, FILE_NAME_LENGTH);
-				break;		
-			case 'g':
+				break;
+			}		
+			case 'g': {
 				strncpy(gtfFilename, optarg, FILE_NAME_LENGTH );
 				//gtf_flag = 1;
 				break;
-			case 'p':
+			}
+			case 'p': {
 				pairedEnd = true;
 				break;
-			case 'k':
+			}
+			case 'k': {
 				kmer = atoi(optarg);
 				break;
-			case 'l':
+			}
+			case 'l': {
 				maxReadLength = atoi(optarg);
 				break;
+			}
 			case 'o': {
 				strncpy(outputFilename, optarg, FILE_NAME_LENGTH);
 				break;
 			}
-			case 'd':
+			case 'd': {
 				verboseMode = atoi(optarg);
 				break;
-			case '?': 
+			}
+			case 's': {
+				scanLevel = atoi(optarg);
+				break;
+			}
+			case 'e': {
+				max_ed = atoi(optarg);
+				break;
+			}
+			case 'c': {
+				max_sc = atoi(optarg);
+				break;
+			}
+			case '?': {
 				fprintf(stderr, "Unknown parameter: %s\n", long_opt[opt_index].name);
 				exit(1);
 				break;
+			}
 			default:
 				printHELP();
 		}
@@ -104,9 +133,15 @@ void printHELP()
 	fprintf(stdout, "\nAdvanced Options:\n");
 	fprintf(stdout, "-p|--pe:\tPaired end.\n");
 	fprintf(stdout, "-k|--kmer:\tKmer size (default = 19).\n");
-	fprintf(stdout, "-l|--rlen:\tMax read length (default = 76).\n");
+	fprintf(stdout, "-l|--rlen:\tMax read length (default = 120).\n");
+	fprintf(stdout, "-e|--max_ed:\tMax allowed edit distance on each mate (default = %d).\n", EDTH);
+	fprintf(stdout, "-c|--max_sc:\tMax allowed soft clipping on each mate (default = %d).\n", SOFTCLIPTH);
 	fprintf(stdout, "-o|--output:\tOutput file (default = output).\n");
 	fprintf(stdout, "-d|--verbose:\tVerbose mode: 0 to 1. Higher values output more information (default = 0).\n");
+	fprintf(stdout, "-s|--scan_lev:\tTranscriptome/Genome scan level: 0 to 2. (default = 0)\n\t\t"
+										"0: Report the first mapping.\n\t\t"
+										"1: Continue processing the read unless it is perfectly mapped to cDNA.\n\t\t"
+										"2: Report the best mapping.\n");
 	
 	fprintf(stdout, "\nExample Commands:\n");
 	fprintf(stdout, "./circRNA -r hg19.fa -f reads_1.fastq -g gene_model.gtf -o output --pe\n");
