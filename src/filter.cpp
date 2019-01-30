@@ -206,13 +206,13 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 	if (fc_score_r1 + bc_score_r2 >= fc_score_r2 + bc_score_r1) {
 		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
 		attempt1 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, *(current_record1->mr), true);
-		if (attempt1 == CONCRD) {
+		if (scanLevel == 0 and attempt1 == CONCRD) {
 			return CONCRD;
 		}
 
 		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
 		attempt2 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, *(current_record1->mr), false);
-		if (attempt2 == CONCRD) {
+		if (scanLevel == 0 and attempt2 == CONCRD) {
 			return CONCRD;
 		}
 
@@ -221,13 +221,13 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 	else {
 		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
 		attempt1 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, *(current_record1->mr), false);
-		if (attempt1 == CONCRD) {
+		if (scanLevel == 0 and attempt1 == CONCRD) {
 			return CONCRD;
 		}
 
 		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
 		attempt2 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, *(current_record1->mr), true);
-		if (attempt2 == CONCRD) {
+		if (scanLevel == 0 and attempt2 == CONCRD) {
 			return CONCRD;
 		}
 
@@ -925,7 +925,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 				overlap_to_epos(r2_mm);
 				overlap_to_spos(r2_mm);
 			
-				if (concordant_explanation(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward)) {
+				if (concordant_explanation(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward) and scanLevel == 0) {
 					return CONCRD;
 				}
 			}

@@ -515,8 +515,8 @@ extern int kmer;
 extern int maxReadLength;
 extern int verboseMode;
 extern int scanLevel;
-extern int max_ed;
-extern int max_sc;
+extern int maxEd;
+extern int maxSc;
 
 extern char gtfFilename[FILE_NAME_LENGTH];
 extern char referenceFilename[FILE_NAME_LENGTH];

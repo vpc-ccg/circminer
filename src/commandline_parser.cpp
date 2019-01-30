@@ -7,8 +7,8 @@ int kmer = 19;
 int maxReadLength = 120;
 int verboseMode = 0;
 int scanLevel = 0;
-int max_ed = EDTH;
-int max_sc = SOFTCLIPTH;
+int maxEd = EDTH;
+int maxSc = SOFTCLIPTH;
 
 char gtfFilename[FILE_NAME_LENGTH];
 char referenceFilename[FILE_NAME_LENGTH];
@@ -100,11 +100,11 @@ int parse_command( int argc, char *argv[] )
 				break;
 			}
 			case 'e': {
-				max_ed = atoi(optarg);
+				maxEd = atoi(optarg);
 				break;
 			}
 			case 'c': {
-				max_sc = atoi(optarg);
+				maxSc = atoi(optarg);
 				break;
 			}
 			case '?': {
