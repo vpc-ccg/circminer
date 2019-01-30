@@ -329,7 +329,7 @@ bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, c
 	
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		left_ok = extend_left(common_tid, seq, lm_pos, remain_beg, lb, best_alignment);
+		left_ok = extend_left(common_tid, seq, lm_pos, remain_beg, EDTH - err, lb, best_alignment);
 	}
 	
 	int sclen_left = best_alignment.sclen;
@@ -342,7 +342,7 @@ bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, c
 	mr.sclen_left = sclen_left;
 	mr.left_ed = best_alignment.ed;
 
-	err = err_left;
+	err += err_left;
 
 	return left_ok;
 }
@@ -358,7 +358,7 @@ bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, 
 
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
-		right_ok = extend_right(common_tid, seq + seq_len - remain_end, rm_pos, remain_end, ub, best_alignment);
+		right_ok = extend_right(common_tid, seq + seq_len - remain_end, rm_pos, remain_end, EDTH - err, ub, best_alignment);
 	}
 
 	int sclen_right = best_alignment.sclen;
@@ -371,15 +371,15 @@ bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, 
 	mr.sclen_right = sclen_right;
 	mr.right_ed = best_alignment.ed;
 
-	err = err_right;
+	err += err_right;
 
 	return right_ok;
 }
 
-void update_match_mate_info(bool lok, bool rok, int lerr, int rerr, MatchedMate& mm) {
+void update_match_mate_info(bool lok, bool rok, int err, MatchedMate& mm) {
 	mm.left_ok = lok;
 	mm.right_ok = rok;
-	if (lok and rok and (lerr + rerr <= EDTH)) {
+	if (lok and rok and (err <= EDTH)) {
 		mm.is_concord = true;
 		mm.type = CONCRD;
 	}
@@ -390,7 +390,27 @@ void update_match_mate_info(bool lok, bool rok, int lerr, int rerr, MatchedMate&
 		mm.type = ORPHAN;
 }
 
-void extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
+int estimate_middle_error(const chain_t& ch) {
+	int mid_err = 0;
+	for (int i = 0; i < ch.chain_len - 1; i++) {
+		if (ch.frags[i+1].qpos != ch.frags[i].qpos + ch.frags[i].len) {
+			int diff = (ch.frags[i+1].rpos - ch.frags[i].rpos) - (ch.frags[i+1].qpos - ch.frags[i].qpos);
+			if (diff == 0)
+				mid_err++;
+			else if (diff <= INDELTH)
+				mid_err += diff;
+		}
+	}
+	return mid_err;
+}
+
+void extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
+						int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
+	
+	lmm.middle_ed = estimate_middle_error(lch);
+	rmm.middle_ed = estimate_middle_error(rch);
+
+
 	bool l_extend = true;
 	lmm.is_concord = false;
 	if (lch.chain_len <= 0) {
@@ -412,42 +432,39 @@ void extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 	bool rlok;
 	bool rrok;
 
-	int llerr;
-	int lrerr;
-	int rlerr;
-	int rrerr;
+	int lerr = lmm.middle_ed;
+	int rerr = rmm.middle_ed;
 
 	if (l_extend) {
 		lmm.matched_len = lseq_len;
 		lmm.qspos = 1;
 		lmm.qepos = lseq_len;
-		llok = extend_chain_left(common_tid, lch, lseq, lseq_len, MINLB, lmm, llerr);
+		llok = extend_chain_left(common_tid, lch, lseq, lseq_len, MINLB, lmm, lerr);
 	}
 
 	if (r_extend) {
 		rmm.matched_len = rseq_len;
 		rmm.qspos = 1;
 		rmm.qepos = rseq_len;
-		rlok = extend_chain_left(common_tid, rch, rseq, rseq_len, (l_extend) ? lmm.spos : MINLB, rmm, rlerr);
+		rlok = extend_chain_left(common_tid, rch, rseq, rseq_len, (l_extend) ? lmm.spos : MINLB, rmm, rerr);
 	}
 	
 	if (r_extend) {
-		rrok = extend_chain_right(common_tid, rch, rseq, rseq_len, MAXUB, rmm, rrerr);
+		rrok = extend_chain_right(common_tid, rch, rseq, rseq_len, MAXUB, rmm, rerr);
 	}
 	
 	if (l_extend) {
-		lrok = extend_chain_right(common_tid, lch, lseq, lseq_len, (r_extend) ? rmm.epos : MAXUB, lmm, lrerr);
+		lrok = extend_chain_right(common_tid, lch, lseq, lseq_len, (r_extend) ? rmm.epos : MAXUB, lmm, lerr);
 	}
 	
 	if (l_extend) {
-		update_match_mate_info(llok, lrok, llerr, lrerr, lmm);
+		update_match_mate_info(llok, lrok, lerr, lmm);
 	}
 
 	if (r_extend) {
-		update_match_mate_info(rlok, rrok, rlerr, rrerr, rmm);
+		update_match_mate_info(rlok, rrok, rerr, rmm);
 	}
 }
-
 
 // return:
 // CONCRD:0 if mapped to both sides
@@ -459,6 +476,8 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 		mr.type = ORPHAN;
 		return mr.type;
 	}
+
+	mr.middle_ed = estimate_middle_error(ch);
 
 	if (is_concord(ch, seq_len, mr)) {
 		mr.dir = dir;
@@ -482,7 +501,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		left_ok = extend_left(empty, seq, lm_pos, remain_beg, MINLB, best_alignment_left);
+		left_ok = extend_left(empty, seq, lm_pos, remain_beg, EDTH - mr.middle_ed, MINLB, best_alignment_left);
 	}
 
 	err_left = best_alignment_left.ed;
@@ -497,7 +516,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
-		right_ok = extend_right(empty, seq + seq_len - remain_end, rm_pos, remain_end, MAXUB, best_alignment);
+		right_ok = extend_right(empty, seq + seq_len - remain_end, rm_pos, remain_end, EDTH - mr.middle_ed - err_left, MAXUB, best_alignment);
 	}
 
 	err_right = best_alignment.ed;

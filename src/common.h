@@ -36,7 +36,7 @@ using namespace std;
 #define MAX_INTRON	2000000
 
 #define BESTCHAINLIM 30
-#define EDTH 4
+#define EDTH 5
 #define INDELTH 3
 #define SOFTCLIPTH 7
 
@@ -358,7 +358,7 @@ struct MatchedRead {
 		if (type > this->type)
 			return false;
 
-		int edit_dist = r1.right_ed + r1.left_ed + r2.right_ed + r2.left_ed;
+		int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed + r2.left_ed + r2.middle_ed + r2.right_ed;
 
 		if (type == this->type) {
 			if (this->gm_compatible and !gm_compatible)
@@ -383,7 +383,7 @@ struct MatchedRead {
 			qepos_r1 = r1.qepos;
 
 			mlen_r1 = r1.matched_len;
-			ed_r1 = r1.right_ed + r1.left_ed;
+			ed_r1 = r1.left_ed + r1.middle_ed + r1.right_ed;
 
 
 			spos_r2 = r2.spos - shift;
@@ -393,7 +393,7 @@ struct MatchedRead {
 			qepos_r2 = r2.qepos;
 
 			mlen_r2 = r2.matched_len;
-			ed_r2 = r2.right_ed + r2.left_ed;
+			ed_r2 = r2.left_ed + r2.middle_ed + r2.right_ed;
 
 			r1_forward = r1.dir > 0;
 			r2_forward = r2.dir > 0;
@@ -406,7 +406,7 @@ struct MatchedRead {
 			qepos_r1 = r2.qepos;
 
 			mlen_r1 = r2.matched_len;
-			ed_r1 = r2.right_ed + r2.left_ed;
+			ed_r1 = r2.left_ed + r2.middle_ed + r2.right_ed;
 
 
 			spos_r2 = r1.spos - shift;
@@ -416,7 +416,7 @@ struct MatchedRead {
 			qepos_r2 = r1.qepos;
 
 			mlen_r2 = r1.matched_len;
-			ed_r2 = r1.right_ed + r1.left_ed;
+			ed_r2 = r1.left_ed + r1.middle_ed + r1.right_ed;
 
 			r1_forward = r2.dir > 0;
 			r2_forward = r1.dir > 0;
