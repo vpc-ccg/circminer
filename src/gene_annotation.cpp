@@ -421,10 +421,10 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	uint32_t max_next_exon = 0;
 	uint32_t epos = spos + mlen - 1;
 
-	//fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
+	// fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
 	if (!(near_border[contigName[0]-'1'][spos] & 1))		// if not near any border, skip lookup
 	{
-		//fprintf(stderr, "skip lookup\n");
+		// fprintf(stderr, "skip lookup\n");
 		ol_exons = NULL;
 		return spos + rlen + EDTH;	// allowing deletion of size at most "EDTH"
 	}
@@ -457,8 +457,8 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 				max_end = maxM(max_end, ov_res->seg_list[i].end);
 				min_end = minM(min_end, ov_res->seg_list[i].end);
 				max_next_exon = maxM(max_next_exon, ov_res->seg_list[i].next_exon_beg);
-				//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
-				//fprintf(stderr, "Exon: [%d-%d]\n", ov_res->seg_list[i].start, ov_res->seg_list[i].end);
+				// fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
+				// fprintf(stderr, "Exon: [%d-%d]\n", ov_res->seg_list[i].start, ov_res->seg_list[i].end);
 			}
 		}
 	}
@@ -466,7 +466,7 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 		max_end = ov_res->max_end;
 		min_end = ov_res->min_end;
 		max_next_exon = ov_res->max_next_exon;
-		//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
+		// fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
 	}
 
 	if (max_end > 0 and max_end >= epos) {	// exonic	
@@ -476,7 +476,8 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 		int32_t min2end = min_end - epos;
 
 		if (min2end < rlen and max_next_exon != 0)	// junction is allowed
-			return max_next_exon + mlen - 1;
+			//return max_next_exon + mlen - 1;
+			return max_next_exon + rlen - min2end - mlen - 1;
 		else
 			return max_end - mlen + 1;
 	}
