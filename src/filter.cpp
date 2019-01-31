@@ -656,6 +656,8 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 
 	int32_t tlen;
 	int32_t intron_gap;
+	bool on_cdna;
+	on_cdna = (sm.exons_spos != NULL) and (sm.exons_epos != NULL) and (lm.exons_spos != NULL) and (lm.exons_epos != NULL);
 	if (sm.exons_spos == NULL or lm.exons_spos == NULL) {
 		tlen = lm.spos - sm.epos - 1 + lm.matched_len + sm.matched_len;
 		if (tlen <= MAXTLEN)
@@ -672,9 +674,9 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 					// => assume genomic locations
 					tlen = lm.spos + lm.matched_len - sm.spos;
 					if (tlen <= MAXTLEN)
-						mr.update(sm, lm, chr, shift, tlen, 0, true, CONCRD, r1_sm);
+						mr.update(sm, lm, chr, shift, tlen, 0, on_cdna, CONCRD, r1_sm);
 					else
-						mr.update(sm, lm, chr, shift, tlen, 0, true, DISCRD, r1_sm);
+						mr.update(sm, lm, chr, shift, tlen, 0, on_cdna, DISCRD, r1_sm);
 				}
 	}
 
@@ -690,14 +692,14 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 		tlen = calc_tlen(sm, lm, intron_num);
 		//fprintf(stdout, "tlen: %d\n", tlen);
 		if (tlen >= 0 and tlen <= MAXTLEN) {
-			mr.update(sm, lm, chr, shift, tlen, intron_num, true, CONCRD, r1_sm);
+			mr.update(sm, lm, chr, shift, tlen, intron_num, on_cdna, CONCRD, r1_sm);
 		}
 		else {
 			if (tlen < 0) {
 				tlen = lm.spos - sm.epos - 1 + sm.matched_len + lm.matched_len;
 				intron_num = 0;
 			}
-			mr.update(sm, lm, chr, shift, tlen, intron_num, true, DISCRD, r1_sm);
+			mr.update(sm, lm, chr, shift, tlen, intron_num, on_cdna, DISCRD, r1_sm);
 		}
 	}
 
