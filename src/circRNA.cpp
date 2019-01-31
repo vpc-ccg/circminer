@@ -103,7 +103,7 @@ int mapping(int& last_round_num) {
 
 	initCommon();
 	
-	THREAD_COUNT = 8;
+	THREAD_COUNT = 32;
 	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
 	for (int i = 0; i < 255; i++)
 		THREAD_ID[i] = i;
@@ -207,7 +207,11 @@ int mapping(int& last_round_num) {
 			int state;
 			if (is_pe) {
 				state = filter_read.process_read(current_record1, current_record2, kmer, fl, bl, fbc_r1, bbc_r1, fbc_r2, bbc_r2);
-				bool skip = (scanLevel == 0 and state == CONCRD) or (scanLevel == 1 and state == CONCRD and (current_record1->mr->ed_r1 + current_record1->mr->ed_r2 == 0));
+				bool skip = (scanLevel == 0 and state == CONCRD) or 
+							(scanLevel == 1 and state == CONCRD and current_record1->mr->gm_compatible and
+								(current_record1->mr->ed_r1 + current_record1->mr->ed_r2 == 0) and 
+								(current_record1->mr->mlen_r1 + current_record1->mr->mlen_r2 == current_record1->seq_len + current_record2->seq_len));
+
 				if (skip or is_last)
 					filter_read.print_mapping(current_record1->rname, *(current_record1->mr));
 				if ((!is_last and !skip) or (is_last and current_record1->mr->type == CHIBSJ))

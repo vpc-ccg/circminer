@@ -36,7 +36,7 @@ using namespace std;
 #define MAX_INTRON	2000000
 
 #define BESTCHAINLIM 30
-#define EDTH 5
+#define EDTH 4
 #define INDELTH 3
 #define SOFTCLIPTH 7
 
