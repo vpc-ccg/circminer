@@ -10,6 +10,7 @@
 #include "common.h"
 #include "gene_annotation.h"
 #include "extend.h"
+#include "match_read.h"
 
 extern "C" {
 #include "mrsfast/Common.h"
@@ -393,18 +394,56 @@ void update_match_mate_info(bool lok, bool rok, int err, MatchedMate& mm) {
 int estimate_middle_error(const chain_t& ch) {
 	int mid_err = 0;
 	for (int i = 0; i < ch.chain_len - 1; i++) {
-		if (ch.frags[i+1].qpos != ch.frags[i].qpos + ch.frags[i].len) {
+		if (ch.frags[i+1].qpos > ch.frags[i].qpos + ch.frags[i].len) {
 			int diff = (ch.frags[i+1].rpos - ch.frags[i].rpos) - (ch.frags[i+1].qpos - ch.frags[i].qpos);
 			if (diff == 0)
 				mid_err++;
-			else if (diff <= INDELTH)
+			else if (diff > 0 and diff <= INDELTH)
 				mid_err += diff;
+			else if (diff < 0 and diff >= -INDELTH)
+				mid_err -= diff;
 		}
 	}
 	return mid_err;
 }
 
-void extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
+int calc_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len) {
+	char rseq[qseq_len + 4*INDELTH];
+	int mid_err = 0;
+	int32_t qspos;
+	uint32_t rspos;
+	int qlen;
+	int rlen;
+	for (int i = 0; i < ch.chain_len - 1; i++) {
+		if (ch.frags[i+1].qpos > ch.frags[i].qpos + ch.frags[i].len) {
+			int diff = (ch.frags[i+1].rpos - ch.frags[i].rpos) - (ch.frags[i+1].qpos - ch.frags[i].qpos);
+
+			qspos = ch.frags[i].qpos + ch.frags[i].len;
+			qlen = ch.frags[i+1].qpos - qspos;
+			rspos = ch.frags[i].rpos + ch.frags[i].len;
+			rlen = qlen + diff;
+
+			if (diff >= 0 and diff <= INDELTH) {
+				pac2char(rspos, rlen, rseq);
+				mid_err += alignment.global_one_side_banded_alignment(qseq + qspos, qlen, rseq, rlen, diff);
+			}
+			else if (diff < 0 and diff >= -INDELTH) {
+				pac2char(rspos, rlen, rseq);
+				mid_err += alignment.global_one_side_banded_alignment(rseq, rlen, qseq + qspos, qlen, -1*diff);
+			}
+			if (mid_err > edth)
+				return edth+1;
+		}
+	}
+	return mid_err;
+}
+
+bool check_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len) {
+	int mid_err = calc_middle_ed(ch, edth, qseq, qseq_len);
+	return (mid_err <= edth);
+}
+
+bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
 						int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
 	
 	lmm.middle_ed = estimate_middle_error(lch);
@@ -464,6 +503,16 @@ void extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 	if (r_extend) {
 		update_match_mate_info(rlok, rrok, rerr, rmm);
 	}
+
+	// check accurate edit distance for middle part
+	int ledth = EDTH - (lmm.left_ed + lmm.right_ed);
+	lmm.middle_ed = calc_middle_ed(lch, ledth, lseq, lseq_len);
+	if (lmm.middle_ed + lmm.right_ed + lmm.left_ed > EDTH)
+		return false;
+	
+	int redth = EDTH - (rmm.left_ed + rmm.right_ed);
+	rmm.middle_ed = calc_middle_ed(rch, redth, rseq, lseq_len);
+	return (rmm.middle_ed + rmm.right_ed + rmm.left_ed <= EDTH);
 }
 
 // return:
@@ -929,15 +978,17 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 		r1_mm.dir = 1;
 		r2_mm.dir = -1;
 
+		bool success;
 		uint32_t forward_start = mate_pairs[i].forward.frags[0].rpos;
 		uint32_t reverse_start = mate_pairs[i].reverse.frags[0].rpos;
 		uint32_t reverse_end   = mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].rpos + mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].len - 1;
 		
 		if (forward_start <= reverse_end) {
 			//extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, forward_rec->seq, backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
-			extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, mate_pairs[i].common_tid, forward_rec->seq, backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
+			success = extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, mate_pairs[i].common_tid, forward_rec->seq, 
+								backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
 			
-			if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
+			if (success and r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
 				ConShift con_shift = gtf_parser.get_shift(contigName, r1_mm.spos);
 				
 				overlap_to_epos(r1_mm);
@@ -952,7 +1003,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 			}
 			
 			// potentially back splice junction?
-			else if ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID)) {
+			else if (success and ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID))) {
 				ConShift con_shift = gtf_parser.get_shift(contigName, r1_mm.spos);
 				
 				overlap_to_epos(r1_mm);
@@ -967,9 +1018,9 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 
 		if (forward_start > reverse_start) {
 			//extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
-			extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
+			success = extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
 			
-			if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
+			if (success and r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
 				ConShift con_shift = gtf_parser.get_shift(contigName, r2_mm.spos);
 				
 				overlap_to_epos(r1_mm);
@@ -982,7 +1033,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 			}
 			
 			// potentially back splice junction?
-			else if ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID)) {
+			else if (success and ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID))) {
 				ConShift con_shift = gtf_parser.get_shift(contigName, r2_mm.spos);
 				
 				overlap_to_epos(r1_mm);

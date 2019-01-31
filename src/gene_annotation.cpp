@@ -476,8 +476,8 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 		int32_t min2end = min_end - epos;
 
 		if (min2end < rlen and max_next_exon != 0)	// junction is allowed
-			//return max_next_exon + mlen - 1;
-			return max_next_exon + rlen - min2end - mlen - 1;
+			return max_next_exon + mlen - 1;
+			//return max_next_exon + rlen - min2end - mlen - 1;
 		else
 			return max_end - mlen + 1;
 	}
