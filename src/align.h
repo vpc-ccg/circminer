@@ -100,8 +100,9 @@ public:
 	int global_alignment(char* s, int n, char* t, int m);
 	int global_alignment_reverse(char* s, int n, char* t, int m);
 
-	void global_banded_alignment(char* s, int n, char* t, int m);
-	void global_banded_alignment_reverse(char* s, int n, char* t, int m);
+	void global_banded_alignment(char* s, int n, char* t, int m, int w);
+	void global_banded_alignment_reverse(char* s, int n, char* t, int m, int w);
+	int global_one_side_banded_alignment(char* s, int n, char* t, int m, int w);
 	
 	void hamming_distance(char* s, int n, char* t, int m);
 	void hamming_distance_bottom(char* s, int n, char* t, int m, int max_sclen);
