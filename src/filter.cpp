@@ -423,12 +423,15 @@ int calc_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len) {
 			rspos = ch.frags[i].rpos + ch.frags[i].len;
 			rlen = qlen + diff;
 
+			// fprintf(stderr, "Diff: %d\n", diff);
 			if (diff >= 0 and diff <= INDELTH) {
 				pac2char(rspos, rlen, rseq);
+				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
 				mid_err += alignment.global_one_side_banded_alignment(qseq + qspos, qlen, rseq, rlen, diff);
 			}
 			else if (diff < 0 and diff >= -INDELTH) {
 				pac2char(rspos, rlen, rseq);
+				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
 				mid_err += alignment.global_one_side_banded_alignment(rseq, rlen, qseq + qspos, qlen, -1*diff);
 			}
 			if (mid_err > edth)
@@ -449,6 +452,15 @@ bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 	lmm.middle_ed = estimate_middle_error(lch);
 	rmm.middle_ed = estimate_middle_error(rch);
 
+	// lmm.middle_ed = calc_middle_ed(lch, EDTH, lseq, lseq_len);
+	// fprintf(stderr, "Left middle ed: %d\n", lmm.middle_ed);
+	// if (lmm.middle_ed > EDTH)
+	// 	return false;
+
+	// rmm.middle_ed = calc_middle_ed(rch, EDTH, rseq, lseq_len);
+	// fprintf(stderr, "Right middle ed: %d\n", rmm.middle_ed);
+	// if (rmm.middle_ed > EDTH)
+	// 	return false;
 
 	bool l_extend = true;
 	lmm.is_concord = false;
@@ -505,6 +517,8 @@ bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 	}
 
 	// check accurate edit distance for middle part
+	// return true;
+
 	int ledth = EDTH - (lmm.left_ed + lmm.right_ed);
 	lmm.middle_ed = calc_middle_ed(lch, ledth, lseq, lseq_len);
 	if (lmm.middle_ed + lmm.right_ed + lmm.left_ed > EDTH)
