@@ -279,7 +279,7 @@ void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 		}
 	}
 
-	if (covered >= qseq_len or rspos + qseq_len - covered > ub)
+	if (covered >= qseq_len or (rspos + qseq_len - covered > ub) or (exon_len < qseq_len - covered))	// last argument is for when we reach end of transcript and read remains
 		return;
 
 	consecutive = (rspos == pos);
@@ -456,7 +456,7 @@ void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 		}
 	}
 
-	if (covered >= qseq_len or lepos < lb + qseq_len - covered)
+	if (covered >= qseq_len or (lepos < lb + qseq_len - covered) or (exon_len < qseq_len - covered))
 		return;
 
 	consecutive = (lepos == pos);
