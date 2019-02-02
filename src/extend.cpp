@@ -265,7 +265,7 @@ void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 			//
 
 			remain_ref_len -= exon_len;
-			covered += exon_len + indel;
+			covered += exon_len - indel;
 			exon_len = 0;
 			curr_exon_start_ind = i + it_ind_start;
 			curr_exon_end_ind = i + it_ind_start;
@@ -451,7 +451,7 @@ void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 			//
 
 			remain_ref_len -= exon_len;
-			covered += exon_len + indel;
+			covered += exon_len - indel;
 			exon_len = 0;
 		}
 	}
