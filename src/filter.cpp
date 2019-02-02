@@ -449,18 +449,18 @@ bool check_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len) {
 bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
 						int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
 	
-	lmm.middle_ed = estimate_middle_error(lch);
-	rmm.middle_ed = estimate_middle_error(rch);
+	// lmm.middle_ed = estimate_middle_error(lch);
+	// rmm.middle_ed = estimate_middle_error(rch);
 
-	// lmm.middle_ed = calc_middle_ed(lch, EDTH, lseq, lseq_len);
+	lmm.middle_ed = calc_middle_ed(lch, EDTH, lseq, lseq_len);
 	// fprintf(stderr, "Left middle ed: %d\n", lmm.middle_ed);
-	// if (lmm.middle_ed > EDTH)
-	// 	return false;
+	if (lmm.middle_ed > EDTH)
+		return false;
 
-	// rmm.middle_ed = calc_middle_ed(rch, EDTH, rseq, lseq_len);
+	rmm.middle_ed = calc_middle_ed(rch, EDTH, rseq, lseq_len);
 	// fprintf(stderr, "Right middle ed: %d\n", rmm.middle_ed);
-	// if (rmm.middle_ed > EDTH)
-	// 	return false;
+	if (rmm.middle_ed > EDTH)
+		return false;
 
 	bool l_extend = true;
 	lmm.is_concord = false;
@@ -517,16 +517,16 @@ bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 	}
 
 	// check accurate edit distance for middle part
-	// return true;
+	return true;
 
-	int ledth = EDTH - (lmm.left_ed + lmm.right_ed);
-	lmm.middle_ed = calc_middle_ed(lch, ledth, lseq, lseq_len);
-	if (lmm.middle_ed + lmm.right_ed + lmm.left_ed > EDTH)
-		return false;
+	// int ledth = EDTH - (lmm.left_ed + lmm.right_ed);
+	// lmm.middle_ed = calc_middle_ed(lch, ledth, lseq, lseq_len);
+	// if (lmm.middle_ed + lmm.right_ed + lmm.left_ed > EDTH)
+	// 	return false;
 	
-	int redth = EDTH - (rmm.left_ed + rmm.right_ed);
-	rmm.middle_ed = calc_middle_ed(rch, redth, rseq, lseq_len);
-	return (rmm.middle_ed + rmm.right_ed + rmm.left_ed <= EDTH);
+	// int redth = EDTH - (rmm.left_ed + rmm.right_ed);
+	// rmm.middle_ed = calc_middle_ed(rch, redth, rseq, lseq_len);
+	// return (rmm.middle_ed + rmm.right_ed + rmm.left_ed <= EDTH);
 }
 
 // return:

@@ -3,6 +3,7 @@
 
 #define MAXSTRSIZE 100
 
+#include <cmath>
 #include "common.h"
 
 struct AlignRes {
@@ -70,15 +71,27 @@ struct AlignCandid{
 	int ed;
 	int sclen;
 	int indel;
+	int penalty;
 
-	AlignCandid (int e, int s, int i) : ed(e), sclen(s), indel(i) {}
+	AlignCandid (int e, int s, int i) : ed(e), sclen(s), indel(i), penalty(s + 2*e) {}
 
 	bool operator < (const AlignCandid& r) const {
+		// score = MatchedLen - 2 * EditDist ~ -1 * SCLen - 2 * EditDist
+		// penalty = -1 * score
+		if (penalty != r.penalty) 
+			return penalty < r.penalty;
 		if (ed != r.ed)
 			return ed < r.ed;
-		if (sclen != r.sclen)
-			return sclen < r.sclen;
-		return indel < r.indel;
+		return abs(indel) < abs(r.indel);
+	}
+
+	void update(const AlignCandid& r) {
+		if (r < *this) {
+			ed = r.ed;
+			sclen = r.sclen;
+			indel = r.indel;
+			penalty = r.penalty;
+		}
 	}
 };
 
@@ -118,7 +131,7 @@ public:
 	int local_alignment_left (char* s, int n, char* t, int m, int& indel);
 
 private:
-	int dp[MAXSTRSIZE][MAXSTRSIZE];
+	uint32_t dp[MAXSTRSIZE][MAXSTRSIZE];
 	int hamm[MAXSTRSIZE][MAXSTRSIZE];
 	int diff_ch[ASCISIZE][ASCISIZE];
 };
