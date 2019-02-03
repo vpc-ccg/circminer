@@ -8,6 +8,8 @@
 
 using namespace std;
 
+#define DPTINF 1000000
+
 Alignment::Alignment(void) {
 	init();
 }
@@ -219,7 +221,20 @@ int Alignment::global_alignment_reverse(char* s, int n, char* t, int m) {
 // returns edit distance
 int Alignment::global_one_side_banded_alignment(char* s, int n, char* t, int m, int w) {
 	int i, j;
-	memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
+	
+	// memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
+	j = 0;
+	for (i = w+1; i <= n; i++) {
+		dp[i][j++] = DPTINF;
+	}
+
+	i = 0;
+	for (j = w+1; j <= m; j++)
+		dp[i++][j] = DPTINF;
+
+	// uint32_t dp[n+1][m+1];
+	// memset(dp, 127, (n+1) * (m+1) * sizeof(uint32_t));
+
 	for (j = 0; j <= w; j++)
 		dp[0][j] = j;
 
@@ -243,7 +258,22 @@ void Alignment::global_banded_alignment(char* s, int n, char* t, int m, int w) {
 
 	int i, j;
 	int penalty;
-	memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
+	//memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
+	// for (i = 0; i <= n; i++)
+	// 	for (j = 0; j <= m; j++)
+	// 		dp[i][j] = 1e6;
+
+	j = 0;
+	for (i = w+1; i <= n; i++) {
+		dp[i][j++] = DPTINF;
+	}
+
+	i = 0;
+	for (j = w+1; j <= m; j++)
+		dp[i++][j] = DPTINF;
+
+	// uint32_t dp[n+1][m+1];
+	// memset(dp, 127, (n+1) * (m+1) * sizeof(uint32_t));
 
 	for (i = 0; i <= w; i++)
 		dp[i][0] = i;
@@ -290,7 +320,22 @@ void Alignment::global_banded_alignment_reverse(char* s, int n, char* t, int m, 
 
 	int i, j;
 	int penalty;
-	memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
+	//memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
+	// for (i = 0; i <= n; i++)
+	// 	for (j = 0; j <= m; j++)
+	// 		dp[i][j] = 1e6;
+
+	j = 0;
+	for (i = w+1; i <= n; i++) {
+		dp[i][j++] = DPTINF;
+	}
+
+	i = 0;
+	for (j = w+1; j <= m; j++)
+		dp[i++][j] = DPTINF;
+
+	// uint32_t dp[n+1][m+1];
+	// memset(dp, 127, (n+1) * (m+1) * sizeof(uint32_t));
 
 	for (i = 0; i <= w; i++)
 		dp[i][0] = i;
