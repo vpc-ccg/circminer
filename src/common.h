@@ -525,6 +525,7 @@ extern char outputFilename[FILE_NAME_LENGTH];
 extern char outputDir[FILE_NAME_LENGTH];
 
 extern char* contigName;
+extern int contigNum;
 
 extern uint32_t lookup_cnt;
 extern uint8_t* near_border[3];

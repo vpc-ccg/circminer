@@ -415,25 +415,22 @@ ConShift GTFParser::get_shift(const string& contig, uint32_t loc) {
 // mlen: Matched LENgth
 // rlen: the lenght of the read remained to be matched (Rmained LENgth)
 uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end, const IntervalInfo<UniqSeg>*& ol_exons) {
-	ol_exons = NULL;
 	max_end = 0;
-	uint32_t min_end = 1e9;
-	uint32_t max_next_exon = 0;
-	uint32_t epos = spos + mlen - 1;
 
 	// fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
-	if (!(near_border[contigName[0]-'1'][spos] & 1))		// if not near any border, skip lookup
+	if (!(near_border[contigNum][spos] & 1))		// if not near any border, skip lookup
 	{
 		// fprintf(stderr, "skip lookup\n");
 		ol_exons = NULL;
 		return spos + rlen + EDTH;	// allowing deletion of size at most "EDTH"
 	}
 
-	lookup_cnt++;
+	//lookup_cnt++;
 	
 	int it_ind = -1;
 	const IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigName].find_ind(spos, it_ind);
 
+	uint32_t epos = spos + mlen - 1;
 	if (ov_res == NULL or ov_res->seg_list.size() == 0) {	// not found => intronic
 		ol_exons = NULL;
 		// find end of intron
@@ -451,6 +448,9 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 			return minM(spos + rlen + EDTH, max_end - mlen + 1);
 	}
 
+	ol_exons = NULL;
+	uint32_t min_end = 1e9;
+	uint32_t max_next_exon = 0;
 	if (epos > ov_res->epos) {
 		for (int i = 0; i < ov_res->seg_list.size(); i++) {
 			if (ov_res->seg_list[i].end >= epos) {	// => exonic

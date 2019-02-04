@@ -103,7 +103,7 @@ int mapping(int& last_round_num) {
 
 	initCommon();
 	
-	THREAD_COUNT = 32;
+	THREAD_COUNT = 16;
 	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
 	for (int i = 0; i < 255; i++)
 		THREAD_ID[i] = i;
@@ -166,7 +166,7 @@ int mapping(int& last_round_num) {
 
 		fprintf(stdout, "Contig: %s\n", getRefGenomeName());
 		contigName = getRefGenomeName();
-		int contigNum = atoi(contigName);
+		contigNum = atoi(contigName);
 		last_round_num = contigNum;
 
 		FASTQParser fq_parser1(fq_file1);
@@ -179,6 +179,8 @@ int mapping(int& last_round_num) {
 		is_last = !flag;
 		FilterRead filter_read(outputFilename, is_pe, contigNum, is_first, is_last, fq_file1, fq_file2);
 		is_first = false;
+
+		contigNum--;
 
 		int line = 0;
 		lookup_cnt = 0;

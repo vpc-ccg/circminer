@@ -17,6 +17,7 @@ char outputFilename[FILE_NAME_LENGTH]="output";
 char outputDir[FILE_NAME_LENGTH] = "./";
 
 char* contigName;
+int contigNum;
 
 uint32_t lookup_cnt;
 
