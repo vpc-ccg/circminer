@@ -45,18 +45,26 @@ int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk
 	mk->frags = NULL;
 	mk->qpos = qpos;
 
-	GeneralIndex *it = getCandidates(hashVal(seq));
+	int hv = hashVal(seq);
+	if (hv < 0)
+		return 0;
+
+	char* checksum_beg = seq + WINDOW_SIZE;
+	int cv = checkSumVal(checksum_beg);
+	if (cv < 0)
+		return 0;
+
+	GeneralIndex *it = getCandidates(hv);
 	uint32_t i, j;
 
 	if (it == NULL) {
 		return 0;
 	}
 
-	char* checksum_beg = seq + WINDOW_SIZE;
 	uint32_t lb = 1;
 	uint32_t ub = it[0].info;
 	uint32_t mid;
-	uint16_t target = checkSumVal(checksum_beg);
+	int16_t target = cv;
 	uint32_t LB = 0;
 	uint32_t UB = 0;
 
@@ -97,7 +105,7 @@ bool reduce_hits_behind(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 	if (sl->frag_count == 0 or ll->frag_count == 0)
 		return false;
 
-	uint32_t max_dist = ((sl->qpos - ll->qpos) / 19) * MAX_INTRON;
+	uint32_t max_dist = ((sl->qpos - ll->qpos) / kmer) * MAX_INTRON;
 
 	int size = 0;
 	int j = 0;
@@ -127,7 +135,7 @@ bool reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 	if (sl->frag_count == 0 or ll->frag_count == 0)
 		return false;
 
-	uint32_t max_dist = ((ll->qpos - sl->qpos) / 19) * MAX_INTRON;
+	uint32_t max_dist = ((ll->qpos - sl->qpos) / kmer) * MAX_INTRON;
 
 	int size = 0;
 	int j = 0;
