@@ -103,7 +103,7 @@ int mapping(int& last_round_num) {
 
 	initCommon();
 	
-	THREAD_COUNT = 16;
+	THREAD_COUNT = threads;
 	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
 	for (int i = 0; i < 255; i++)
 		THREAD_ID[i] = i;

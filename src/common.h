@@ -517,6 +517,7 @@ extern int verboseMode;
 extern int scanLevel;
 extern int maxEd;
 extern int maxSc;
+extern int threads;
 
 extern char gtfFilename[FILE_NAME_LENGTH];
 extern char referenceFilename[FILE_NAME_LENGTH];

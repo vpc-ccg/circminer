@@ -9,6 +9,7 @@ int verboseMode = 0;
 int scanLevel = 0;
 int maxEd = EDTH;
 int maxSc = SOFTCLIPTH;
+int threads = 1;
 
 char gtfFilename[FILE_NAME_LENGTH];
 char referenceFilename[FILE_NAME_LENGTH];
@@ -45,13 +46,14 @@ int parse_command( int argc, char *argv[] )
 		{"rlen", required_argument, 0, 'l'},
 		{"output", required_argument, 0, 'o'},
 		{"verbose", required_argument, 0, 'd'},
+		{"thread", required_argument, 0, 't'},
 		{"scan_lev", required_argument, 0, 's'},
 		{"max_ed", required_argument, 0, 'e'},
 		{"max_sc", required_argument, 0, 'c'},
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:l:o:d:s:e:c:", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:l:o:t:d:s:e:c:", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
@@ -90,6 +92,10 @@ int parse_command( int argc, char *argv[] )
 			}
 			case 'o': {
 				strncpy(outputFilename, optarg, FILE_NAME_LENGTH);
+				break;
+			}
+			case 't': {
+				threads = atoi(optarg);
 				break;
 			}
 			case 'd': {
@@ -138,6 +144,7 @@ void printHELP()
 	fprintf(stdout, "-e|--max_ed:\tMax allowed edit distance on each mate (default = %d).\n", EDTH);
 	fprintf(stdout, "-c|--max_sc:\tMax allowed soft clipping on each mate (default = %d).\n", SOFTCLIPTH);
 	fprintf(stdout, "-o|--output:\tOutput file (default = output).\n");
+	fprintf(stdout, "-d|--thread:\tNumber of threads (default = 1).\n");
 	fprintf(stdout, "-d|--verbose:\tVerbose mode: 0 to 1. Higher values output more information (default = 0).\n");
 	fprintf(stdout, "-s|--scan_lev:\tTranscriptome/Genome scan level: 0 to 2. (default = 0)\n\t\t"
 										"0: Report the first mapping.\n\t\t"
