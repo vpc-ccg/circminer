@@ -408,23 +408,15 @@ ConShift GTFParser::get_shift(const string& contig, uint32_t loc) {
 	return con2chr[contig][i-1];
 }
 
-
 // match an interval:
 // [ spos, spos + mlen )
 // spos: Start POSition of matched region
 // mlen: Matched LENgth
 // rlen: the lenght of the read remained to be matched (Rmained LENgth)
-uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end, const IntervalInfo<UniqSeg>*& ol_exons) {
+uint32_t GTFParser::get_upper_bound_lookup(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end, const IntervalInfo<UniqSeg>*& ol_exons) {
 	max_end = 0;
 
 	// fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
-	if (!(near_border[contigNum][spos] & 1))		// if not near any border, skip lookup
-	{
-		// fprintf(stderr, "skip lookup\n");
-		ol_exons = NULL;
-		return spos + rlen + EDTH;	// allowing deletion of size at most "EDTH"
-	}
-
 	//lookup_cnt++;
 	
 	int it_ind = -1;
@@ -433,13 +425,6 @@ uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen,
 	uint32_t epos = spos + mlen - 1;
 	if (ov_res == NULL or ov_res->seg_list.size() == 0) {	// not found => intronic
 		ol_exons = NULL;
-		// find end of intron
-		// To be modified
-		// max_end = spos;
-		// while ((max_end <= epos + rlen + EDTH) and (near_border[contigName[0]-'1'][max_end] & 2))
-		// 	max_end++;
-		// max_end--;
-
 		max_end = gtf_parser.get_interval(it_ind + 1)->spos - 1;
 
 		if (max_end < epos)	// => crossing the boundry
@@ -599,7 +584,7 @@ void GTFParser::get_upper_bound_alu(uint32_t spos, uint32_t mlen, uint32_t rlen,
 // remain lenght does not include loc itself (starting from next location)
 const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap(uint32_t loc, bool use_mask) {
 	// do not use mask if extending left
-	if (use_mask and !(near_border[contigName[0]-'1'][loc] & 1)) {		// intronic
+	if (use_mask and !(near_border[contigNum][loc] & 1)) {		// intronic
 		//fprintf(stderr, "skip lookup\n");
 		return NULL;
 	}
@@ -616,7 +601,7 @@ const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap(uint32_t loc, bool 
 // remain lenght does not include loc itself (starting from next location)
 const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap_ind(uint32_t loc, bool use_mask, int& ind) {
 	// do not use mask if extending left
-	if (use_mask and !(near_border[contigName[0]-'1'][loc] & 1)) {		// intronic
+	if (use_mask and !(near_border[contigNum][loc] & 1)) {		// intronic
 		//fprintf(stderr, "skip lookup\n");
 		return NULL;
 	}
@@ -633,7 +618,7 @@ const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap_ind(uint32_t loc, b
 // remain lenght does not include loc itself (starting from next location)
 const IntervalInfo<GeneInfo>* GTFParser::get_gene_overlap(uint32_t loc, bool use_mask) {
 	// do not use mask if extending left
-	if (use_mask and !(near_border[contigName[0]-'1'][loc] & 1)) {		// intronic
+	if (use_mask and !(near_border[contigNum][loc] & 1)) {		// intronic
 		//fprintf(stderr, "skip lookup\n");
 		return NULL;
 	}
@@ -644,20 +629,4 @@ const IntervalInfo<GeneInfo>* GTFParser::get_gene_overlap(uint32_t loc, bool use
 		return NULL;
 
 	return ov_res;
-}
-
-uint32_t GTFParser::get_interval_epos(int interval_ind) {
-	return exons_int_map[contigName].get_node(interval_ind)->epos;
-}
-
-const IntervalInfo<UniqSeg>* GTFParser::get_interval(int interval_ind) {
-	return exons_int_map[contigName].get_node(interval_ind);
-}
-
-int GTFParser::get_trans_start_ind(const string& contig, uint32_t tid) {
-	return trans_start_ind[contig][tid];
-}
-
-GeneInfo* GTFParser::get_gene_info(const string& gid) {
-	return &gid2ginfo[contigName][gid];
 }
