@@ -306,10 +306,6 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& bes
 	int forward_fragment_count, backward_fragment_count;
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
 
-	//for (int i = 0; i < max_seg_cnt; i++) {
-	//	memset(frag_l[i].junc_dist, 0, FRAGLIM * sizeof(JunctionDist));
-	//}
-
 	split_match_hash(read_seq, seq_len, kmer_size, frag_l);
 	chain_seeds_sorted_kbest(seq_len, frag_l, best_chain);
 
@@ -640,7 +636,7 @@ bool same_gene(uint32_t sme, const IntervalInfo<GeneInfo>* smg, uint32_t lms, co
 			if (smg->seg_list[i].start == lmg->seg_list[j].start and smg->seg_list[i].end == lmg->seg_list[j].end) {
 				same_intron = true;
 				for (int k = sme; k <= lms; k += step)
-					if (!(near_border[contigName[0]-'1'][k] & 2)) {
+					if (!(intronic_bs[contigNum][k])) {
 						same_intron = false;
 						break;
 					}
@@ -806,7 +802,7 @@ bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& 
 		//overlap_to_spos(sm);
 		//overlap_to_epos(lm);
 		//fprintf(stderr, "R1 start ind: %d\tR2 end ind: %d\n To beg of intron: %d\n", sm.exon_ind_spos, lm.exon_ind_epos, sm.spos - gtf_parser.get_interval_epos(sm.exon_ind_spos));
-		if ((near_border[contigName[0]-'1'][sm.spos] & 2) and ((near_border[contigName[0]-'1'][lm.spos] & 2)) and 
+		if ((intronic_bs[contigNum][sm.spos]) and ((intronic_bs[contigNum][lm.spos])) and 
 			(sm.exon_ind_spos >= 0) and (lm.exon_ind_epos >= 0) and (sm.exon_ind_spos == lm.exon_ind_epos) and 
 			(sm.spos - gtf_parser.get_interval_epos(sm.exon_ind_spos) <= LARIAT2BEGTH)) {
 			mr.update(sm, lm, chr, shift, lm.epos - sm.spos + 1, 0, false, CHIBSJ, r1_sm);

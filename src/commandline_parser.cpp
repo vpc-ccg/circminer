@@ -1,3 +1,5 @@
+#include <bitset>
+
 #include "commandline_parser.h"
 
 using namespace std;
@@ -22,7 +24,8 @@ int contigNum;
 
 uint32_t lookup_cnt;
 
-uint8_t* near_border[3];
+vector <bitset <DEF_CONTIG_MAX_SIZE> > near_border_bs;
+vector <bitset <DEF_CONTIG_MAX_SIZE> > intronic_bs;
 
 /**********************************************/
 // return:

@@ -71,11 +71,6 @@ int mapping(int& last_round_num) {
 	GIMatchedKmer* fl = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
 	GIMatchedKmer* bl = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
 
-	for (int i = 0; i < max_seg_cnt; i++) {
-		fl[i].junc_dist = (JunctionDist*) malloc(FRAGLIM * sizeof(JunctionDist));
-		bl[i].junc_dist = (JunctionDist*) malloc(FRAGLIM * sizeof(JunctionDist));
-	}
-
 	chain_list fbc_r1;
 	chain_list bbc_r1;
 	chain_list fbc_r2;
@@ -242,13 +237,6 @@ int mapping(int& last_round_num) {
 
 	finalizeLoadingHashTable();
 
-	for (int i = 0; i < 3; i++)
-		free(near_border[i]);
-
-	for (int i = 0; i < max_seg_cnt; i++) {
-		free(fl[i].junc_dist);
-		free(bl[i].junc_dist);
-	}
 	free(fl);
 	free(bl);
 

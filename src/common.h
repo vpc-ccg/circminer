@@ -93,22 +93,7 @@ typedef struct {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 typedef struct {
-	uint32_t dr;
-	uint32_t dl;
-
-	uint32_t range;
-	uint32_t max_end;
-
-	bool looked_up;
-	bool exonic;
-	bool cross_boundry;
-} JunctionDist;
-
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
-
-typedef struct {
 	GeneralIndex* frags;	// array of locations
-	JunctionDist* junc_dist;
 
 	uint32_t frag_count;
 	int32_t qpos;
@@ -534,7 +519,8 @@ extern char* contigName;
 extern int contigNum;
 
 extern uint32_t lookup_cnt;
-extern uint8_t* near_border[3];
+extern vector <bitset <DEF_CONTIG_MAX_SIZE> > near_border_bs;
+extern vector <bitset <DEF_CONTIG_MAX_SIZE> > intronic_bs;
 
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];

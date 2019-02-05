@@ -175,16 +175,6 @@ void GTFParser::chrloc2conloc(string& chr, uint32_t& start, uint32_t& end) {
 }
 
 bool GTFParser::load_gtf(void) {
-
-	///
-	//
-	for (int i = 0; i < 3; i++) {
-		near_border[i] = (uint8_t*) malloc(1200000000 * sizeof(uint8_t));
-		memset(near_border[i], 0, 1200000000 * sizeof(uint8_t));
-	}
-	//
-	///
-
 	bool found;
 	UniqSeg seg;
 	string tmp_str;
@@ -204,14 +194,23 @@ bool GTFParser::load_gtf(void) {
 
 		chrloc2conloc(current_record->chr, current_record->start, current_record->end);
 
-		if (current_record->chr == "0")
+		if (current_record->chr == "0")	// chr not found in genome index
 			continue;
 
 		if (current_record->type == "gene") {
-			int con = current_record->chr[0]-'1';
-			if (con >= 0 and con < 3) {
-				for (int k = current_record->start; k <= current_record->end; k++)
-					near_border[current_record->chr[0]-'1'][k] |= 2;
+			int con = atoi(current_record->chr.c_str()) - 1;
+			
+			if (con >= near_border_bs.size()) {
+				near_border_bs.resize(con+1);
+				near_border_bs[con].reset();
+			}
+			if (con >= intronic_bs.size()) {
+				intronic_bs.resize(con+1);
+				intronic_bs[con].reset();
+			}
+
+			for (int k = current_record->start; k <= current_record->end; k++) {
+				intronic_bs[con].set(k, 1);
 			}
 
 			GeneInfo tmp = {.start = current_record->start, .end = current_record->end};
@@ -230,25 +229,19 @@ bool GTFParser::load_gtf(void) {
 		}
 
 		if (current_record->type == "exon") {
-			///
-			//
-			int con = current_record->chr[0]-'1';
-			if (con >= 0 and con < 3) {
-				for (int k = current_record->start; k <= current_record->end; k++)
-					near_border[current_record->chr[0]-'1'][k] &= ~(2);
-				
-				for (int k = maxM(0, current_record->start - maxReadLength); k < current_record->start; k++)
-					near_border[current_record->chr[0]-'1'][k] |= 1;
-				for (int k = maxM(0, current_record->end - maxReadLength + 1); k <= current_record->end; k++)
-					near_border[current_record->chr[0]-'1'][k] |= 1;
 
-				//for (int k = current_record->start; k < current_record->start + maxReadLength; k++)
-				//	near_border[current_record->chr[0]-'1'][k] |= 2;
-				//for (int k = current_record->end + 1; k <= current_record->end + maxReadLength; k++)
-				//	near_border[current_record->chr[0]-'1'][k] |= 2;
+			int con = atoi(current_record->chr.c_str()) - 1;
+			for (int k = current_record->start; k <= current_record->end; k++) {
+				intronic_bs[con].set(k, 0);
 			}
-			//
-			///
+			
+			for (int k = maxM(0, current_record->start - maxReadLength); k < current_record->start; k++) {
+				near_border_bs[con].set(k, 1);
+			}
+			for (int k = maxM(0, current_record->end - maxReadLength + 1); k <= current_record->end; k++) {
+				near_border_bs[con].set(k, 1);
+			}
+
 			current_record->trans_id_int = transcript_ids[current_record->chr].size() - 1;
 			if (prev_record->type != "exon") {
 				//prev_record = current_record;
@@ -312,8 +305,6 @@ bool GTFParser::load_gtf(void) {
 	}
 	//////
 
-	//fprintf(stdout, "162: %s\n", transcript_ids[merged_exons.begin()->first][162].c_str());
-
 	map <string, map <UniqSeg, string> >:: iterator con_it;
 	for (con_it = merged_exons.begin(); con_it != merged_exons.end(); con_it++) {
 		exons_int_map[con_it->first].build(con_it->second);
@@ -330,20 +321,11 @@ bool GTFParser::load_gtf(void) {
 		//genes_int_map[it->first].print();
 	}
 
-	int need_lu[3];
-	for (int i = 0; i < 3; i++) {
-		need_lu[i] = 0;
-		for (int j = 0; j < 1200000000; j++)
-			if (near_border[i][j] & 1)
-				need_lu[i]++;
-		fprintf(stdout, "Contig [%d]: Near exon boundaries: %d\n", i+1, need_lu[i]);
+	for (int i = 0; i < near_border_bs.size(); i++) {
+		fprintf(stdout, "Contig [%d]: Near exon boundaries: %d\n", i+1, near_border_bs[i].count());
 	}
-	for (int i = 0; i < 3; i++) {
-		need_lu[i] = 0;
-		for (int j = 0; j < 1200000000; j++)
-			if (near_border[i][j] & 2)
-				need_lu[i]++;
-		fprintf(stdout, "Contig [%d]: Intronic: %d\n", i+1, need_lu[i]);
+	for (int i = 0; i < intronic_bs.size(); i++) {
+		fprintf(stdout, "Contig [%d]: Intronic: %d\n", i+1, intronic_bs[i].count());
 	}
 
 	delete prev_record;
@@ -485,106 +467,12 @@ uint32_t GTFParser::get_upper_bound_lookup(uint32_t spos, uint32_t mlen, uint32_
 	}
 }
 
-// match an interval:
-// [ spos, spos + mlen )
-// spos: Start POSition of matched region
-// mlen: Matched LENgth
-// rlen: the lenght of the read remained to be matched (Rmained LENgth)
-void GTFParser::get_upper_bound_alu(uint32_t spos, uint32_t mlen, uint32_t rlen, JunctionDist& jd) {
-	if (jd.looked_up) {
-		//fprintf(stderr, "Looked up before!\n");
-		return;
-	}
-
-	jd.looked_up = true;
-
-	uint32_t max_beg = 0;
-	uint32_t max_end = 0;
-	uint32_t min_end = 1e9;
-	uint32_t max_next_exon = 0;
-	uint32_t epos = spos + mlen - 1;
-
-	//fprintf(stderr, "Searching for: [%u-%u], remain len: %u\n", spos, epos, rlen);
-	
-	lookup_cnt++;
-	IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigName].find(spos);
-
-	if (ov_res == NULL or ov_res->seg_list.size() == 0) {	// not found => intronic
-		jd.exonic = false;
-		jd.dr = maxReadLength;	// do not consider junction
-		jd.dl = maxReadLength;
-		
-		if (! (near_border[contigName[0]-'1'][spos] & 1)) {	// far from exon start
-			jd.cross_boundry = false;
-			jd.range = spos + rlen + EDTH;
-		}
-		else {
-			// find end of intron
-			// To be modified
-			max_end = spos;
-			while (near_border[contigName[0]-'1'][max_end] & 1)
-				max_end++;
-			max_end--;
-
-			if (max_end - spos + 1 < mlen) {	// => crossing the boundry
-				jd.cross_boundry = true;
-				jd.range = 0;
-			}
-			else {
-				jd.cross_boundry = false;
-				jd.range =  max_end - mlen + 1;
-				//jd.range = spos + rlen + EDTH;
-			}
-		}
-		
-		jd.max_end = max_end;
-		return;
-	}
-
-	jd.exonic = true;
-	for (int i = 0; i < ov_res->seg_list.size(); i++) {
-		if (ov_res->seg_list[i].end >= epos) {	// => exonic
-			max_beg = maxM(max_beg, ov_res->seg_list[i].start);
-			max_end = maxM(max_end, ov_res->seg_list[i].end);
-			min_end = minM(min_end, ov_res->seg_list[i].end);
-			max_next_exon = maxM(max_next_exon, ov_res->seg_list[i].next_exon_beg);
-			//fprintf(stderr, "Min end: %d\n Max end: %d\n  Max next: %d\n", min_end, max_end, max_next_exon);
-			//fprintf(stderr, "Exon: [%d-%d]\n", ov_res->seg_list[i].start, ov_res->seg_list[i].end);
-		}
-	}
-
-	if (max_end > 0) {	// exonic	
-		jd.cross_boundry = false;
-		
-		// loc excluded
-		int32_t min2end = min_end - epos;
-		int32_t min2beg = spos - max_beg;
-		jd.dr = min2end;
-		jd.dl = min2beg;
-		jd.max_end = max_end;
-
-		if (min2end < rlen and max_next_exon != 0) {	// junction is allowed
-			jd.range = max_next_exon + mlen - 1;
-		}
-		else {
-			jd.range = max_end - mlen + 1;
-		}
-	}
-
-	else {	// on exon boundary
-		jd.cross_boundry = true;
-		jd.dr = maxReadLength;
-		jd.dl = maxReadLength;
-		jd.range = 0;
-		jd.max_end = 0;
-	}
-}
 
 // returns intervals overlapping with: loc
 // remain lenght does not include loc itself (starting from next location)
 const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap(uint32_t loc, bool use_mask) {
 	// do not use mask if extending left
-	if (use_mask and !(near_border[contigNum][loc] & 1)) {		// intronic
+	if (use_mask and !(near_border_bs[contigNum][loc])) {		// intronic
 		//fprintf(stderr, "skip lookup\n");
 		return NULL;
 	}
@@ -601,7 +489,7 @@ const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap(uint32_t loc, bool 
 // remain lenght does not include loc itself (starting from next location)
 const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap_ind(uint32_t loc, bool use_mask, int& ind) {
 	// do not use mask if extending left
-	if (use_mask and !(near_border[contigNum][loc] & 1)) {		// intronic
+	if (use_mask and !(near_border_bs[contigNum][loc])) {		// intronic
 		//fprintf(stderr, "skip lookup\n");
 		return NULL;
 	}
@@ -618,7 +506,7 @@ const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap_ind(uint32_t loc, b
 // remain lenght does not include loc itself (starting from next location)
 const IntervalInfo<GeneInfo>* GTFParser::get_gene_overlap(uint32_t loc, bool use_mask) {
 	// do not use mask if extending left
-	if (use_mask and !(near_border[contigNum][loc] & 1)) {		// intronic
+	if (use_mask and !(near_border_bs[contigNum][loc])) {		// intronic
 		//fprintf(stderr, "skip lookup\n");
 		return NULL;
 	}

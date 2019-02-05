@@ -92,8 +92,6 @@ public:
 
 	uint32_t get_upper_bound       (uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end, const IntervalInfo<UniqSeg>*& ol_exons);
 	uint32_t get_upper_bound_lookup(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end, const IntervalInfo<UniqSeg>*& ol_exons);
-
-	void get_upper_bound_alu(uint32_t spos, uint32_t mlen, uint32_t rlen, JunctionDist& jd);
 	
 	const IntervalInfo<UniqSeg>* get_location_overlap    (uint32_t loc, bool use_mask);
 	const IntervalInfo<UniqSeg>* get_location_overlap_ind(uint32_t loc, bool use_mask, int& ind);
@@ -117,7 +115,7 @@ public:
 // mlen: Matched LENgth
 // rlen: the lenght of the read remained to be matched (Rmained LENgth)
 inline uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end, const IntervalInfo<UniqSeg>*& ol_exons) {
-	if (near_border[contigNum][spos] & 1) {		// if not near any border, skip lookup
+	if (near_border_bs[contigNum][spos]) {		// if not near any border, skip lookup
 		return get_upper_bound_lookup(spos, mlen, rlen, max_end, ol_exons);
 	}
 	else {
