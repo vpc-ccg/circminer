@@ -14,7 +14,7 @@ INCS        :=
 #LIBS        := -lz
 LIBS        := -lz -lm -lpthread
 CFLAGS      := -w 
-CXXFLAGS    := -w $(INCS)
+CXXFLAGS    := -w $(INCS) -std=c++11
 LDFLAGS     := 
 
 MYOBJ        = $(SRCDIR)/circRNA.o \
