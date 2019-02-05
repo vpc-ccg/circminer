@@ -1,6 +1,6 @@
 all: OPTIMIZE_FLAGS build
 debug: DEBUG_FLAGS build
-profile: PROFILE_FLAGS build
+profile: PROFILE_FLAGS DEBUG_FLAGS OPTIMIZE_FLAGS build
 valgrind: OPTIMIZE_FLAGS DEBUG_FLAGS build
 build: mrsfast circRNA cleanobj
 
@@ -50,8 +50,8 @@ OPTIMIZE_FLAGS:
 	$(eval CXXFLAGS = $(CXXFLAGS) -O3)
 
 DEBUG_FLAGS:
-	$(eval CFLAGS = $(CFLAGS) -g)
-	$(eval CXXFLAGS = $(CXXFLAGS) -g)
+	$(eval CFLAGS = $(CFLAGS) -g -DDEBUG=1)
+	$(eval CXXFLAGS = $(CXXFLAGS) -g -DDEBUG=1)
 
 PROFILE_FLAGS:
 	$(eval LIBS = $(LIBS) -lprofiler)

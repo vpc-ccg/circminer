@@ -1,6 +1,10 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#if DEBUG==1
+#define DEBUG_MODE
+#endif
+
 #include <stdint.h>
 #include <cstdarg>
 #include <cstdio>
@@ -8,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <bitset>
 
 #include "interval_info.h"
 
@@ -544,6 +549,20 @@ void vafprintf(int verbosity, FILE *stream, const char *format, ...);
 
 double get_cpu_time();
 double get_real_time();
+
+//------- Implementations --------\\
+
+// verbose-aware fprintf
+inline void vafprintf(int verbosity, FILE *stream, const char *format, ...) {
+	#ifdef DEBUG_MODE
+		if (verbosity > verboseMode)	return;
+
+		va_list args;
+		va_start (args, format);
+		vfprintf (stream, format, args);
+		va_end (args);
+	#endif
+}
 
 //--------------------------------\\
 

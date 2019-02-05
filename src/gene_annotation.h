@@ -117,14 +117,14 @@ public:
 // mlen: Matched LENgth
 // rlen: the lenght of the read remained to be matched (Rmained LENgth)
 inline uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_t rlen, uint32_t& max_end, const IntervalInfo<UniqSeg>*& ol_exons) {
-	if (!(near_border[contigNum][spos] & 1)) {		// if not near any border, skip lookup
+	if (near_border[contigNum][spos] & 1) {		// if not near any border, skip lookup
+		return get_upper_bound_lookup(spos, mlen, rlen, max_end, ol_exons);
+	}
+	else {
 		// fprintf(stderr, "skip lookup\n");
 		max_end = 0;
 		ol_exons = NULL;
 		return spos + rlen + EDTH;	// allowing deletion of size at most "EDTH"
-	}
-	else {
-		return get_upper_bound_lookup(spos, mlen, rlen, max_end, ol_exons);
 	}
 }
 
