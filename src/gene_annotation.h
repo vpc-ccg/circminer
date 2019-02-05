@@ -26,6 +26,7 @@ typedef struct {
 	uint32_t end;
 	uint32_t next_start;
 	uint32_t prev_end;
+	uint32_t gene_id_int;
 	uint32_t trans_id_int;
 	int exon_num_int;
 
@@ -60,7 +61,7 @@ private:
 	map <string, FlatIntervalTree <UniqSeg> > exons_int_map;
 	map <string, FlatIntervalTree <GeneInfo> > genes_int_map;
 	
-	map <string, map <string, GeneInfo> > gid2ginfo;
+	map <string, vector <GeneInfo> > gid2ginfo;
 
 	map <string, ConShift> chr2con;
 	map <string, vector<ConShift> > con2chr;
@@ -72,6 +73,7 @@ private:
 	void chrloc2conloc(string& chr, uint32_t& start, uint32_t& end);
 
 public:
+	map <string, vector <string> > gene_ids;
 	map <string, vector <string> > transcript_ids;
 	map <string, vector < vector <uint8_t> > > trans2seg;
 
@@ -102,7 +104,7 @@ public:
 
 	ConShift get_shift(const string& contig, uint32_t loc);
 
-	GeneInfo* get_gene_info(const string& gid);
+	GeneInfo* get_gene_info(uint32_t gid);
 
 	int get_trans_start_ind(const string& contig, uint32_t tid);
 
@@ -138,10 +140,9 @@ inline int GTFParser::get_trans_start_ind(const string& contig, uint32_t tid) {
 	return trans_start_ind[contig][tid];
 }
 
-inline GeneInfo* GTFParser::get_gene_info(const string& gid) {
+inline GeneInfo* GTFParser::get_gene_info(uint32_t gid) {
 	return &gid2ginfo[contigName][gid];
 }
-
 extern GTFParser gtf_parser;
 
 #endif	//__GENE_ANNOTATION_H__

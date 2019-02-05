@@ -126,7 +126,7 @@ inline ostream& operator<<(ostream& os, const GeneInfo& gi) {
 }
 
 struct UniqSeg {
-	string gene_id;
+	uint32_t gene_id;
 	uint32_t start;
 	uint32_t end;
 	uint32_t next_exon_beg;
@@ -135,8 +135,8 @@ struct UniqSeg {
 	friend ostream& operator<<(ostream& os, const UniqSeg& us);
 
 	UniqSeg() : 
-			start(0), end(0), next_exon_beg(0), gene_id("") {}
-	UniqSeg(const string& gid, uint32_t s, uint32_t e, uint32_t n) : 
+			start(0), end(0), next_exon_beg(0), gene_id(0) {}
+	UniqSeg(uint32_t gid, uint32_t s, uint32_t e, uint32_t n) : 
 			start(s), end(e), next_exon_beg(n), gene_id(gid) {}
 
 	UniqSeg(const UniqSeg& other) : start(other.start), end(other.end), next_exon_beg(other.next_exon_beg), gene_id(other.gene_id) {
