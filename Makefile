@@ -1,5 +1,5 @@
 all: OPTIMIZE_FLAGS build
-debug: DEBUG_FLAGS build
+debug: DEBUG_FLAGS OPTIMIZE_FLAGS build
 profile: PROFILE_FLAGS DEBUG_FLAGS OPTIMIZE_FLAGS build
 valgrind: OPTIMIZE_FLAGS DEBUG_FLAGS build
 build: mrsfast circRNA cleanobj
