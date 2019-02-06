@@ -326,7 +326,7 @@ bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, c
 	
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		left_ok = extend_left(common_tid, seq, lm_pos, remain_beg, EDTH - err, lb, best_alignment);
+		left_ok = extend_left(common_tid, seq, lm_pos, remain_beg, maxEd - err, lb, best_alignment);
 	}
 	
 	int sclen_left = best_alignment.sclen;
@@ -355,7 +355,7 @@ bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, 
 
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
-		right_ok = extend_right(common_tid, seq + seq_len - remain_end, rm_pos, remain_end, EDTH - err, ub, best_alignment);
+		right_ok = extend_right(common_tid, seq + seq_len - remain_end, rm_pos, remain_end, maxEd - err, ub, best_alignment);
 	}
 
 	int sclen_right = best_alignment.sclen;
@@ -376,7 +376,7 @@ bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, 
 void update_match_mate_info(bool lok, bool rok, int err, MatchedMate& mm) {
 	mm.left_ok = lok;
 	mm.right_ok = rok;
-	if (lok and rok and (err <= EDTH)) {
+	if (lok and rok and (err <= maxEd)) {
 		mm.is_concord = true;
 		mm.type = CONCRD;
 	}
@@ -448,14 +448,14 @@ bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 	// lmm.middle_ed = estimate_middle_error(lch);
 	// rmm.middle_ed = estimate_middle_error(rch);
 
-	lmm.middle_ed = calc_middle_ed(lch, EDTH, lseq, lseq_len);
+	lmm.middle_ed = calc_middle_ed(lch, maxEd, lseq, lseq_len);
 	// fprintf(stderr, "Left middle ed: %d\n", lmm.middle_ed);
-	if (lmm.middle_ed > EDTH)
+	if (lmm.middle_ed > maxEd)
 		return false;
 
-	rmm.middle_ed = calc_middle_ed(rch, EDTH, rseq, lseq_len);
+	rmm.middle_ed = calc_middle_ed(rch, maxEd, rseq, lseq_len);
 	// fprintf(stderr, "Right middle ed: %d\n", rmm.middle_ed);
-	if (rmm.middle_ed > EDTH)
+	if (rmm.middle_ed > maxEd)
 		return false;
 
 	bool l_extend = true;
@@ -515,14 +515,14 @@ bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 	// check accurate edit distance for middle part
 	return true;
 
-	// int ledth = EDTH - (lmm.left_ed + lmm.right_ed);
+	// int ledth = maxEd - (lmm.left_ed + lmm.right_ed);
 	// lmm.middle_ed = calc_middle_ed(lch, ledth, lseq, lseq_len);
-	// if (lmm.middle_ed + lmm.right_ed + lmm.left_ed > EDTH)
+	// if (lmm.middle_ed + lmm.right_ed + lmm.left_ed > maxEd)
 	// 	return false;
 	
-	// int redth = EDTH - (rmm.left_ed + rmm.right_ed);
+	// int redth = maxEd - (rmm.left_ed + rmm.right_ed);
 	// rmm.middle_ed = calc_middle_ed(rch, redth, rseq, lseq_len);
-	// return (rmm.middle_ed + rmm.right_ed + rmm.left_ed <= EDTH);
+	// return (rmm.middle_ed + rmm.right_ed + rmm.left_ed <= maxEd);
 }
 
 // return:
@@ -560,7 +560,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
-		left_ok = extend_left(empty, seq, lm_pos, remain_beg, EDTH - mr.middle_ed, MINLB, best_alignment_left);
+		left_ok = extend_left(empty, seq, lm_pos, remain_beg, maxEd - mr.middle_ed, MINLB, best_alignment_left);
 	}
 
 	err_left = best_alignment_left.ed;
@@ -575,7 +575,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 
 	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
-		right_ok = extend_right(empty, seq + seq_len - remain_end, rm_pos, remain_end, EDTH - mr.middle_ed - err_left, MAXUB, best_alignment);
+		right_ok = extend_right(empty, seq + seq_len - remain_end, rm_pos, remain_end, maxEd - mr.middle_ed - err_left, MAXUB, best_alignment);
 	}
 
 	err_right = best_alignment.ed;
@@ -597,7 +597,7 @@ int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int
 	mr.dir = dir;
 	
 	//fprintf(stderr, "############################# left_ok: %d\tright_ok: %d\terr_left: %d\terr_right: %d\n", left_ok, right_ok, err_left, err_right);
-	if (left_ok and right_ok and (err_left + err_right <= EDTH)) {
+	if (left_ok and right_ok and (err_left + err_right <= maxEd)) {
 		mr.is_concord = true;
 		mr.type = CONCRD;
 	}

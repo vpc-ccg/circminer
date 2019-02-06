@@ -37,7 +37,7 @@ struct AlignRes {
 
 	void update_right (AlignRes& r) {
 		if (r.qcovlen > qcovlen) {
-			if (r.ed <= EDTH and r.sclen <= SOFTCLIPTH) {
+			if (r.ed <= maxEd and r.sclen <= maxSc) {
 				this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen);
 			}
 		}
@@ -50,7 +50,7 @@ struct AlignRes {
 
 	void update_left (AlignRes& r) {
 		if (r.qcovlen > qcovlen) {
-			if (r.ed <= EDTH and r.sclen <= SOFTCLIPTH) {
+			if (r.ed <= maxEd and r.sclen <= maxSc) {
 				this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen);
 			}
 		}

@@ -172,7 +172,7 @@ void FASTQParser::fill_map_info(int cnt) {
 			current_record->mr->qspos_r1 	= 0;
 			current_record->mr->qepos_r1 	= 0;
 			current_record->mr->r1_forward 	= true;
-			current_record->mr->ed_r1 		= EDTH+1;
+			current_record->mr->ed_r1 		= maxEd+1;
 
 			current_record->mr->chr_r2 		= "-";
 			current_record->mr->spos_r2 	= 0;
@@ -181,7 +181,7 @@ void FASTQParser::fill_map_info(int cnt) {
 			current_record->mr->qspos_r2 	= 0;
 			current_record->mr->qepos_r2 	= 0;
 			current_record->mr->r2_forward 	= true;
-			current_record->mr->ed_r2 		= EDTH+1;
+			current_record->mr->ed_r2 		= maxEd+1;
 			
 			current_record->mr->tlen 		= INF;
 			current_record->mr->junc_num 	= 0;

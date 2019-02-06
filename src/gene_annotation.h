@@ -125,7 +125,7 @@ inline uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_
 		// fprintf(stderr, "skip lookup\n");
 		max_end = 0;
 		ol_exons = NULL;
-		return spos + rlen + EDTH;	// allowing deletion of size at most "EDTH"
+		return spos + rlen + maxEd;	// allowing deletion of size at most "maxEd"
 	}
 }
 

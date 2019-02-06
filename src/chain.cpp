@@ -47,7 +47,7 @@ bool check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_ex
 			continue;
 
 		trans_dist = e12end + beg2s2;
-		if (abs(trans_dist - read_dist) <= EDTH)
+		if (abs(trans_dist - read_dist) <= maxEd)
 			return true;
 	}
 
@@ -176,7 +176,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 						genome_dist = INF;
 					}
 
-					if (abs(genome_dist - read_dist) <= EDTH) {
+					if (abs(genome_dist - read_dist) <= maxEd) {
 						distt = genome_dist;
 					}
 					else if (check_junction(seg_start, pc_mk->frags[j].info, ol_exons, kmer, read_dist, trans_dist)) {
@@ -409,7 +409,7 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 						genome_dist = INF;
 
 					//fprintf(stderr, "Genome dist: %d\nRead dist: %d\n\n", genome_dist, read_dist);
-					if (abs(genome_dist - read_dist) <= EDTH) {
+					if (abs(genome_dist - read_dist) <= maxEd) {
 						distt = genome_dist;
 					}
 					else if (check_junction(seg_start, pc_mk->frags[j].info, ol_exons, kmer, read_dist, trans_dist)) {

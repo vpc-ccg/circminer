@@ -28,7 +28,7 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 	int indel;
 	bool consecutive = false;
 	AlignRes curr_alignment(ub);
-	best_alignment.set(pos, ed_th + 1, SOFTCLIPTH + 1, INDELTH + 1, 0);
+	best_alignment.set(pos, ed_th + 1, maxSc + 1, INDELTH + 1, 0);
 
 	map <AllCoord, AlignRes> align_res; 
 	
@@ -91,7 +91,7 @@ bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, 
 	int indel;
 	bool consecutive = false;
 	AlignRes curr_alignment(lb);
-	best_alignment.set(pos, ed_th + 1, SOFTCLIPTH + 1, INDELTH + 1, 0);
+	best_alignment.set(pos, ed_th + 1, maxSc + 1, INDELTH + 1, 0);
 
 	map <AllCoord, AlignRes> align_res;
 

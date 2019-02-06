@@ -445,7 +445,7 @@ uint32_t GTFParser::get_upper_bound_lookup(uint32_t spos, uint32_t mlen, uint32_
 		if (max_end < epos)	// => crossing the boundry
 			return 0;
 		else
-			return minM(spos + rlen + EDTH, max_end - mlen + 1);
+			return minM(spos + rlen + maxEd, max_end - mlen + 1);
 	}
 
 	ol_exons = NULL;

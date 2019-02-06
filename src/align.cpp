@@ -42,7 +42,7 @@ int Alignment::hamming_distance(char* s, char* t, int n) {
 
 	for (int i = 0; i < n; i++) {
 		ed += diff_ch[s[i]][t[i]];
-		if (ed > EDTH)
+		if (ed > maxEd)
 			return ed;
 	}
 
@@ -51,21 +51,21 @@ int Alignment::hamming_distance(char* s, char* t, int n) {
 
 // dir > 0
 bool Alignment::hamming_match_right(char* s, int n, char* t, int m) {
-	int mm_th = SOFTCLIPTH / 2;
+	int mm_th = maxSc / 2;
 	int min_len = minM(n, m);
 	int mid_dist = 0;
 	int side_dist = 0;
 
-	int mid_range = min_len - SOFTCLIPTH;
+	int mid_range = min_len - maxSc;
 	for (int i = 0; i < mid_range; i++) {
 		mid_dist += diff_ch[s[i]][t[i]];
-		if (mid_dist > EDTH)
+		if (mid_dist > maxEd)
 			return false;
 	}
 	for (int i = mid_range; i < min_len; i++)
 		side_dist += diff_ch[s[i]][t[i]];
 
-	return (side_dist >= mm_th) ? true : ((mid_dist + side_dist) <= EDTH);
+	return (side_dist >= mm_th) ? true : ((mid_dist + side_dist) <= maxEd);
 }
 
 // dir > 0
@@ -73,72 +73,74 @@ bool Alignment::hamming_match_right(char* s, int n, char* t, int m) {
 int Alignment::hamming_distance_right(char* s, int n, char* t, int m, int& sclen) {
 	int min_len = minM(n, m);
 	int mid_dist = 0;
-	int side_dist[SOFTCLIPTH+1] = {0};
+	int side_dist[maxSc+1];
+	memset(side_dist, 0, (maxSc+1) * sizeof(int));
 
-	int mid_range = min_len - SOFTCLIPTH;
+	int mid_range = min_len - maxSc;
 	for (int i = 0; i < mid_range; i++) {
 		mid_dist += diff_ch[s[i]][t[i]];
-		if (mid_dist > EDTH)
+		if (mid_dist > maxEd)
 			return mid_dist;
 	}
 
 	for (int i = min_len - 1; i >= mid_range; i--)
 		side_dist[min_len - i] = side_dist[min_len - i - 1] + diff_ch[s[i]][t[i]];
 
-	int i = SOFTCLIPTH;
+	int i = maxSc;
 	while (i > 0 and (side_dist[i] == side_dist[i-1] or (2 * side_dist[i]) < i))
 		i--;
 
 	sclen = i;
-	if (sclen == SOFTCLIPTH and diff_ch[s[mid_range-1]][t[mid_range-1]] == 1)	// mismatch exactly after the soft clip ends =>  not extendable
-		return EDTH+1;
+	if (sclen == maxSc and diff_ch[s[mid_range-1]][t[mid_range-1]] == 1)	// mismatch exactly after the soft clip ends =>  not extendable
+		return maxEd+1;
 
-	return mid_dist + side_dist[SOFTCLIPTH] - side_dist[i];
+	return mid_dist + side_dist[maxSc] - side_dist[i];
 }
 
 // dir < 0
 bool Alignment::hamming_match_left(char* s, int n, char* t, int m) {
-	int mm_th = SOFTCLIPTH / 2;
+	int mm_th = maxSc / 2;
 	int min_len = minM(n, m);
 	int mid_dist = 0;
 	int side_dist = 0;
 
-	for (int i = SOFTCLIPTH; i < min_len; i++) {
+	for (int i = maxSc; i < min_len; i++) {
 		mid_dist += diff_ch[s[i]][t[i]];
-		if (mid_dist > EDTH)
+		if (mid_dist > maxEd)
 			return false;
 	}
 
-	for (int i = 0; i < SOFTCLIPTH; i++)
+	for (int i = 0; i < maxSc; i++)
 		side_dist += diff_ch[s[i]][t[i]];
 
-	return (side_dist >= mm_th) ? true : ((mid_dist + side_dist) <= EDTH);
+	return (side_dist >= mm_th) ? true : ((mid_dist + side_dist) <= maxEd);
 }
 
 // dir < 0
 int Alignment::hamming_distance_left(char* s, int n, char* t, int m, int& sclen) {
 	int min_len = minM(n, m);
 	int mid_dist = 0;
-	int side_dist[SOFTCLIPTH+1] = {0};
+	int side_dist[maxSc+1];
+	memset(side_dist, 0, (maxSc+1) * sizeof(int));
 
-	for (int i = SOFTCLIPTH; i < min_len; i++) {
+	for (int i = maxSc; i < min_len; i++) {
 		mid_dist += diff_ch[s[i]][t[i]];
-		if (mid_dist > EDTH)
+		if (mid_dist > maxEd)
 			return mid_dist;
 	}
 
-	for (int i = 0; i < SOFTCLIPTH; i++)
+	for (int i = 0; i < maxSc; i++)
 		side_dist[i + 1] = side_dist[i] + diff_ch[s[i]][t[i]];
 
-	int i = SOFTCLIPTH;
+	int i = maxSc;
 	while (i > 0 and (side_dist[i] == side_dist[i-1] or (2 * side_dist[i]) < i))
 		i--;
 
 	sclen = i;
-	if (sclen == SOFTCLIPTH and diff_ch[s[SOFTCLIPTH]][t[SOFTCLIPTH]] == 1)	// mismatch exactly after the soft clip ends =>  not extendable
-		return EDTH+1;
+	if (sclen == maxSc and diff_ch[s[maxSc]][t[maxSc]] == 1)	// mismatch exactly after the soft clip ends =>  not extendable
+		return maxEd+1;
 
-	return mid_dist + side_dist[SOFTCLIPTH] - side_dist[i];
+	return mid_dist + side_dist[maxSc] - side_dist[i];
 }
 
 int Alignment::global_alignment(char* s, int n, char* t, int m, int gap_pen, int mm_pen) {
@@ -420,14 +422,14 @@ void Alignment::hamming_distance(char* s, int n, char* t, int m) {
 }
 
 int Alignment::local_alignment_right_sc(char* s, int n, char* t, int m, int& sc_len, int& indel) {
-	int max_sclen = minM(SOFTCLIPTH, m);
+	int max_sclen = minM(maxSc, m);
 	int max_indel = INDELTH;
-	int max_edit  = EDTH;
+	int max_edit  = maxEd;
 
 	global_banded_alignment(s, n, t, m, INDELTH);
 	//hamming_distance_bottom(s, n, t, m, max_sclen);
 
-	AlignCandid best(max_edit + 1, SOFTCLIPTH + 1, max_indel + 1);
+	AlignCandid best(max_edit + 1, maxSc + 1, max_indel + 1);
 
 	for (int j = m; j >= m - max_sclen; j--) {
 		for (int i = maxM(0, j - max_indel); i <= minM(j + max_indel, n); i++) {
@@ -445,9 +447,9 @@ int Alignment::local_alignment_right_sc(char* s, int n, char* t, int m, int& sc_
 }
 
 int Alignment::local_alignment_right(char* s, int n, char* t, int m, int& indel) {
-	int max_sclen = SOFTCLIPTH;
+	int max_sclen = maxSc;
 	int max_indel = INDELTH;
-	int max_edit  = EDTH;
+	int max_edit  = maxEd;
 
 	global_banded_alignment(s, n, t, m, INDELTH);
 
@@ -466,14 +468,14 @@ int Alignment::local_alignment_right(char* s, int n, char* t, int m, int& indel)
 }
 
 int Alignment::local_alignment_left_sc(char* s, int n, char* t, int m, int& sc_len, int& indel) {
-	int max_sclen = minM(SOFTCLIPTH, m);
+	int max_sclen = minM(maxSc, m);
 	int max_indel   = INDELTH;
-	int max_edit  = EDTH;
+	int max_edit  = maxEd;
 
 	global_banded_alignment_reverse(s, n, t, m, INDELTH);
 	//hamming_distance_top(s, n, t, m, max_sclen);
 	
-	AlignCandid best(max_edit + 1, SOFTCLIPTH + 1, max_indel + 1);
+	AlignCandid best(max_edit + 1, maxSc + 1, max_indel + 1);
 
 	for (int j = m; j >= m - max_sclen; j--) {
 		for (int i = maxM(0, j - max_indel); i <= minM(j + max_indel, n); i++) {
@@ -493,9 +495,9 @@ int Alignment::local_alignment_left_sc(char* s, int n, char* t, int m, int& sc_l
 }
 
 int Alignment::local_alignment_left(char* s, int n, char* t, int m, int& indel) {
-	int max_sclen = SOFTCLIPTH;
+	int max_sclen = maxSc;
 	int max_indel   = INDELTH;
-	int max_edit  = EDTH;
+	int max_edit  = maxEd;
 
 	global_banded_alignment_reverse(s, n, t, m, INDELTH);
 	

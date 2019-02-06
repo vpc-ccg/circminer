@@ -63,6 +63,34 @@ using namespace std;
 #define NOPROC_MANYHIT 9
 #define NOPROC_NOMATCH 10
 
+//---------- Global Variables ----------\\
+
+extern bool pairedEnd;
+
+extern int kmer;
+extern int maxReadLength;
+extern int verboseMode;
+extern int scanLevel;
+extern int maxEd;
+extern int maxSc;
+extern int threads;
+
+extern char gtfFilename[FILE_NAME_LENGTH];
+extern char referenceFilename[FILE_NAME_LENGTH];
+extern char fastqFilename[FILE_NAME_LENGTH];
+extern char outputFilename[FILE_NAME_LENGTH];
+extern char outputDir[FILE_NAME_LENGTH];
+
+extern char* contigName;
+extern int contigNum;
+
+extern uint32_t lookup_cnt;
+extern vector <bitset <DEF_CONTIG_MAX_SIZE> > near_border_bs;
+extern vector <bitset <DEF_CONTIG_MAX_SIZE> > intronic_bs;
+
+extern char versionNumberMajor[10];
+extern char versionNumberMinor[10];
+
 //---------- Structures ----------\\
 
 struct fragment_t{
@@ -275,7 +303,7 @@ struct MatchedMate {
 
 	const IntervalInfo<GeneInfo>* gene_info;
 
-	MatchedMate() : type(ORPHAN), junc_num(0), right_ed(EDTH+1), left_ed(EDTH+1), middle_ed(EDTH+1), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), 
+	MatchedMate() : type(ORPHAN), junc_num(0), right_ed(maxEd+1), left_ed(maxEd+1), middle_ed(maxEd+1), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), 
 					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), exons_spos(NULL), exons_epos(NULL), 
 					exon_ind_spos(-1), exon_ind_epos(-1), gene_info(NULL) { }
 
@@ -341,7 +369,7 @@ struct MatchedRead {
 	string		chr_r1;
 	string		chr_r2;
 
-	MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), chr_r1("-"), chr_r2("-"), r1_forward(true), r2_forward(true), ed_r1(EDTH+1), ed_r2(EDTH+1) { }
+	MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), chr_r1("-"), chr_r2("-"), r1_forward(true), r2_forward(true), ed_r1(maxEd+1), ed_r2(maxEd+1) { }
 	
 	// assuming r1 and r2 are on same chr
 	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first) {
@@ -497,33 +525,6 @@ struct AllCoord {
 		return qlen < r.qlen;
 	}
 };
-//---------- Global Variables ----------\\
-
-extern bool pairedEnd;
-
-extern int kmer;
-extern int maxReadLength;
-extern int verboseMode;
-extern int scanLevel;
-extern int maxEd;
-extern int maxSc;
-extern int threads;
-
-extern char gtfFilename[FILE_NAME_LENGTH];
-extern char referenceFilename[FILE_NAME_LENGTH];
-extern char fastqFilename[FILE_NAME_LENGTH];
-extern char outputFilename[FILE_NAME_LENGTH];
-extern char outputDir[FILE_NAME_LENGTH];
-
-extern char* contigName;
-extern int contigNum;
-
-extern uint32_t lookup_cnt;
-extern vector <bitset <DEF_CONTIG_MAX_SIZE> > near_border_bs;
-extern vector <bitset <DEF_CONTIG_MAX_SIZE> > intronic_bs;
-
-extern char versionNumberMajor[10];
-extern char versionNumberMinor[10];
 
 //---------- Functions ----------\\
 
