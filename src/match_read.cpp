@@ -105,7 +105,7 @@ bool reduce_hits_behind(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 	if (sl->frag_count == 0 or ll->frag_count == 0)
 		return false;
 
-	uint32_t max_dist = ((sl->qpos - ll->qpos) / kmer) * MAX_INTRON;
+	uint32_t max_dist = ((sl->qpos - ll->qpos) / kmer) * maxIntronLen;
 
 	int size = 0;
 	int j = 0;
@@ -135,7 +135,7 @@ bool reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 	if (sl->frag_count == 0 or ll->frag_count == 0)
 		return false;
 
-	uint32_t max_dist = ((ll->qpos - sl->qpos) / kmer) * MAX_INTRON;
+	uint32_t max_dist = ((ll->qpos - sl->qpos) / kmer) * maxIntronLen;
 
 	int size = 0;
 	int j = 0;

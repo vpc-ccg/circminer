@@ -41,7 +41,7 @@ using namespace std;
 
 #define MAXTLEN 500
 #define FRAGLIM 5000
-#define MAX_INTRON	2000000
+#define MAXINTRON	2000000
 #define BESTCHAINLIM 30
 
 #define LARIAT2BEGTH 1000
@@ -74,6 +74,8 @@ extern int maxEd;
 extern int maxSc;
 extern int bandWidth;
 extern int seedLim;
+extern int maxTlen;
+extern int maxIntronLen;
 extern int threads;
 
 extern char gtfFilename[FILE_NAME_LENGTH];

@@ -719,7 +719,7 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 	on_cdna = (sm.exons_spos != NULL) and (sm.exons_epos != NULL) and (lm.exons_spos != NULL) and (lm.exons_epos != NULL);
 	if (sm.exons_spos == NULL or lm.exons_spos == NULL) {
 		tlen = lm.spos - sm.epos - 1 + lm.matched_len + sm.matched_len;
-		if (tlen <= MAXTLEN)
+		if (tlen <= maxTlen)
 			mr.update(sm, lm, chr, shift, tlen, 0, false, CONCRD, r1_sm);
 		else if (tlen <= MAXDISCRDTLEN)
 			mr.update(sm, lm, chr, shift, tlen, 0, false, DISCRD, r1_sm);
@@ -732,7 +732,7 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 				if (sm.exons_spos->seg_list[i].same_exon(lm.exons_spos->seg_list[j])) {
 					// => assume genomic locations
 					tlen = lm.spos + lm.matched_len - sm.spos;
-					if (tlen <= MAXTLEN)
+					if (tlen <= maxTlen)
 						mr.update(sm, lm, chr, shift, tlen, 0, on_cdna, CONCRD, r1_sm);
 					else
 						mr.update(sm, lm, chr, shift, tlen, 0, on_cdna, DISCRD, r1_sm);
@@ -741,7 +741,7 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 
 	if (sm.exons_epos == NULL or lm.exons_spos == NULL) {
 		tlen = lm.spos - sm.epos - 1 + sm.matched_len + lm.matched_len;
-		if (tlen <= MAXTLEN)
+		if (tlen <= maxTlen)
 			mr.update(sm, lm, chr, shift, tlen, 0, false, CONCRD, r1_sm);
 		else if (tlen <= MAXDISCRDTLEN)
 			mr.update(sm, lm, chr, shift, tlen, 0, false, DISCRD, r1_sm);
@@ -750,7 +750,7 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 		int intron_num;
 		tlen = calc_tlen(sm, lm, intron_num);
 		//fprintf(stdout, "tlen: %d\n", tlen);
-		if (tlen >= 0 and tlen <= MAXTLEN) {
+		if (tlen >= 0 and tlen <= maxTlen) {
 			mr.update(sm, lm, chr, shift, tlen, intron_num, on_cdna, CONCRD, r1_sm);
 		}
 		else {
@@ -944,7 +944,7 @@ void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chai
 				or (forward_exon_list[i] != NULL and same_gene(forward_exon_list[i], rs, re))
 				or (reverse_exon_list[j] != NULL and same_gene(reverse_exon_list[j], fs, fe))
 				or (tlen <= MAXDISCRDTLEN)) {
-				//or (forward_exon_list[i] == NULL and reverse_exon_list[j] == NULL and tlen <= MAXTLEN)) {
+				//or (forward_exon_list[i] == NULL and reverse_exon_list[j] == NULL and tlen <= maxTlen)) {
 				temp.forward = forward_chain.chains[i];
 				temp.reverse = reverse_chain.chains[j];
 				temp.score = forward_chain.chains[i].score + reverse_chain.chains[j].score;

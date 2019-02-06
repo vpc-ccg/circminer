@@ -222,6 +222,11 @@ int Alignment::global_alignment_reverse(char* s, int n, char* t, int m) {
 // one sided means we are not allowing complex insertion and deletions
 // returns edit distance
 int Alignment::global_one_side_banded_alignment(char* s, int n, char* t, int m, int w) {
+	if (w < 0 or n <= w) {
+		global_alignment(s, n, t, m);
+		return dp[n][m];
+	}
+
 	int i, j;
 	
 	// memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));

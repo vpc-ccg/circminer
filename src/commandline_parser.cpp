@@ -13,6 +13,8 @@ int maxEd = EDTH;
 int maxSc = SOFTCLIPTH;
 int bandWidth = INDELTH;
 int seedLim = FRAGLIM;
+int maxTlen = MAXTLEN;
+int maxIntronLen = MAXINTRON;
 int threads = 1;
 
 char gtfFilename[FILE_NAME_LENGTH];
@@ -57,10 +59,12 @@ int parse_command( int argc, char *argv[] )
 		{"max_sc", required_argument, 0, 'c'},
 		{"band", required_argument, 0, 'w'},
 		{"seed_lim", required_argument, 0, 'S'},
+		{"max_tlen", required_argument, 0, 'T'},
+		{"max_intron", required_argument, 0, 'I'},
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:l:o:t:d:s:e:c:w:S:", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:l:o:t:d:s:e:c:w:S:T:I:", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
@@ -129,6 +133,14 @@ int parse_command( int argc, char *argv[] )
 				seedLim = atoi(optarg);
 				break;
 			}
+			case 'T': {
+				maxTlen = atoi(optarg);
+				break;
+			}
+			case 'I': {
+				maxIntronLen = atoi(optarg);
+				break;
+			}
 			case '?': {
 				fprintf(stderr, "Unknown parameter: %s\n", long_opt[opt_index].name);
 				exit(1);
@@ -153,22 +165,24 @@ void printHELP()
 	fprintf(stdout, "-g|--gtf:\tGene model file.\n");
 	
 	fprintf(stdout, "\nAdvanced Options:\n");
-	fprintf(stdout, "-p|--pe:\tPaired end.\n");
-	fprintf(stdout, "-k|--kmer:\tKmer size (default = 19).\n");
-	fprintf(stdout, "-l|--rlen:\tMax read length (default = 120).\n");
-	fprintf(stdout, "-e|--max_ed:\tMax allowed edit distance on each mate (default = %d).\n", EDTH);
-	fprintf(stdout, "-c|--max_sc:\tMax allowed soft clipping on each mate (default = %d).\n", SOFTCLIPTH);
-	fprintf(stdout, "-w|--band:\tBand width for banded alignment (default = %d).\n", INDELTH);
-	fprintf(stdout, "-S|--seed_lim:\tSkip seeds that have more than INT occurrences (default = %d).\n", FRAGLIM);
-	fprintf(stdout, "-o|--output:\tOutput file (default = output).\n");
-	fprintf(stdout, "-t|--thread:\tNumber of threads (default = 1).\n");
-	fprintf(stdout, "-d|--verbose:\tVerbose mode: 0 to 1. Higher values output more information (default = 0).\n");
-	fprintf(stdout, "-s|--scan_lev:\tTranscriptome/Genome scan level: 0 to 2. (default = 0)\n\t\t"
-										"0: Report the first mapping.\n\t\t"
-										"1: Continue processing the read unless it is perfectly mapped to cDNA.\n\t\t"
+	fprintf(stdout, "-p|--pe:\t\tPaired end.\n");
+	fprintf(stdout, "-k|--kmer:\t\tKmer size (default = 19).\n");
+	fprintf(stdout, "-l|--rlen:\t\tMax read length (default = 120).\n");
+	fprintf(stdout, "-e|--max_ed:\t\tMax allowed edit distance on each mate (default = %d).\n", EDTH);
+	fprintf(stdout, "-c|--max_sc:\t\tMax allowed soft clipping on each mate (default = %d).\n", SOFTCLIPTH);
+	fprintf(stdout, "-w|--band:\t\tBand width for banded alignment (default = %d).\n", INDELTH);
+	fprintf(stdout, "-S|--seed_lim:\t\tSkip seeds that have more than INT occurrences (default = %d).\n", FRAGLIM);
+	fprintf(stdout, "-T|--max_tlen:\t\tMaximum template length of concordant mapping. Paired-end mode only (default = %d).\n", MAXTLEN);
+	fprintf(stdout, "-I|--max_intron:\tMaximum length of an intron (default = %d).\n", MAXINTRON);
+	fprintf(stdout, "-o|--output:\t\tOutput file (default = output).\n");
+	fprintf(stdout, "-t|--thread:\t\tNumber of threads (default = 1).\n");
+	fprintf(stdout, "-d|--verbose:\t\tVerbose mode: 0 to 1. Higher values output more information (default = 0).\n");
+	fprintf(stdout, "-s|--scan_lev:\t\tTranscriptome/Genome scan level: 0 to 2. (default = 0)\n\t\t\t"
+										"0: Report the first mapping.\n\t\t\t"
+										"1: Continue processing the read unless it is perfectly mapped to cDNA.\n\t\t\t"
 										"2: Report the best mapping.\n");
 	
-	fprintf(stdout, "\nExample Commands:\n");
+	fprintf(stdout, "\nExample Command:\n");
 	fprintf(stdout, "./circRNA -r hg19.fa -f reads_1.fastq -g gene_model.gtf -o output --pe\n");
 
 	fprintf(stdout, "\n");

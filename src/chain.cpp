@@ -146,7 +146,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 				if (pc_mk->frag_count <= 0 or lb_ind[jj] >= pc_mk->frag_count)	// no fragment left in pc_mk to chain
 					continue;
 
-				if (cur_mk->frags[i].info + MAX_INTRON < pc_mk->frags[lb_ind[jj]].info)	// will not chain to any fragment in this list
+				if (cur_mk->frags[i].info + maxIntronLen < pc_mk->frags[lb_ind[jj]].info)	// will not chain to any fragment in this list
 					continue;
 
 				while ((lb_ind[jj] < pc_mk->frag_count) and (pc_mk->frags[lb_ind[jj]].info <= cur_mk->frags[i].info))	// skip fragments starting before target
@@ -380,7 +380,7 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 				if (pc_mk->frag_count <= 0 or lb_ind[jj] >= pc_mk->frag_count)	// no fragment left in pc_mk to chain
 					continue;
 
-				if (cur_mk->frags[i].info + MAX_INTRON < pc_mk->frags[lb_ind[jj]].info)	// will not chain to any fragment in this list
+				if (cur_mk->frags[i].info + maxIntronLen < pc_mk->frags[lb_ind[jj]].info)	// will not chain to any fragment in this list
 					continue;
 
 				while ((lb_ind[jj] < pc_mk->frag_count) and (pc_mk->frags[lb_ind[jj]].info <= cur_mk->frags[i].info))	// skip fragments starting before target
