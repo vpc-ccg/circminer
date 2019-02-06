@@ -73,7 +73,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 	best_chain.best_chain_count = 0;
 
 	int kmer_cnt = 2 * ceil(1.0 * seq_len / kmer) - 1;
-	int max_frag_cnt = FRAGLIM;
+	int max_frag_cnt = seedLim;
 	chain_cell dp[kmer_cnt][max_frag_cnt + 1];
 
 	int max_best = BESTCHAINLIM;
@@ -309,7 +309,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_list& best_chain, int kmer, int kmer_cnt) {
 	best_chain.best_chain_count = 0;
 
-	int max_frag_cnt = FRAGLIM;
+	int max_frag_cnt = seedLim;
 	chain_cell dp[kmer_cnt][max_frag_cnt + 1];
 
 	int max_best = BESTCHAINLIM;

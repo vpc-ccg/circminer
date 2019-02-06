@@ -30,20 +30,19 @@ using namespace std;
 #define FILE_NAME_LENGTH 1000
 #define LINELOG	100000
 #define ASCISIZE 128
-
 #define INF 1e9
 
-#define GENETHRESH 50000
-#define MAXDISCRDTLEN 10000
-#define MAXTLEN 500
 #define MINKMER 15
-#define FRAGLIM 5000
-#define MAX_INTRON	2000000
+#define MAXDISCRDTLEN 10000
 
-#define BESTCHAINLIM 30
 #define EDTH 4
 #define INDELTH 3
 #define SOFTCLIPTH 7
+
+#define MAXTLEN 500
+#define FRAGLIM 5000
+#define MAX_INTRON	2000000
+#define BESTCHAINLIM 30
 
 #define LARIAT2BEGTH 1000
 
@@ -73,6 +72,8 @@ extern int verboseMode;
 extern int scanLevel;
 extern int maxEd;
 extern int maxSc;
+extern int bandWidth;
+extern int seedLim;
 extern int threads;
 
 extern char gtfFilename[FILE_NAME_LENGTH];

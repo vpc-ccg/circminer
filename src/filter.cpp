@@ -394,9 +394,9 @@ int estimate_middle_error(const chain_t& ch) {
 			int diff = (ch.frags[i+1].rpos - ch.frags[i].rpos) - (ch.frags[i+1].qpos - ch.frags[i].qpos);
 			if (diff == 0)
 				mid_err++;
-			else if (diff > 0 and diff <= INDELTH)
+			else if (diff > 0 and diff <= bandWidth)
 				mid_err += diff;
-			else if (diff < 0 and diff >= -INDELTH)
+			else if (diff < 0 and diff >= (-1 * bandWidth))
 				mid_err -= diff;
 		}
 	}
@@ -404,7 +404,7 @@ int estimate_middle_error(const chain_t& ch) {
 }
 
 int calc_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len) {
-	char rseq[qseq_len + 4*INDELTH];
+	char rseq[qseq_len + 4*bandWidth];
 	int mid_err = 0;
 	int32_t qspos;
 	uint32_t rspos;
@@ -420,12 +420,12 @@ int calc_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len) {
 			rlen = qlen + diff;
 
 			// fprintf(stderr, "Diff: %d\n", diff);
-			if (diff >= 0 and diff <= INDELTH) {
+			if (diff >= 0 and diff <= bandWidth) {
 				pac2char(rspos, rlen, rseq);
 				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
 				mid_err += alignment.global_one_side_banded_alignment(qseq + qspos, qlen, rseq, rlen, diff);
 			}
-			else if (diff < 0 and diff >= -INDELTH) {
+			else if (diff < 0 and diff >= (-1 * bandWidth)) {
 				pac2char(rspos, rlen, rseq);
 				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
 				mid_err += alignment.global_one_side_banded_alignment(rseq, rlen, qseq + qspos, qlen, -1*diff);

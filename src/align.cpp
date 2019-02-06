@@ -379,36 +379,36 @@ void Alignment::global_banded_alignment_reverse(char* s, int n, char* t, int m, 
 
 // TO DO: fix n < m + w
 void Alignment::hamming_distance_bottom(char* s, int n, char* t, int m, int max_sclen) {
-	for (int i = maxM(0, n - 2*INDELTH); i <= n; i++)
+	for (int i = maxM(0, n - 2*bandWidth); i <= n; i++)
 		hamm[i][m] = 0;
 
 	for (int j = m - 1; j >= max_sclen; j--) {
-		for (int i = maxM(0, j - INDELTH); i <= minM(j + INDELTH, n); i++) {
+		for (int i = maxM(0, j - bandWidth); i <= minM(j + bandWidth, n); i++) {
 			hamm[i][j] = hamm[i+1][j+1] + diff_ch[s[i]][t[j]];
 		}
 	}
 }
 
 void Alignment::hamming_distance_top(char* s, int n, char* t, int m, int max_sclen) {
-	for (int i = 0; i <= minM(2*INDELTH, n); i++)
+	for (int i = 0; i <= minM(2*bandWidth, n); i++)
 		hamm[i][0] = 0;
 
 	for (int j = 1; j <= max_sclen; j++) {
-		for (int i = j; i <= minM(j + 2*INDELTH, n); i++) {
+		for (int i = j; i <= minM(j + 2*bandWidth, n); i++) {
 			hamm[i][j] = hamm[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
 		}
 	}
 }
 
 void Alignment::hamming_distance(char* s, int n, char* t, int m) {
-	for (int i = 0; i <= INDELTH; i++)
+	for (int i = 0; i <= bandWidth; i++)
 		hamm[i][0] = 0;
 
-	for (int j = 0; j <= INDELTH; j++)
+	for (int j = 0; j <= bandWidth; j++)
 		hamm[0][j] = 0;
 
 	for (int j = 1; j <= m; j++) {
-		for (int i = maxM(1, j - INDELTH); i <= j + INDELTH; i++) {
+		for (int i = maxM(1, j - bandWidth); i <= j + bandWidth; i++) {
 			hamm[i][j] = hamm[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
 		}
 	}
@@ -423,10 +423,10 @@ void Alignment::hamming_distance(char* s, int n, char* t, int m) {
 
 int Alignment::local_alignment_right_sc(char* s, int n, char* t, int m, int& sc_len, int& indel) {
 	int max_sclen = minM(maxSc, m);
-	int max_indel = INDELTH;
+	int max_indel = bandWidth;
 	int max_edit  = maxEd;
 
-	global_banded_alignment(s, n, t, m, INDELTH);
+	global_banded_alignment(s, n, t, m, bandWidth);
 	//hamming_distance_bottom(s, n, t, m, max_sclen);
 
 	AlignCandid best(max_edit + 1, maxSc + 1, max_indel + 1);
@@ -448,10 +448,10 @@ int Alignment::local_alignment_right_sc(char* s, int n, char* t, int m, int& sc_
 
 int Alignment::local_alignment_right(char* s, int n, char* t, int m, int& indel) {
 	int max_sclen = maxSc;
-	int max_indel = INDELTH;
+	int max_indel = bandWidth;
 	int max_edit  = maxEd;
 
-	global_banded_alignment(s, n, t, m, INDELTH);
+	global_banded_alignment(s, n, t, m, bandWidth);
 
 	AlignCandid best(max_edit + 1, max_sclen + 1, max_indel + 1);
 
@@ -469,10 +469,10 @@ int Alignment::local_alignment_right(char* s, int n, char* t, int m, int& indel)
 
 int Alignment::local_alignment_left_sc(char* s, int n, char* t, int m, int& sc_len, int& indel) {
 	int max_sclen = minM(maxSc, m);
-	int max_indel   = INDELTH;
+	int max_indel = bandWidth;
 	int max_edit  = maxEd;
 
-	global_banded_alignment_reverse(s, n, t, m, INDELTH);
+	global_banded_alignment_reverse(s, n, t, m, bandWidth);
 	//hamming_distance_top(s, n, t, m, max_sclen);
 	
 	AlignCandid best(max_edit + 1, maxSc + 1, max_indel + 1);
@@ -496,10 +496,10 @@ int Alignment::local_alignment_left_sc(char* s, int n, char* t, int m, int& sc_l
 
 int Alignment::local_alignment_left(char* s, int n, char* t, int m, int& indel) {
 	int max_sclen = maxSc;
-	int max_indel   = INDELTH;
+	int max_indel = bandWidth;
 	int max_edit  = maxEd;
 
-	global_banded_alignment_reverse(s, n, t, m, INDELTH);
+	global_banded_alignment_reverse(s, n, t, m, bandWidth);
 	
 	AlignCandid best(max_edit + 1, max_sclen + 1, max_indel + 1);
 

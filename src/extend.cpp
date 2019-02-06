@@ -19,16 +19,16 @@ void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, int len, int ed_th, uint32_t ub, 
 					AlignRes& best_alignment) {
 	int seq_len = len;
-	int ref_len = len + INDELTH;
+	int ref_len = len + bandWidth;
 	uint32_t orig_pos = pos;
 
-	char ref_seq[maxReadLength + 4 * INDELTH];
+	char ref_seq[maxReadLength + 4 * bandWidth];
 	ref_seq[ref_len] = '\0';
 	
 	int indel;
 	bool consecutive = false;
 	AlignRes curr_alignment(ub);
-	best_alignment.set(pos, ed_th + 1, maxSc + 1, INDELTH + 1, 0);
+	best_alignment.set(pos, ed_th + 1, maxSc + 1, bandWidth + 1, 0);
 
 	map <AllCoord, AlignRes> align_res; 
 	
@@ -82,16 +82,16 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, int len, int ed_th, uint32_t lb, 
 					AlignRes& best_alignment) {
 	int seq_len = len;
-	int ref_len = len + INDELTH;
+	int ref_len = len + bandWidth;
 	uint32_t orig_pos = pos;
 
-	char ref_seq[maxReadLength + 4 * INDELTH];
+	char ref_seq[maxReadLength + 4 * bandWidth];
 	ref_seq[ref_len] = '\0';
 	
 	int indel;
 	bool consecutive = false;
 	AlignRes curr_alignment(lb);
-	best_alignment.set(pos, ed_th + 1, maxSc + 1, INDELTH + 1, 0);
+	best_alignment.set(pos, ed_th + 1, maxSc + 1, bandWidth + 1, 0);
 
 	map <AllCoord, AlignRes> align_res;
 
@@ -149,7 +149,7 @@ bool extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* q
 		return false;
 
 	int indel;
-	int seq_remain = minM(exon_len + INDELTH, qseq_len);
+	int seq_remain = minM(exon_len + bandWidth, qseq_len);
 	int edit_dist = alignment.local_alignment_right(qseq, seq_remain, ref_seq, exon_len, indel);
 
 	uint32_t new_rmpos = pos + exon_len - indel;
@@ -231,7 +231,7 @@ void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 					return;
 				}
 
-				int remain_qseq_len = minM(exon_len + INDELTH, qseq_len - covered);
+				int remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
 
 				// search in map
 				AllCoord tmp_coord(rspos, exon_len, covered, remain_qseq_len);
@@ -316,7 +316,7 @@ bool extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qs
 		return false;
 
 	int indel;
-	int seq_remain = minM(exon_len + INDELTH, qseq_len);
+	int seq_remain = minM(exon_len + bandWidth, qseq_len);
 	int edit_dist = alignment.local_alignment_left(qseq, seq_remain, ref_seq, exon_len, indel);
 
 	uint32_t new_lmpos = pos - exon_len + indel;
@@ -417,7 +417,7 @@ void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 					return;
 				}
 
-				int remain_qseq_len = minM(exon_len + INDELTH, qseq_len - covered);
+				int remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
 
 				// search in map
 				AllCoord tmp_coord(lepos, exon_len, covered, remain_qseq_len);

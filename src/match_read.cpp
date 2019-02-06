@@ -126,7 +126,7 @@ bool reduce_hits_behind(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 	//fprintf(stderr, "Pre hits size: %d\tCur hits size: %d\n", ll->frag_count, size);
 
 	ll->frag_count = size;
-	return (size > 0 and size <= FRAGLIM);
+	return (size > 0 and size <= seedLim);
 }
 
 // reduce number of frags in LargeList (ll) using SmalList (sl)
@@ -161,12 +161,12 @@ bool reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 	//fprintf(stderr, "Pre hits size: %d\tCur hits size: %d\n", ll->frag_count, size);
 
 	ll->frag_count = size;
-	return (size > 0 and size <= FRAGLIM);
+	return (size > 0 and size <= seedLim);
 }
 
 // return:
 // # valid kmers
-// is valid if: #fragments > 0 and < FRAGLIM
+// is valid if: #fragments > 0 and < seedLim
 int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int skip, int ll_step, GIMatchedKmer* mk_res, int& em_count) {
 	int i, j;
 	int occ;
@@ -207,7 +207,7 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 			invalid_kmer++;
 		}
 
-		else if (occ > FRAGLIM ) {
+		else if (occ > seedLim ) {
 			invalid_kmer++;
 		}
 
@@ -238,7 +238,7 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 	//}
 	
 	for (int i = 0; i < em_count * ll_step; i += ll_step) {
-		if ((mk_res+i)->frag_count > FRAGLIM) {
+		if ((mk_res+i)->frag_count > seedLim) {
 			(mk_res+i)->frag_count = 0;
 			//(mk_res+i)->frags = NULL;
 		}
