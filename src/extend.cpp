@@ -209,7 +209,7 @@ void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 		pos = gtf_parser.get_interval(it_ind + 1)->spos - 1;
 	}
 	
-	int it_ind_start = gtf_parser.get_trans_start_ind(contigName, tid);
+	int it_ind_start = gtf_parser.get_trans_start_ind(contigNum, tid);
 	int rel_ind = it_ind - it_ind_start;
 	int curr_exon_start_ind = it_ind;
 	int curr_exon_end_ind = it_ind;
@@ -220,10 +220,10 @@ void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 	int covered = 0;
 	int indel;
 
-	for (int i = rel_ind + 1; i < gtf_parser.trans2seg[contigName][tid].size(); i++) {
+	for (int i = rel_ind + 1; i < gtf_parser.trans2seg[contigNum][tid].size(); i++) {
 		if (exon_len >= qseq_len - covered)
 			break;
-		if (gtf_parser.trans2seg[contigName][tid][i] == 1) {
+		if (gtf_parser.trans2seg[contigNum][tid][i] == 1) {
 			// go for alignment
 			indel = 0;
 			if (exon_len > 0) {
@@ -272,7 +272,7 @@ void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 			it_seg = gtf_parser.get_interval(i + it_ind_start);
 			rspos = it_seg->spos - 1;
 		}
-		if (gtf_parser.trans2seg[contigName][tid][i] != 0) {
+		if (gtf_parser.trans2seg[contigNum][tid][i] != 0) {
 			curr_exon_end_ind = i + it_ind_start;
 			it_seg = gtf_parser.get_interval(curr_exon_end_ind);
 			exon_len += it_seg->epos - it_seg->spos + 1;
@@ -376,7 +376,7 @@ void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 		pos = it_seg->spos + 1;
 	}
 
-	int it_ind_start = gtf_parser.get_trans_start_ind(contigName, tid);
+	int it_ind_start = gtf_parser.get_trans_start_ind(contigNum, tid);
 	int rel_ind = it_ind - it_ind_start;
 	int curr_exon_start_ind = it_ind;
 	int curr_exon_end_ind = it_ind;
@@ -389,7 +389,7 @@ void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 	bool first_seg = true;
 
 	for (int i = rel_ind; i >= 0; i--) {
-		if (gtf_parser.trans2seg[contigName][tid][i] != 0) {
+		if (gtf_parser.trans2seg[contigNum][tid][i] != 0) {
 			curr_exon_start_ind = i + it_ind_start;
 			it_seg = gtf_parser.get_interval(curr_exon_start_ind);
 			if (first_seg) {
@@ -409,7 +409,7 @@ void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 		if (exon_len >= qseq_len - covered)
 			break;
 
-		if (gtf_parser.trans2seg[contigName][tid][i] == 1) {
+		if (gtf_parser.trans2seg[contigNum][tid][i] == 1) {
 			// go for alignment
 			indel = 0;
 			if (exon_len > 0) {

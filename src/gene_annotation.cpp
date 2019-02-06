@@ -129,24 +129,25 @@ bool GTFParser::parse_gtf_rec(char* line, int len, GTFRecord* cr) {
 }
 
 void copy_seg(GTFRecord* a, GTFRecord* b) {
-	a->start = b->start;
-	a->end = b->end;
-	a->next_start = b->next_start;
-	a->prev_end = b->prev_end;
+	a->start 		= b->start;
+	a->end 			= b->end;
+	a->next_start 	= b->next_start;
+	a->prev_end 	= b->prev_end;
 
-	a->gene_id_int = b->gene_id_int;
+	a->gene_id_int 	= b->gene_id_int;
 	a->trans_id_int = b->trans_id_int;
 	a->exon_num_int = b->exon_num_int;
-	
+	a->chr_id 		= b->chr_id;
+
 	a->forward_strand = b->forward_strand;
 
-	a->chr = b->chr;
-	a->source = b->source;
-	a->type = b->type;
-	a->gene_id = b->gene_id;
-	a->trans_id = b->trans_id;
-	a->exon_num = b->exon_num;
-	a->gene_name = b->gene_name;
+	a->chr 			= b->chr;
+	a->source 		= b->source;
+	a->type 		= b->type;
+	a->gene_id 		= b->gene_id;
+	a->trans_id 	= b->trans_id;
+	a->exon_num 	= b->exon_num;
+	a->gene_name 	= b->gene_name;
 }
 
 void add2merged_exons(map <UniqSeg, string>& mymap, UniqSeg& seg, GTFRecord* rec) {
@@ -194,62 +195,72 @@ bool GTFParser::load_gtf(void) {
 		if (!found) continue;
 
 		chrloc2conloc(current_record->chr, current_record->start, current_record->end);
+		current_record->chr_id = atoi(current_record->chr.c_str()) - 1;
 
 		if (current_record->chr == "0")	// chr not found in genome index
 			continue;
 
 		if (current_record->type == "gene") {
-			gene_ids[current_record->chr].push_back(current_record->gene_id);
-
-			int con = atoi(current_record->chr.c_str()) - 1;
-			
-			if (con >= near_border_bs.size()) {
-				near_border_bs.resize(con+1);
-				near_border_bs[con].reset();
+			if (current_record->chr_id >= gene_ids.size()) {
+				gene_ids.resize(current_record->chr_id+1);
 			}
-			if (con >= intronic_bs.size()) {
-				intronic_bs.resize(con+1);
-				intronic_bs[con].reset();
+			gene_ids[current_record->chr_id].push_back(current_record->gene_id);
+			
+			if (current_record->chr_id >= near_border_bs.size()) {
+				near_border_bs.resize(current_record->chr_id+1);
+				near_border_bs[current_record->chr_id].reset();
+			}
+			if (current_record->chr_id >= intronic_bs.size()) {
+				intronic_bs.resize(current_record->chr_id+1);
+				intronic_bs[current_record->chr_id].reset();
 			}
 
 			for (int k = current_record->start; k <= current_record->end; k++) {
-				intronic_bs[con].set(k, 1);
+				intronic_bs[current_record->chr_id].set(k, 1);
 			}
 
+			if (current_record->chr_id >= gid2ginfo.size()) {
+				gid2ginfo.resize(current_record->chr_id+1);
+			}
 			GeneInfo tmp = {.start = current_record->start, .end = current_record->end};
-			gid2ginfo[current_record->chr].push_back(tmp);
+			gid2ginfo[current_record->chr_id].push_back(tmp);
 
-			if (merged_genes[current_record->chr].find(tmp) != merged_genes[current_record->chr].end()) {	// found gene
-				merged_genes[current_record->chr][tmp] += "\t" + current_record->gene_id;
+			if (current_record->chr_id >= merged_genes.size()) {
+				merged_genes.resize(current_record->chr_id+1);
+			}
+
+			if (merged_genes[current_record->chr_id].find(tmp) != merged_genes[current_record->chr_id].end()) {	// found gene
+				merged_genes[current_record->chr_id][tmp] += "\t" + current_record->gene_id;
 			}
 			else {
-				merged_genes[current_record->chr][tmp] = current_record->gene_id;
+				merged_genes[current_record->chr_id][tmp] = current_record->gene_id;
 			}
 		}
 
 		if (current_record->type == "transcript") {
-			transcript_ids[current_record->chr].push_back(current_record->trans_id);
+			if (current_record->chr_id >= transcript_ids.size()) {
+				transcript_ids.resize(current_record->chr_id+1);
+			}
+			transcript_ids[current_record->chr_id].push_back(current_record->trans_id);
 		}
 
 		if (current_record->type == "exon") {
 
-			int con = atoi(current_record->chr.c_str()) - 1;
-
 			// prepare mask
 			for (int k = current_record->start; k <= current_record->end; k++) {
-				intronic_bs[con].set(k, 0);
+				intronic_bs[current_record->chr_id].set(k, 0);
 			}
 			
 			for (int k = maxM(0, current_record->start - maxReadLength); k < current_record->start; k++) {
-				near_border_bs[con].set(k, 1);
+				near_border_bs[current_record->chr_id].set(k, 1);
 			}
 			for (int k = maxM(0, current_record->end - maxReadLength + 1); k <= current_record->end; k++) {
-				near_border_bs[con].set(k, 1);
+				near_border_bs[current_record->chr_id].set(k, 1);
 			}
 			//
 
-			current_record->trans_id_int = transcript_ids[current_record->chr].size() - 1;
-			current_record->gene_id_int = gene_ids[current_record->chr].size() - 1;
+			current_record->trans_id_int = transcript_ids[current_record->chr_id].size() - 1;
+			current_record->gene_id_int = gene_ids[current_record->chr_id].size() - 1;
 			if (prev_record->type != "exon") {
 				//prev_record = current_record;
 				copy_seg(prev_record, current_record);
@@ -271,7 +282,10 @@ bool GTFParser::load_gtf(void) {
 				seg.gene_id			= prev_record->gene_id_int;
 				seg.next_exon_beg	= prev_record->next_start;
 
-				add2merged_exons(merged_exons[prev_record->chr], seg, prev_record);
+				if (prev_record->chr_id >= merged_exons.size()) {
+					merged_exons.resize(prev_record->chr_id+1);
+				}
+				add2merged_exons(merged_exons[prev_record->chr_id], seg, prev_record);
 				
 				copy_seg(prev_record, current_record);
 			}
@@ -288,7 +302,10 @@ bool GTFParser::load_gtf(void) {
 			seg.gene_id			= prev_record->gene_id_int;
 			seg.next_exon_beg	= prev_record->next_start;
 
-			add2merged_exons(merged_exons[prev_record->chr], seg, prev_record);
+			if (prev_record->chr_id >= merged_exons.size()) {
+				merged_exons.resize(prev_record->chr_id+1);
+			}
+			add2merged_exons(merged_exons[prev_record->chr_id], seg, prev_record);
 
 			prev_record->type = "";
 		}
@@ -308,24 +325,30 @@ bool GTFParser::load_gtf(void) {
 		seg.gene_id			= prev_record->gene_id_int;
 		seg.next_exon_beg	= prev_record->next_start;
 
-		add2merged_exons(merged_exons[prev_record->chr], seg, prev_record);
+		if (prev_record->chr_id >= merged_exons.size()) {
+			merged_exons.resize(prev_record->chr_id+1);
+		}
+		add2merged_exons(merged_exons[prev_record->chr_id], seg, prev_record);
 	}
 	//////
 
-	map <string, map <UniqSeg, string> >:: iterator con_it;
-	for (con_it = merged_exons.begin(); con_it != merged_exons.end(); con_it++) {
-		exons_int_map[con_it->first].build(con_it->second);
+	exons_int_map.resize(merged_exons.size());
+	trans2seg.resize(merged_exons.size());
+	trans_start_ind.resize(merged_exons.size());
+
+	for (int con = 0; con < merged_exons.size(); con++) {
+		exons_int_map[con].build(merged_exons[con]);
 		//exons_int_map[con_it->first].print();
 
 		// construct transcript to segment table
-		trans2seg[con_it->first].resize(transcript_ids[con_it->first].size());
-		exons_int_map[con_it->first].build_trans2seg_table(transcript_ids[con_it->first].size(), trans2seg[con_it->first], trans_start_ind[con_it->first]);
+		trans2seg[con].resize(transcript_ids[con].size());
+		exons_int_map[con].build_trans2seg_table(transcript_ids[con].size(), trans2seg[con], trans_start_ind[con]);
 	}
 
-	map <string, map <GeneInfo, string> >:: iterator it;
-	for (it = merged_genes.begin(); it != merged_genes.end(); it++) {
-		genes_int_map[it->first].build(it->second);
-		//genes_int_map[it->first].print();
+	genes_int_map.resize(merged_genes.size());
+	for (int con = 0; con < merged_genes.size(); con++) {
+		genes_int_map[con].build(merged_genes[con]);
+		//genes_int_map[con].print();
 	}
 
 	for (int i = 0; i < near_border_bs.size(); i++) {
@@ -379,7 +402,10 @@ void GTFParser::set_contig_shift(const ContigLen* chr_info, int contig_count) {
 
 		chr_shift.contig = chr_info[i].name;
 		chr_shift.shift = sum_size;
-		con2chr[con_shift.contig].push_back(chr_shift);
+		if (curr_contig > con2chr.size()) {
+			con2chr.resize(curr_contig);
+		}
+		con2chr[curr_contig-1].push_back(chr_shift);
 
 		sum_size += chr_info[i].len + 1;	// +1 because of N at the end of each chr
 		if (sum_size >= MIN_CONTIG_SIZE) {
@@ -389,12 +415,12 @@ void GTFParser::set_contig_shift(const ContigLen* chr_info, int contig_count) {
 	}
 }
 
-ConShift GTFParser::get_shift(const string& contig, uint32_t loc) {
+ConShift GTFParser::get_shift(int contig_id, uint32_t loc) {
 	int i;
-	for (i = 1; i < con2chr[contig].size(); i++)
-		if (loc < con2chr[contig][i].shift)
-			return con2chr[contig][i-1];
-	return con2chr[contig][i-1];
+	for (i = 1; i < con2chr[contig_id].size(); i++)
+		if (loc < con2chr[contig_id][i].shift)
+			return con2chr[contig_id][i-1];
+	return con2chr[contig_id][i-1];
 }
 
 // match an interval:
@@ -409,7 +435,7 @@ uint32_t GTFParser::get_upper_bound_lookup(uint32_t spos, uint32_t mlen, uint32_
 	//lookup_cnt++;
 	
 	int it_ind = -1;
-	const IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigName].find_ind(spos, it_ind);
+	const IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigNum].find_ind(spos, it_ind);
 
 	uint32_t epos = spos + mlen - 1;
 	if (ov_res == NULL or ov_res->seg_list.size() == 0) {	// not found => intronic
@@ -484,7 +510,7 @@ const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap(uint32_t loc, bool 
 		return NULL;
 	}
 	
-	IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigName].find(loc);
+	IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigNum].find(loc);
 
 	if (ov_res == NULL or ov_res->seg_list.size() == 0)	// not found => intronic
 		return NULL;
@@ -501,7 +527,7 @@ const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap_ind(uint32_t loc, b
 		return NULL;
 	}
 	
-	IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigName].find_ind(loc, ind);
+	IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigNum].find_ind(loc, ind);
 
 	if (ov_res == NULL or ov_res->seg_list.size() == 0)	// not found => intronic
 		return NULL;
@@ -518,7 +544,7 @@ const IntervalInfo<GeneInfo>* GTFParser::get_gene_overlap(uint32_t loc, bool use
 		return NULL;
 	}
 	
-	IntervalInfo<GeneInfo>* ov_res = genes_int_map[contigName].find(loc);
+	IntervalInfo<GeneInfo>* ov_res = genes_int_map[contigNum].find(loc);
 
 	if (ov_res == NULL or ov_res->seg_list.size() == 0)	// not found => intronic
 		return NULL;

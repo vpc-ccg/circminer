@@ -662,13 +662,13 @@ int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num) {
 	for (int i = 0; i < sm.exons_epos->seg_list.size(); i++) {
 		for (int j = 0; j < sm.exons_epos->seg_list[i].trans_id.size(); j++) {
 			tid = sm.exons_epos->seg_list[i].trans_id[j];
-			start_ind = gtf_parser.get_trans_start_ind(contigName, tid);
+			start_ind = gtf_parser.get_trans_start_ind(contigNum, tid);
 			start_table_ind = sm.exon_ind_epos - start_ind;
 			if (start_table_ind < 0)	// assert
 				continue;
 			
 			end_table_ind = lm.exon_ind_spos - start_ind;
-			if (end_table_ind >= gtf_parser.trans2seg[contigName][tid].size() or gtf_parser.trans2seg[contigName][tid][end_table_ind] == 0)	// transcript does not contain lm exon
+			if (end_table_ind >= gtf_parser.trans2seg[contigNum][tid].size() or gtf_parser.trans2seg[contigNum][tid][end_table_ind] == 0)	// transcript does not contain lm exon
 				continue;
 
 			if (start_table_ind == end_table_ind) {
@@ -682,7 +682,7 @@ int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num) {
 				this_it_ind = sm.exon_ind_epos;
 				for (int k = start_table_ind + 1; k < end_table_ind; k++) {
 					this_it_ind++;
-					if (gtf_parser.trans2seg[contigName][tid][k] != 0) {
+					if (gtf_parser.trans2seg[contigNum][tid][k] != 0) {
 						this_region = gtf_parser.get_interval(this_it_ind);
 						tlen += this_region->epos - this_region->spos + 1;
 						pre_zero = false;
@@ -696,7 +696,7 @@ int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num) {
 				tlen += lm.spos - lm.exons_spos->spos + 1;
 			}
 
-			//fprintf(stdout, "tr[%d]: %s\ttlen: %d\tintrons: %d\n", tid, gtf_parser.transcript_ids[contigName][tid].c_str(), tlen, in);
+			//fprintf(stdout, "tr[%d]: %s\ttlen: %d\tintrons: %d\n", tid, gtf_parser.transcript_ids[contigNum][tid].c_str(), tlen, in);
 
 			if (tlen < min_tlen) {
 				intron_num = in;
@@ -849,7 +849,7 @@ bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>
 		for (int j = 0; j < seg2_tid.size(); j++) {
 			uint32_t tid1 = seg1_tid[i];
 			uint32_t tid2 = seg2_tid[j];
-			// fprintf(stderr, "tr[%d]: %s\ttr[%d]: %s", tid1, gtf_parser.transcript_ids[contigName][tid1].c_str(), tid2, gtf_parser.transcript_ids[contigName][tid2].c_str());
+			// fprintf(stderr, "tr[%d]: %s\ttr[%d]: %s", tid1, gtf_parser.transcript_ids[contigNum][tid1].c_str(), tid2, gtf_parser.transcript_ids[contigNum][tid2].c_str());
 			if (tid1 == tid2) {
 				//fprintf(stderr, "\ttid: %d\n", tid1);
 				mp.common_tid.push_back(tid1);
@@ -865,7 +865,7 @@ bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>
 	// 			for (int l = 0; l < r->seg_list[j].trans_id.size(); l++) {
 	// 				int tid1 = s->seg_list[i].trans_id[k];
 	// 				int tid2 = r->seg_list[j].trans_id[l];
-	// 				fprintf(stderr, "tr[%d][%d]: %s\ttr[%d][%d]: %s", i, tid1, gtf_parser.transcript_ids[contigName][tid1].c_str(), j, tid2, gtf_parser.transcript_ids[contigName][tid2].c_str());
+	// 				fprintf(stderr, "tr[%d][%d]: %s\ttr[%d][%d]: %s", i, tid1, gtf_parser.transcript_ids[contigNum][tid1].c_str(), j, tid2, gtf_parser.transcript_ids[contigNum][tid2].c_str());
 	// 				if (tid1 == tid2) {
 	// 					fprintf(stderr, "\ttid: %d\n", tid1);
 	// 					mp.common_tid.push_back(tid1);
@@ -999,7 +999,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 								backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
 			
 			if (success and r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
-				ConShift con_shift = gtf_parser.get_shift(contigName, r1_mm.spos);
+				ConShift con_shift = gtf_parser.get_shift(contigNum, r1_mm.spos);
 				
 				overlap_to_epos(r1_mm);
 				overlap_to_spos(r1_mm);
@@ -1014,7 +1014,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 			
 			// potentially back splice junction?
 			else if (success and ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID))) {
-				ConShift con_shift = gtf_parser.get_shift(contigName, r1_mm.spos);
+				ConShift con_shift = gtf_parser.get_shift(contigNum, r1_mm.spos);
 				
 				overlap_to_epos(r1_mm);
 				overlap_to_spos(r1_mm);
@@ -1031,7 +1031,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 			success = extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
 			
 			if (success and r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
-				ConShift con_shift = gtf_parser.get_shift(contigName, r2_mm.spos);
+				ConShift con_shift = gtf_parser.get_shift(contigNum, r2_mm.spos);
 				
 				overlap_to_epos(r1_mm);
 				overlap_to_spos(r1_mm);
@@ -1044,7 +1044,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 			
 			// potentially back splice junction?
 			else if (success and ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID))) {
-				ConShift con_shift = gtf_parser.get_shift(contigName, r2_mm.spos);
+				ConShift con_shift = gtf_parser.get_shift(contigNum, r2_mm.spos);
 				
 				overlap_to_epos(r1_mm);
 				overlap_to_spos(r1_mm);

@@ -161,8 +161,8 @@ int mapping(int& last_round_num) {
 
 		fprintf(stdout, "Contig: %s\n", getRefGenomeName());
 		contigName = getRefGenomeName();
-		contigNum = atoi(contigName);
-		last_round_num = contigNum;
+		contigNum = atoi(contigName) - 1;
+		last_round_num = contigNum + 1;
 
 		FASTQParser fq_parser1(fq_file1);
 
@@ -172,10 +172,8 @@ int mapping(int& last_round_num) {
 		}
 
 		is_last = !flag;
-		FilterRead filter_read(outputFilename, is_pe, contigNum, is_first, is_last, fq_file1, fq_file2);
+		FilterRead filter_read(outputFilename, is_pe, contigNum + 1, is_first, is_last, fq_file1, fq_file2);
 		is_first = false;
-
-		contigNum--;
 
 		int line = 0;
 		lookup_cnt = 0;

@@ -28,6 +28,7 @@ typedef struct {
 	uint32_t prev_end;
 	uint32_t gene_id_int;
 	uint32_t trans_id_int;
+	int chr_id;	// 0-based
 	int exon_num_int;
 
 	bool forward_strand;
@@ -55,27 +56,27 @@ private:
 	int len;
 	size_t max_line_size;
 
-	map <string, map <UniqSeg, string> > merged_exons; 
-	map <string, map <GeneInfo, string> > merged_genes; 
+	vector <map <UniqSeg, string> > merged_exons; 
+	vector <map <GeneInfo, string> > merged_genes; 
 
-	map <string, FlatIntervalTree <UniqSeg> > exons_int_map;
-	map <string, FlatIntervalTree <GeneInfo> > genes_int_map;
+	vector <FlatIntervalTree <UniqSeg> > exons_int_map;
+	vector <FlatIntervalTree <GeneInfo> > genes_int_map;
 	
-	map <string, vector <GeneInfo> > gid2ginfo;
+	vector <vector <GeneInfo> > gid2ginfo;
 
+	vector <vector <int> > trans_start_ind;
+
+	vector <vector<ConShift> > con2chr;
 	map <string, ConShift> chr2con;
-	map <string, vector<ConShift> > con2chr;
 	map <string, int> level;
-
-	map <string, vector <int> > trans_start_ind;
 
 	void set_contig_shift(const ContigLen* contig_len, int contig_count);
 	void chrloc2conloc(string& chr, uint32_t& start, uint32_t& end);
 
 public:
-	map <string, vector <string> > gene_ids;
-	map <string, vector <string> > transcript_ids;
-	map <string, vector < vector <uint8_t> > > trans2seg;
+	vector <vector <string> > gene_ids;
+	vector <vector <string> > transcript_ids;
+	vector <vector < vector <uint8_t> > > trans2seg;
 
 	GTFParser (void);
 	GTFParser (char* filename, const ContigLen* contig_len, int contig_count);
@@ -102,11 +103,11 @@ public:
 	uint32_t get_interval_epos(int interval_ind);
 	const IntervalInfo<UniqSeg>* get_interval(int interval_ind);
 
-	ConShift get_shift(const string& contig, uint32_t loc);
+	ConShift get_shift(int contig_id, uint32_t loc);
 
 	GeneInfo* get_gene_info(uint32_t gid);
 
-	int get_trans_start_ind(const string& contig, uint32_t tid);
+	int get_trans_start_ind(int contig_id, uint32_t tid);
 
 	void print_record(const GTFRecord& r);
 };
@@ -129,19 +130,19 @@ inline uint32_t GTFParser::get_upper_bound(uint32_t spos, uint32_t mlen, uint32_
 }
 
 inline uint32_t GTFParser::get_interval_epos(int interval_ind) {
-	return exons_int_map[contigName].get_node(interval_ind)->epos;
+	return exons_int_map[contigNum].get_node(interval_ind)->epos;
 }
 
 inline const IntervalInfo<UniqSeg>* GTFParser::get_interval(int interval_ind) {
-	return exons_int_map[contigName].get_node(interval_ind);
+	return exons_int_map[contigNum].get_node(interval_ind);
 }
 
-inline int GTFParser::get_trans_start_ind(const string& contig, uint32_t tid) {
-	return trans_start_ind[contig][tid];
+inline int GTFParser::get_trans_start_ind(int contig_id, uint32_t tid) {
+	return trans_start_ind[contig_id][tid];
 }
 
 inline GeneInfo* GTFParser::get_gene_info(uint32_t gid) {
-	return &gid2ginfo[contigName][gid];
+	return &gid2ginfo[contigNum][gid];
 }
 extern GTFParser gtf_parser;
 
