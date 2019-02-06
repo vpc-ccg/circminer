@@ -197,10 +197,10 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 
 	// checking read concordancy
 	// any concordancy evidence/explanation ?
-	float fc_score_r1 = forward_best_chain_r1.chains[0].score;
-	float bc_score_r1 = backward_best_chain_r1.chains[0].score;
-	float fc_score_r2 = forward_best_chain_r2.chains[0].score;
-	float bc_score_r2 = backward_best_chain_r2.chains[0].score;
+	float fc_score_r1 = (forward_best_chain_r1.best_chain_count  > 0) ? forward_best_chain_r1.chains[0].score  : 0;
+	float bc_score_r1 = (backward_best_chain_r1.best_chain_count > 0) ? backward_best_chain_r1.chains[0].score : 0;
+	float fc_score_r2 = (forward_best_chain_r2.best_chain_count  > 0) ? forward_best_chain_r2.chains[0].score  : 0;
+	float bc_score_r2 = (backward_best_chain_r2.best_chain_count > 0) ? backward_best_chain_r2.chains[0].score : 0;
 	vafprintf(2, stderr, "Scores: fc1=%f, bc1=%f, fc2=%f, bc2=%f\n", fc_score_r1, bc_score_r1, fc_score_r2, bc_score_r2);
 	
 	int attempt1, attempt2;
