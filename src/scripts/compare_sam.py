@@ -4,7 +4,7 @@ sam_fname = sys.argv[1]
 myout_fname = sys.argv[2]
 
 SAMSIZE = 40000000
-LOCDIFTH = 6
+LOCDIFTH = 10
 
 sam_locs = [ 0, 0 ]
 sam_locs[0] = [ ]
@@ -94,7 +94,7 @@ with open(myout_fname) as mf:
 		rname = int(ll[0].split('.')[1])
 		chrom = ll[1]
 		pos1 = int(ll[2])
-		pos2 = int(ll[5])
+		pos2 = int(ll[10])
 		mtype = int(ll[-1])
 		
 		exact_locs[rname] = max(exact_locs[rname], check_loc(rname, chrom, pos1, pos2))
