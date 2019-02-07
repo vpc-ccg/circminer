@@ -33,7 +33,7 @@ using namespace std;
 #define INF 1e9
 
 #define MINKMER 15
-#define MAXDISCRDTLEN 10000
+#define MAXDISCRDTLEN 20000
 
 #define EDTH 4
 #define INDELTH 3

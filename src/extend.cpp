@@ -49,31 +49,31 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 
 	if (min_ed <= ed_th) {
 		pos = best_rmpos - sclen_best;
-		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\tcovlen: %d\n", min_ed, pos, best_alignment.qcovlen);
 		if (best_alignment.qcovlen >= seq_len)
 			return true;
 	}
 	
-	if (consecutive)
-		return false;
-
 	// intron retention
-	if (!pac2char(orig_pos + 1, ref_len, ref_seq))
-		return false;
+	if (!consecutive and pac2char(orig_pos + 1, ref_len, ref_seq)) {
+		min_ed = alignment.local_alignment_right_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
+		
+		vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", orig_pos, len);
+		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", ref_seq, seq, min_ed);
 
-	min_ed = alignment.local_alignment_right_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
-	
-	vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", orig_pos, len);
-	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", ref_seq, seq, min_ed);
-
-	if (min_ed <= ed_th) {
-		curr_alignment.set(orig_pos + seq_len - indel, min_ed, sclen_best, indel, seq_len);
-		best_alignment.update_right(curr_alignment);
-		pos = orig_pos + seq_len - indel - sclen_best;
-		vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
-		return true;
+		if (min_ed <= ed_th) {
+			curr_alignment.set(orig_pos + seq_len - indel, min_ed, sclen_best, indel, seq_len);
+			best_alignment.update_right(curr_alignment);
+			pos = orig_pos + seq_len - indel - sclen_best;
+			vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
+			return true;
+		}
 	}
 
+	// no extension was possible
+	// roll back
+	pos = orig_pos;
+	best_alignment.set(pos, 0, 0, 0, 0);
 	return false;
 }
 
@@ -112,31 +112,31 @@ bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, 
 
 	if (min_ed <= ed_th) {
 		pos = lmpos_best + sclen_best;
-		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
+		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\t covlen: %d\n", min_ed, pos, best_alignment.qcovlen);
 		if (best_alignment.qcovlen >= seq_len)
 			return true;
 	}
 
-	if (consecutive)
-		return false;
-
 	// intron retention
-	if (!pac2char(orig_pos - ref_len, ref_len, ref_seq))
-		return false;
+	if (!consecutive and pac2char(orig_pos - ref_len, ref_len, ref_seq)) {
+		min_ed = alignment.local_alignment_left_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
+		
+		vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", orig_pos, len);
+		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", ref_seq, seq, min_ed);
 
-	min_ed = alignment.local_alignment_left_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
-	
-	vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", orig_pos, len);
-	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", ref_seq, seq, min_ed);
-
-	if (min_ed <= ed_th) {
-		curr_alignment.set(orig_pos - seq_len + indel, min_ed, sclen_best, indel, seq_len);
-		best_alignment.update_left(curr_alignment);
-		pos = orig_pos - seq_len + indel + sclen_best;
-		vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
-		return true;
+		if (min_ed <= ed_th) {
+			curr_alignment.set(orig_pos - seq_len + indel, min_ed, sclen_best, indel, seq_len);
+			best_alignment.update_left(curr_alignment);
+			pos = orig_pos - seq_len + indel + sclen_best;
+			vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
+			return true;
+		}
 	}
 
+	// no extension was possible
+	// roll back
+	pos = orig_pos;
+	best_alignment.set(pos, 0, 0, 0, 0);
 	return false;
 }
 
@@ -153,14 +153,14 @@ bool extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* q
 	int edit_dist = alignment.local_alignment_right(qseq, seq_remain, ref_seq, exon_len, indel);
 
 	uint32_t new_rmpos = pos + exon_len - indel;
-	exon_res.set(new_rmpos, edit_dist, 0, indel, exon_len);
+	exon_res.set(new_rmpos, edit_dist, 0, indel, exon_len - indel);
 
 	vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\n", 
 							new_rmpos, exon_len, indel, edit_dist);
 	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\n", ref_seq, qseq);
 
 	if (curr.ed + edit_dist <= ed_th) {
-		curr.update(edit_dist, 0, new_rmpos, indel, exon_len);
+		curr.update(edit_dist, 0, new_rmpos, indel, exon_len - indel);
 		best.update_right(curr);
 		return true;
 	}
@@ -320,14 +320,14 @@ bool extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qs
 	int edit_dist = alignment.local_alignment_left(qseq, seq_remain, ref_seq, exon_len, indel);
 
 	uint32_t new_lmpos = pos - exon_len + indel;
-	exon_res.set(new_lmpos, edit_dist, 0, indel, exon_len);
+	exon_res.set(new_lmpos, edit_dist, 0, indel, exon_len - indel);
 
 	vafprintf(2, stderr, "lmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\n", 
 							new_lmpos, exon_len, indel, edit_dist);
 	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\n", ref_seq, qseq);
 
 	if (curr.ed + edit_dist <= ed_th) {
-		curr.update(edit_dist, 0, new_lmpos, indel, exon_len);
+		curr.update(edit_dist, 0, new_lmpos, indel, exon_len - indel);
 		best.update_left(curr);
 		return true;
 	}
