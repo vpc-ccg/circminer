@@ -10,6 +10,7 @@
 #include "gene_annotation.h"
 #include "align.h"
 #include "process_circ.h"
+#include "hash_table.h"
 
 extern "C" {
 #include "mrsfast/Common.h"
@@ -23,6 +24,7 @@ using namespace std;
 
 GTFParser gtf_parser;
 Alignment alignment;
+RegionalHashTable regional_ht;
 
 int mapping(int& last_round_num);
 void circ_detect(int last_round_num);
@@ -37,7 +39,7 @@ int main(int argc, char **argv) {
 	if (map_ret == 1)
 		return 1;
 
-	//circ_detect(last_round_num);
+	// circ_detect(last_round_num);
 
 	return 0;
 }
@@ -248,6 +250,8 @@ int mapping(int& last_round_num) {
 	free(bbc_r1.chains);
 	free(fbc_r2.chains);
 	free(bbc_r2.chains);
+
+	return 0;
 }
 
 void circ_detect(int last_round_num) {

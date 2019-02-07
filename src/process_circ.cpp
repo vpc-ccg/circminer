@@ -16,6 +16,7 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	fprintf(stdout, "%s\n",fq_file1 );
 	window_size = ws;
 	step = 3;
+	regional_ht.init(ws);
 }
 
 ProcessCirc::~ProcessCirc (void) {
@@ -34,7 +35,7 @@ void ProcessCirc::do_process (void) {
 
 	double tmpTime;
 	int	flag;
-	checkSumLength = 5;
+	checkSumLength = (WINDOW_SIZE > kmer) ? 0 : kmer - WINDOW_SIZE;
 
 	char index_file [FILE_NAME_LENGTH];
 	strcpy(index_file, referenceFilename);
@@ -42,7 +43,7 @@ void ProcessCirc::do_process (void) {
 
 	initCommon();
 	
-	THREAD_COUNT = 8;
+	THREAD_COUNT = threads;
 	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
 	for (int i = 0; i < 255; i++)
 		THREAD_ID[i] = i;
@@ -162,6 +163,10 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 	uint32_t qepos = (r1_partial) ? (((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (mr.qspos_r1 - 1) : (current_record1->seq_len)) :
 									(((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (mr.qspos_r2 - 1) : (current_record2->seq_len)) ;
 
+	if (qepos < qspos) {	// it was fully mapped
+		return;
+	}
+
 	const IntervalInfo<GeneInfo>* gene_info = gtf_parser.get_gene_overlap(mr.spos_r1, false);
 	bool found = (gene_info != NULL);
 	if (! found) {
@@ -177,7 +182,6 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 		pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
 		//vafprintf(2, stderr, "Gene: %s\n", gene_seq);
 
-		RegionalHashTable regional_ht(window_size);
 		regional_ht.create_table(gene_seq, 0, gene_len);
 
 		vafprintf(2, stderr, "R%d partial: [%d-%d]\n", (int) (!r1_partial) + 1, qspos, qepos);

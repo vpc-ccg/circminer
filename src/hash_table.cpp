@@ -5,23 +5,12 @@
 
 #define MAXHIT 1000
 
-RegionalHashTable::RegionalHashTable (int ws) {
-	window_size = ws;
-	size = 1 << (2 * ws);	// HT size = 4^ws
-
-	table = (GIMatchedKmer*) malloc(size * sizeof(GIMatchedKmer));
-	for (int i = 0; i < size; i++)
-		table[i].frags = (GeneralIndex*) malloc(MAXHIT * sizeof(GeneralIndex));
-	memset(table, 0, size * sizeof(GIMatchedKmer));
+RegionalHashTable::RegionalHashTable () {
 	
-	kmer_count = (int*) malloc(size * sizeof(int));
-	memset(kmer_count, 0, size * sizeof(int));
+}
 
-	memset(nuc_hval, -1, 128);
-	nuc_hval['A'] = 0;
-	nuc_hval['C'] = 1;
-	nuc_hval['G'] = 2;
-	nuc_hval['T'] = 3;
+RegionalHashTable::RegionalHashTable (int ws) {
+	init(ws);
 }
 
 RegionalHashTable::~RegionalHashTable (void) {
@@ -34,7 +23,27 @@ RegionalHashTable::~RegionalHashTable (void) {
 	free(table);
 }
 
+void RegionalHashTable::init(int ws) {
+	window_size = ws;
+	size = 1 << (2 * ws);	// HT size = 4^ws
+
+	table = (GIMatchedKmer*) malloc(size * sizeof(GIMatchedKmer));
+	for (int i = 0; i < size; i++)
+		table[i].frags = (GeneralIndex*) malloc(MAXHIT * sizeof(GeneralIndex));
+	
+	kmer_count = (int*) malloc(size * sizeof(int));
+
+	memset(nuc_hval, -1, 128);
+	nuc_hval['A'] = 0;
+	nuc_hval['C'] = 1;
+	nuc_hval['G'] = 2;
+	nuc_hval['T'] = 3;
+}
+
 void RegionalHashTable::create_table (char* seq, uint32_t start, int len) {
+	// memset(table, 0, size * sizeof(GIMatchedKmer));
+	memset(kmer_count, 0, size * sizeof(int));
+
 	if (len < window_size)
 		return;
 
@@ -43,13 +52,16 @@ void RegionalHashTable::create_table (char* seq, uint32_t start, int len) {
 		++kmer_count[hash_val(seq + i)];
 	}
 
-	// allocate memory
+	// initialize
 	for (int i = 0; i < size; i++) {
-		if (kmer_count[i] == 0) {
-			table[i].frags = NULL;
+		if (kmer_count[i] == 0 or kmer_count[i] > MAXHIT) {
+			table[i].frag_count = 0;
+			table[i].qpos = 0;
+			// table[i].frags = NULL;
+			// kmer_count[i] = 0;
 			continue;
 		}
-		table[i].frags = (GeneralIndex*) malloc(kmer_count[i] * sizeof(GeneralIndex));
+		//table[i].frags = (GeneralIndex*) malloc(kmer_count[i] * sizeof(GeneralIndex));
 	}
 
 	// fill hash table
@@ -92,6 +104,7 @@ int RegionalHashTable::hash_val (char* seq) const {
 }
 
 void RegionalHashTable::add_loc (int hv, uint32_t loc) {
-	if (table[hv].frag_count < MAXHIT)
+	if (table[hv].frag_count < MAXHIT) {
 		table[hv].frags[table[hv].frag_count++].info = loc;
+	}
 }

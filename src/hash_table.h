@@ -20,9 +20,11 @@ private:
 	char nuc_hval[128];
 
 public:
+	RegionalHashTable ();
 	RegionalHashTable (int ws);
 	~RegionalHashTable (void);
 
+	void init(int ws);
 	void create_table (char* seq, uint32_t start, int len);
 	int hash_val(char* seq) const;
 	void add_loc (int hv, uint32_t loc);
@@ -32,4 +34,6 @@ public:
 
 };
 
-#endif
+extern RegionalHashTable regional_ht;
+
+#endif //__HASHTABLE_H__
