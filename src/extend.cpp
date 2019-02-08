@@ -60,7 +60,6 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 		
 		vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", orig_pos, len);
 		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", ref_seq, seq, min_ed);
-
 		if (min_ed <= ed_th) {
 			curr_alignment.set(orig_pos + seq_len - indel, min_ed, sclen_best, indel, seq_len);
 			best_alignment.update_right(curr_alignment);
@@ -75,6 +74,12 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 	if (best_alignment.qcovlen <= 0) {
 		pos = orig_pos;
 		best_alignment.set(pos, 0, 0, 0, 0);
+	}
+
+	int qremain = seq_len - best_alignment.qcovlen;
+	if (qremain + best_alignment.sclen <= maxSc) {
+		best_alignment.set(pos, best_alignment.ed, best_alignment.sclen + qremain, best_alignment.indel, seq_len);
+		return true;
 	}
 	return false;
 }
@@ -125,7 +130,6 @@ bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, 
 		
 		vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", orig_pos, len);
 		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist %d\n", ref_seq, seq, min_ed);
-
 		if (min_ed <= ed_th) {
 			curr_alignment.set(orig_pos - seq_len + indel, min_ed, sclen_best, indel, seq_len);
 			best_alignment.update_left(curr_alignment);
@@ -140,6 +144,11 @@ bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, 
 	if (best_alignment.qcovlen <= 0) {
 		pos = orig_pos;
 		best_alignment.set(pos, 0, 0, 0, 0);
+	}
+	int qremain = seq_len - best_alignment.qcovlen;
+	if (qremain + best_alignment.sclen <= maxSc) {
+		best_alignment.set(pos, best_alignment.ed, best_alignment.sclen + qremain, best_alignment.indel, seq_len);
+		return true;
 	}
 	return false;
 }
