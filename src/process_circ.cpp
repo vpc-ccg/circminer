@@ -171,7 +171,7 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 	uint32_t qepos = (r1_partial) ? (((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (mr.qspos_r1 - 1) : (current_record1->seq_len)) :
 									(((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (mr.qspos_r2 - 1) : (current_record2->seq_len)) ;
 
-	if (qepos < qspos) {	// it was fully mapped
+	if (qepos < qspos or (qepos - qspos + 1) < window_size) {	// it was fully mapped
 		return;
 	}
 
@@ -213,7 +213,7 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 				start_bp = rspos;
 				end_bp = (r1_partial) ? mr.epos_r1 : mr.epos_r2;
 			}
-			fprintf(stderr, "%s\t%s\t%d\t%d\n", current_record1->rname, mr.chr_r1.c_str(), start_bp, end_bp);
+			fprintf(stderr, "%s\t%s\t%d\t%d\t%d\t%d\n", current_record1->rname, mr.chr_r1.c_str(), start_bp, end_bp, rspos, repos);
 		}
 
 	}
@@ -248,7 +248,8 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, const RegionalHashTabl
 
 }
 
-void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift, uint32_t& rspos, uint32_t& repos) {
+void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, 
+							uint32_t gene_len, uint32_t shift, uint32_t& rspos, uint32_t& repos) {
 	int seq_len = qepos - qspos + 1;
 	int kmer_cnt = ((qepos - qspos + 1) - window_size) / step + 1;
 	GIMatchedKmer fl[kmer_cnt+1];
@@ -303,8 +304,8 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTab
 		if (missing < least_miss or (missing == least_miss and curr_qlen > qlen)) {
 			least_miss = missing;
 			least_miss_ind = j;
-			rspos = curr_rspos;
-			repos = curr_repos;
+			rspos = curr_rspos + shift;
+			repos = curr_repos + shift;
 		}
 
 		for (int i = 0; i < bc.chains[j].chain_len; i++) {
