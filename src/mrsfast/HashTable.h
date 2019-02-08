@@ -69,6 +69,7 @@ int 			getMaxChrLength();
 int				generateHashTable(char*, char*);
 int				checkHashTable(char*);
 int				loadHashTable(double*);
+int  			loadCompressedRefGenome(double *loadTime);
 void			finalizeLoadingHashTable();
 
 #endif

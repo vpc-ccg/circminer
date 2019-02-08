@@ -680,6 +680,101 @@ void *countQGrams(int *idp)
 	return NULL;
 }
 /**********************************************/
+int  loadCompressedRefGenome(double *loadTime)
+{
+	// 1 byte (extraInfo): Reserved; in case the contig has extra information
+	// 2 bytes (len): Length of the reference genome name
+	// n bytes (refGenName): Reference genome name
+	// 4 bytes (refGenOfsset): Offset of the contig from the beginning of the chromosome
+	// 4 bytes (refGenLength): Length of reference genome
+	// n bytes (crefGen): compressed reference genome
+	// 4 bytes (size): number of hashValues in hashTable with more than 0 locations
+	// n bytes (bufferSize and buffer): array of bufferSize/buffer which includes encoded values of hashValue, count of locations 
+
+	int tmp;
+	double startTime = getTime();
+	unsigned char extraInfo = 0;
+	short len;
+	unsigned int hashTableSize;
+	unsigned int tmpSize;
+	int i = 0, j;
+
+	if ( fread(&extraInfo, sizeof(extraInfo), 1, _ih_fp) != sizeof(extraInfo) )
+	{
+		return 0;
+	}
+
+	memset(_ih_hashTable, 0, _ih_maxHashTableSize * sizeof(IHashTable));
+
+	// Reading Chr Name
+	tmp = fread(&len, sizeof(len), 1, _ih_fp);
+	tmp = fread(_ih_refGenName, sizeof(char), len, _ih_fp);
+	_ih_refGenName [len] ='\0';
+
+	tmp = fread(&_ih_refGenOff, sizeof (_ih_refGenOff), 1, _ih_fp);
+
+	// Reading Size and Content of Ref Genome
+	tmp = fread(&_ih_refGenLen, sizeof(_ih_refGenLen), 1, _ih_fp);
+
+	_ih_crefGenLen = calculateCompressedLen(_ih_refGenLen);
+	if (pairedEndMode)
+	{
+		_ih_crefGen = _ih_crefGenOrigin + _ih_refGenOff/21;
+	}
+	tmp = fread(_ih_crefGen, sizeof(CompressedSeq), _ih_crefGenLen, _ih_fp);
+
+
+	//Reading Hashtable Size and Content
+	GeneralIndex *mem =_ih_hashTableMem;
+
+	tmp = fread(&hashTableSize, sizeof(hashTableSize), 1, _ih_fp);
+
+	int index = 0, bytesToRead;
+	unsigned int diff;
+	unsigned long long hv=0;
+	i = 0;
+	while (i < hashTableSize)
+	{
+		fread(&bytesToRead, sizeof(int), 1, _ih_fp);
+		fread(_ih_IOBuffer, sizeof(unsigned char), bytesToRead, _ih_fp);
+		index = 0;
+		while (index < bytesToRead)
+		{
+			index += decodeVariableByte(_ih_IOBuffer + index, &diff);
+			index += decodeVariableByte(_ih_IOBuffer + index, &tmpSize);
+			hv += diff;
+			_ih_hashTable[hv].list = mem;
+			mem->info = _ih_refGenLen+1;
+			mem += (tmpSize + 1);
+			i++;
+		}
+	}
+
+	// // creating hash table
+	// for (i = 0; i < THREAD_COUNT; i++)
+	// 	pthread_create(_ih_threads + i, NULL, (void*)calculateHashTableOnFly, THREAD_ID + i);
+	// for (i = 0; i < THREAD_COUNT; i++)
+	// 	pthread_join(_ih_threads[i], NULL);
+
+	// // sorting based on checksum
+	// for (i = 0; i < THREAD_COUNT; i++)
+	// 	pthread_create(_ih_threads + i, NULL, (void*)sortHashTable, THREAD_ID + i);
+	// for (i = 0; i < THREAD_COUNT; i++)
+	// 	pthread_join(_ih_threads[i], NULL);
+
+	// calculate alphabet count for each location in genome
+	// if (!SNPMode)
+	// {
+	// 	for (i = 0; i < THREAD_COUNT; i++)
+	// 		pthread_create(_ih_threads + i, NULL, (void*)countQGrams, THREAD_ID + i);
+	// 	for (i = 0; i < THREAD_COUNT; i++)
+	// 		pthread_join(_ih_threads[i], NULL);
+	// }
+
+	*loadTime = getTime()-startTime;
+	return extraInfo;
+}
+/**********************************************/
 int  loadHashTable(double *loadTime)
 {
 	// 1 byte (extraInfo): Reserved; in case the contig has extra information
