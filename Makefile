@@ -18,6 +18,7 @@ CXXFLAGS    := -w $(INCS) -std=c++11
 LDFLAGS     := 
 
 MYOBJ        = $(SRCDIR)/circRNA.o \
+               $(SRCDIR)/utils.o \
                $(SRCDIR)/filter.o \
                $(SRCDIR)/match_read.o \
                $(SRCDIR)/fastq_parser.o \
