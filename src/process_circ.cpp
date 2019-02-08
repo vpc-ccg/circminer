@@ -17,10 +17,18 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	window_size = ws;
 	step = 3;
 	regional_ht.init(ws);
+
+	int max_kmer_cnt = (maxReadLength - window_size) / step + 1;
+	bc.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+	for (int i = 0; i < BESTCHAINLIM; i++)
+		bc.chains[i].frags = (fragment_t*) malloc(max_kmer_cnt * sizeof(fragment_t));
 }
 
 ProcessCirc::~ProcessCirc (void) {
+	for (int i = 0; i < BESTCHAINLIM; i++)
+		free(bc.chains[i].frags);
 
+	free(bc.chains);
 }
 
 void ProcessCirc::do_process (void) {
@@ -58,7 +66,7 @@ void ProcessCirc::do_process (void) {
 
 	fprintf(stdout, "Started loading index...\n");
 
-	flag = loadHashTable ( &tmpTime );  			// Reading a fragment
+	flag = loadCompressedRefGenome ( &tmpTime );  			// Reading a fragment
 
 	cputime_curr = get_cpu_time();
 	realtime_curr = get_real_time();
@@ -187,19 +195,6 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 		vafprintf(2, stderr, "R%d partial: [%d-%d]\n", (int) (!r1_partial) + 1, qspos, qepos);
 		vafprintf(2, stderr, "%s\n", remain_seq);
 
-		// for (int i = qspos - 1; i <= qepos - window_size; i += 3) {
-		// 	GIList* gl = regional_ht.find_hash(regional_ht.hash_val(remain_seq + i));
-		// 	if (gl == NULL) {
-		// 		vafprintf(2, stderr, "Hash val not found!!!\n");
-		// 	}
-		// 	vafprintf(2, stderr, "Occ: %d\n", gl->cnt);
-		// 	for (int j = 0; j < gl->cnt; j++) {
-		// 		vafprintf(2, stderr, "%d\t", gl->locs[j].info);
-		// 	}
-		// 	vafprintf(2, stderr, "\n");
-
-		// }
-
 		//binning(qspos, qepos, regional_ht, remain_seq, gene_len);
 		uint32_t rspos, repos;
 		chaining(qspos, qepos, regional_ht, remain_seq, gene_len, gene_info->seg_list[i].start, rspos, repos);
@@ -256,41 +251,31 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, const RegionalHashTabl
 void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift, uint32_t& rspos, uint32_t& repos) {
 	int seq_len = qepos - qspos + 1;
 	int kmer_cnt = ((qepos - qspos + 1) - window_size) / step + 1;
-	GIMatchedKmer* fl = (GIMatchedKmer*) malloc(kmer_cnt * sizeof(GIMatchedKmer));
+	GIMatchedKmer fl[kmer_cnt+1];
 	// Initialize
-	for (int i = 0; i < kmer_cnt; i++)
-		(fl + i)->frag_count = 0;
 
 	int l = 0;
 	for (int i = qspos - 1; i <= qepos - window_size; i += step) {
 		GIMatchedKmer* gl = regional_ht.find_hash(regional_ht.hash_val(remain_seq + i));
-		// copy from gl to fl[j]
-		fl[l].qpos = i;
-		if (gl == NULL) {
-			fl[l].frag_count = 0;
-			fl[l].frags = NULL;
-			l++;
+		if (gl == NULL) {	// has N inside kmer
 			vafprintf(2, stderr, "Hash val not found!!!\n");
 			continue;
 		}
-
-		fl[l].frag_count = gl->frag_count;
-		fl[l].frags = gl->frags;
+		fl[l] = *gl;
+		fl[l].qpos = i;
 
 		vafprintf(2, stderr, "Occ: %d\n", fl[l].frag_count);
 		
 		for (int j = 0; j < fl[l].frag_count; j++) {
-			fl[l].frags[j].info += shift;
-			vafprintf(2, stderr, "%d\t", fl[l].frags[j].info);
+			// fl[l]->frags[j].info += shift;
+			vafprintf(2, stderr, "%d\t", fl[l].frags[j].info + shift);
 		}
 		vafprintf(2, stderr, "\n");
 		l++;
 	}
 
-	chain_list bc;
-	bc.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-	for (int i = 0; i < BESTCHAINLIM; i++)
-		bc.chains[i].frags = (fragment_t*) malloc(kmer_cnt * sizeof(fragment_t));
+	kmer_cnt = l;
+	//printf("kmer cnt: %d\n", kmer_cnt);
 
 	chain_seeds_sorted_kbest2(qepos, fl, bc, window_size, kmer_cnt);
 
@@ -326,11 +311,7 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTab
 			vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, bc.chains[j].frags[i].rpos, bc.chains[j].frags[i].qpos, bc.chains[j].frags[i].len);
 		}
 	}
-
-	for (int i = 0; i < BESTCHAINLIM; i++)
-		free(bc.chains[i].frags);
-
-	free(bc.chains);
+	//free(fl);
 
 }
 

@@ -15,6 +15,7 @@ private:
 	int step;
 	
 	MatchedRead mr;
+	chain_list bc;
 
 public:
 	ProcessCirc (int last_round_num, int ws);
