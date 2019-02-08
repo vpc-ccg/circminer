@@ -77,6 +77,7 @@ extern int seedLim;
 extern int maxTlen;
 extern int maxIntronLen;
 extern int threads;
+extern int stage;
 
 extern char gtfFilename[FILE_NAME_LENGTH];
 extern char referenceFilename[FILE_NAME_LENGTH];

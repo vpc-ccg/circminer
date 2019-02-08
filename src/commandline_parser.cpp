@@ -16,6 +16,7 @@ int seedLim = FRAGLIM;
 int maxTlen = MAXTLEN;
 int maxIntronLen = MAXINTRON;
 int threads = 1;
+int stage = 0;
 
 char gtfFilename[FILE_NAME_LENGTH];
 char referenceFilename[FILE_NAME_LENGTH];
@@ -61,10 +62,11 @@ int parse_command( int argc, char *argv[] )
 		{"seed_lim", required_argument, 0, 'S'},
 		{"max_tlen", required_argument, 0, 'T'},
 		{"max_intron", required_argument, 0, 'I'},
+		{"stage", required_argument, 0, 'q'},
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:l:o:t:d:s:e:c:w:S:T:I:", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:l:o:t:d:s:e:c:w:S:T:I:q:", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
@@ -139,6 +141,14 @@ int parse_command( int argc, char *argv[] )
 			}
 			case 'I': {
 				maxIntronLen = atoi(optarg);
+				break;
+			}
+			case 'q': {
+				stage = atoi(optarg);
+				if (stage > 2) {
+					fprintf(stderr, "Invalid stage number: %d\nAborted\n", stage);
+					return 1;
+				}
 				break;
 			}
 			case '?': {

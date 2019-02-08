@@ -34,12 +34,17 @@ int main(int argc, char **argv) {
 	if (exit_c == 1)
 		return 0;
 
+	// 0 <= stage <= 2
 	int last_round_num = 1;
-	int map_ret = mapping(last_round_num);
-	if (map_ret == 1)
-		return 1;
+	if (stage != 1) {
+		int map_ret = mapping(last_round_num);
+		if (map_ret == 1)
+			return 1;
+	}
 
-	// circ_detect(last_round_num);
+	if (stage != 0) {
+		circ_detect(last_round_num);
+	}
 
 	return 0;
 }
