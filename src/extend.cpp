@@ -72,8 +72,10 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 
 	// no extension was possible
 	// roll back
-	pos = orig_pos;
-	best_alignment.set(pos, 0, 0, 0, 0);
+	if (best_alignment.qcovlen <= 0) {
+		pos = orig_pos;
+		best_alignment.set(pos, 0, 0, 0, 0);
+	}
 	return false;
 }
 
@@ -135,8 +137,10 @@ bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, 
 
 	// no extension was possible
 	// roll back
-	pos = orig_pos;
-	best_alignment.set(pos, 0, 0, 0, 0);
+	if (best_alignment.qcovlen <= 0) {
+		pos = orig_pos;
+		best_alignment.set(pos, 0, 0, 0, 0);
+	}
 	return false;
 }
 
