@@ -16,7 +16,10 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 bool check_chimeric(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm);
 bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm);
 
-bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, MatePair& mp);
+void intersect_trans(const vector<uint32_t>& tid1, const vector<uint32_t>& tid2, vector<uint32_t>& common_tid);
+bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, vector<uint32_t>& common_tid);
+bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, const IntervalInfo<UniqSeg>* q, vector<uint32_t>& common_tid);
+
 bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r);
 bool same_gene(const IntervalInfo<UniqSeg>* mate, uint32_t s, uint32_t e);
 bool same_gene(const MatchedMate& mm, const MatchedMate& other);

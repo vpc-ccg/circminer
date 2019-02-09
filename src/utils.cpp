@@ -280,12 +280,24 @@ bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& 
 }
 
 
-bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, MatePair& mp) {
-	mp.common_tid.clear();
+void intersect_trans(const vector<uint32_t>& tid_l1, const vector<uint32_t>& tid_l2, vector<uint32_t>& common_tid) {
+	for (int i = 0; i < tid_l1.size(); i++) {
+		for (int j = 0; j < tid_l2.size(); j++) {
+			uint32_t tid1 = tid_l1[i];
+			uint32_t tid2 = tid_l2[j];
+			if (tid1 == tid2) {
+				common_tid.push_back(tid1);
+				break;
+			}
+		}
+	}
+}
+
+bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, vector<uint32_t>& common_tid) {
+	common_tid.clear();
 	if (s == NULL or r == NULL)
 		return false;
 
-	// fprintf(stderr, "In same_transcript\nseg size1 = %d\tseg size2 = %d\n", s->seg_list.size(), r->seg_list.size());
 	vector<uint32_t> seg1_tid;
 	vector<uint32_t> seg2_tid;
 
@@ -297,17 +309,32 @@ bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>
 		for (int l = 0; l < r->seg_list[j].trans_id.size(); l++)
 			seg2_tid.push_back(r->seg_list[j].trans_id[l]);
 
-	for (int i = 0; i < seg1_tid.size(); i++)
-		for (int j = 0; j < seg2_tid.size(); j++) {
-			uint32_t tid1 = seg1_tid[i];
-			uint32_t tid2 = seg2_tid[j];
-			if (tid1 == tid2) {
-				mp.common_tid.push_back(tid1);
-				break;
-			}
-		}
+	intersect_trans(seg1_tid, seg2_tid, common_tid);
 
-	return mp.common_tid.size() != 0;
+	return common_tid.size() != 0;
+}
+
+bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, const IntervalInfo<UniqSeg>* q, vector<uint32_t>& common_tid) {
+	common_tid.clear();
+	if (s == NULL or r == NULL or q == NULL)
+		return false;
+
+	fprintf(stderr, "In same_transcript\nseg size1 = %d\tseg size2 = %d\tseg size3 = %d\n", s->seg_list.size(), r->seg_list.size(), q->seg_list.size());
+	
+	vector <uint32_t> sr_common_tid	;
+	bool sr_intersect = same_transcript(s, r, sr_common_tid);
+	if (! sr_intersect)
+		return false;
+
+	vector<uint32_t> seg_tid;
+
+	for (int i = 0; i < s->seg_list.size(); i++)
+		for (int k = 0; k < s->seg_list[i].trans_id.size(); k++)
+			seg_tid.push_back(s->seg_list[i].trans_id[k]);
+
+	intersect_trans(sr_common_tid, seg_tid, common_tid);
+
+	return common_tid.size() != 0;
 }
 
 bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {

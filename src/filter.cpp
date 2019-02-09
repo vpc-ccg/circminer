@@ -554,7 +554,7 @@ void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chai
 			tlen = (fs < rs) ? (re - fs) : (fe - rs);
 
 			MatePair temp;
-			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_transcript(forward_exon_list[i], reverse_exon_list[j], temp))
+			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_transcript(forward_exon_list[i], reverse_exon_list[j], temp.common_tid))
 				or (forward_exon_list[i] != NULL and same_gene(forward_exon_list[i], rs, re))
 				or (reverse_exon_list[j] != NULL and same_gene(reverse_exon_list[j], fs, fe))
 				or (tlen <= MAXDISCRDTLEN)) {
