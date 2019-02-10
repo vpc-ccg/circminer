@@ -318,8 +318,6 @@ bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>
 	common_tid.clear();
 	if (s == NULL or r == NULL or q == NULL)
 		return false;
-
-	fprintf(stderr, "In same_transcript\nseg size1 = %d\tseg size2 = %d\tseg size3 = %d\n", s->seg_list.size(), r->seg_list.size(), q->seg_list.size());
 	
 	vector <uint32_t> sr_common_tid	;
 	bool sr_intersect = same_transcript(s, r, sr_common_tid);

@@ -32,6 +32,9 @@ using namespace std;
 #define ASCISIZE 128
 #define INF 1e9
 
+#define MINLB 0
+#define MAXUB 4294967295	//2^32 - 1
+
 #define MINKMER 15
 #define MAXDISCRDTLEN 20000
 
@@ -216,8 +219,10 @@ struct MatchedMate {
 
 	const IntervalInfo<GeneInfo>* gene_info;
 
-	MatchedMate();
-	MatchedMate(const MatchedRead& mr, int r1_2, int rlen);
+	MatchedMate ();
+	MatchedMate (const MatchedRead& mr, int r1_2, int rlen);
+	
+	void set (uint32_t rs, uint32_t re, uint32_t qs, uint32_t qe, int d);
 
 	void operator = (const MatchedMate& mm);
 

@@ -8,10 +8,64 @@
 #include "match_read.h"
 #include "gene_annotation.h"
 
-void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, 
-						int ed_th, uint32_t ub,  AlignRes& best, bool& consecutive, map <AllCoord, AlignRes>& align_res);
-void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, 
-						int ed_th, uint32_t lb,  AlignRes& best, bool& consecutive, map <AllCoord, AlignRes>& align_res);
+
+bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int seq_len, int ub, MatchedMate& mr, int& err) {
+	bool right_ok = true;
+
+	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
+	int remain_end = seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len);
+
+	right_ok = (remain_end <= 0);
+	AlignRes best_alignment(ub);
+
+	char remain_str_end[remain_end+5];
+	if (remain_end > 0) {
+		right_ok = extend_right(common_tid, seq + seq_len - remain_end, rm_pos, remain_end, maxEd - err, ub, best_alignment);
+	}
+
+	int sclen_right = best_alignment.sclen;
+	int err_right = best_alignment.ed;
+	remain_end -= best_alignment.rcovlen;
+
+	mr.epos = rm_pos;
+	mr.matched_len -= (right_ok)? sclen_right : remain_end;
+	mr.qepos -= (right_ok)? sclen_right : remain_end;
+	mr.sclen_right = sclen_right;
+	mr.right_ed = best_alignment.ed;
+
+	err += err_right;
+
+	return right_ok;
+}
+
+bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int32_t qspos, int lb, MatchedMate& mr, int& err) {
+	bool left_ok = true;
+
+	uint32_t lm_pos = ch.frags[0].rpos;
+	int remain_beg = ch.frags[0].qpos - qspos;
+
+	left_ok = (remain_beg <= 0);
+	AlignRes best_alignment(lb);
+	
+	char remain_str_beg[remain_beg+5];
+	if (remain_beg > 0) {
+		left_ok = extend_left(common_tid, seq, lm_pos, remain_beg, maxEd - err, lb, best_alignment);
+	}
+	
+	int sclen_left = best_alignment.sclen;
+	int err_left = best_alignment.ed;
+	remain_beg -= best_alignment.rcovlen;
+
+	mr.spos = lm_pos;
+	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
+	mr.qspos += (left_ok) ? sclen_left : remain_beg;
+	mr.sclen_left = sclen_left;
+	mr.left_ed = best_alignment.ed;
+
+	err += err_left;
+
+	return left_ok;
+}
 
 
 // pos is exclusive

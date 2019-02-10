@@ -109,40 +109,48 @@ MatchedMate::MatchedMate() : type(ORPHAN), junc_num(0), right_ed(maxEd+1), left_
 					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), exons_spos(NULL), exons_epos(NULL), 
 					exon_ind_spos(-1), exon_ind_epos(-1), gene_info(NULL) { }
 
+void MatchedMate::set (uint32_t rs, uint32_t re, uint32_t qs, uint32_t qe, int d) {
+	spos = rs; 
+	epos = re;
+	qspos = qs;
+	qepos = qe; 
+	matched_len = qe - qs + 1;
+	dir = d;
+}
 
 MatchedMate::MatchedMate(const MatchedRead& mr, int r1_2, int rlen) : 
 					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), 
 					exons_spos(NULL), exons_epos(NULL), 
 					exon_ind_spos(-1), exon_ind_epos(-1), gene_info(NULL) {
 
-		type = mr.type;
-		if (r1_2 == 1) {
-			spos = mr.spos_r1;
-			epos = mr.epos_r1;
-			qspos = mr.qspos_r1;
-			qepos = mr.qepos_r1;
-			
-			middle_ed = mr.ed_r1;
-			sclen_right = qspos - 1;
-			sclen_left = rlen - qepos;
+	type = mr.type;
+	if (r1_2 == 1) {
+		spos = mr.spos_r1;
+		epos = mr.epos_r1;
+		qspos = mr.qspos_r1;
+		qepos = mr.qepos_r1;
+		
+		middle_ed = mr.ed_r1;
+		sclen_right = qspos - 1;
+		sclen_left = rlen - qepos;
 
-			matched_len = mr.mlen_r1;
-			dir = (mr.r1_forward) ? 1 : -1;
-		}
-		else {
-			spos = mr.spos_r2;
-			epos = mr.epos_r2;
-			qspos = mr.qspos_r2;
-			qepos = mr.qepos_r2;
-			
-			middle_ed = mr.ed_r2;
-			sclen_right = qspos - 1;
-			sclen_left = rlen - qepos;
-
-			matched_len = mr.mlen_r2;
-			dir = (mr.r2_forward) ? 1 : -1;
-		}
+		matched_len = mr.mlen_r1;
+		dir = (mr.r1_forward) ? 1 : -1;
 	}
+	else {
+		spos = mr.spos_r2;
+		epos = mr.epos_r2;
+		qspos = mr.qspos_r2;
+		qepos = mr.qepos_r2;
+		
+		middle_ed = mr.ed_r2;
+		sclen_right = qspos - 1;
+		sclen_left = rlen - qepos;
+
+		matched_len = mr.mlen_r2;
+		dir = (mr.r2_forward) ? 1 : -1;
+	}
+}
 
 void MatchedMate::operator = (const MatchedMate& mm) {
 	spos 		= mm.spos;

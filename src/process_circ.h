@@ -28,7 +28,12 @@ public:
 	void binning(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, uint32_t gene_len);
 	void chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift, uint32_t& rspos, uint32_t& repos);
 
+	bool find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, 
+							int dir, uint32_t qspos, char* rseq, int rlen, int whole_len);
+
 	int get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos);
+
+
 };
 
 #endif
