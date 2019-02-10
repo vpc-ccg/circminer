@@ -15,7 +15,14 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	sprintf(fq_file1, "%s_%d_remain_R1.fastq", outputFilename, last_round_num);
 	sprintf(fq_file2, "%s_%d_remain_R2.fastq", outputFilename, last_round_num);
 
+	sort_fq(fq_file1);
+	sort_fq(fq_file2);
+
+	sprintf(fq_file1, "%s_%d_remain_R1.fastq.srt", outputFilename, last_round_num);
+	sprintf(fq_file2, "%s_%d_remain_R2.fastq.srt", outputFilename, last_round_num);
+
 	fprintf(stdout, "%s\n",fq_file1 );
+
 	window_size = ws;
 	step = 3;
 	regional_ht.init(ws);
@@ -31,6 +38,21 @@ ProcessCirc::~ProcessCirc (void) {
 		free(bc.chains[i].frags);
 
 	free(bc.chains);
+}
+
+void ProcessCirc::sort_fq(char* fqname) {
+	fprintf(stdout, "Sorting remaining read mappings... ");
+	if (!system(NULL)) {
+		fprintf(stdout, "Failed using command line\n");
+		exit(EXIT_FAILURE);
+	}
+
+	char command [FILE_NAME_LENGTH];
+	sprintf(command, "paste - - - - < %s | sort -k3,3 -k4,4n | tr \"\t\" \"\n\" > %s.srt", fqname, fqname);
+
+	int ret = system(command);
+	if (ret == 0)
+		fprintf(stdout, "OK\n");
 }
 
 void ProcessCirc::do_process (void) {

@@ -21,6 +21,8 @@ public:
 	ProcessCirc (int last_round_num, int ws);
 	~ProcessCirc (void);
 
+	void sort_fq(char* fqname);
+
 	void do_process (void);
 
 	void call_circ(Record* current_record1, Record* current_record2);
