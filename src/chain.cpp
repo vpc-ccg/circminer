@@ -306,7 +306,8 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 // b(i, j) = inf     y_j >= y_i || max{y_i - y_j, x_i - x_j} > maxDist
 // b(i, j) = gap_cost
 // w_i = kmer size
-void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_list& best_chain, int kmer, int kmer_cnt) {
+void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_list& best_chain, 
+								int kmer, int kmer_cnt, int shift) {
 	best_chain.best_chain_count = 0;
 
 	int max_frag_cnt = seedLim;
@@ -492,7 +493,7 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 			i = 0;
 			j = best_count++;
 			while (best_index.prev_list != -1) {
-				best_chain.chains[j].frags[i].rpos = (fragment_list + best_index.prev_list)->frags[best_index.prev_ind].info;
+				best_chain.chains[j].frags[i].rpos = shift + (fragment_list + best_index.prev_list)->frags[best_index.prev_ind].info;
 				best_chain.chains[j].frags[i].qpos = (fragment_list + best_index.prev_list)->qpos;
 				best_chain.chains[j].frags[i].len = kmer;
 				
@@ -520,7 +521,7 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 				if (best_count >= max_best)
 					break;
 				j = best_count++;
-				best_chain.chains[j].frags[0].rpos = cur_mk->frags[i].info;
+				best_chain.chains[j].frags[0].rpos = shift + cur_mk->frags[i].info;
 				best_chain.chains[j].frags[0].qpos = cur_mk->qpos;
 				best_chain.chains[j].frags[0].len = kmer;
 				best_chain.chains[j].score = dp[ii][i].score;
