@@ -251,7 +251,7 @@ void extend_right_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq,
 							new_rmpos, qseq_len, indel, edit_dist, sclen);
 	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\n", ref_seq, qseq);
 	
-	if (curr.ed + edit_dist <= ed_th) {
+	if ((curr.ed + edit_dist <= ed_th) and (sclen < qseq_len)) {
 		curr.update(edit_dist, sclen, new_rmpos, indel, qseq_len);
 		best.update_right(curr);
 	}
@@ -361,7 +361,7 @@ void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 		vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\tsclen: %d\n", 
 							it->second.pos, it->second.qcovlen, it->second.indel, it->second.ed, it->second.sclen);
 
-		if (curr.ed + it->second.ed > ed_th)
+		if ((curr.ed + it->second.ed > ed_th) or (it->second.sclen >= it->second.qcovlen))
 			return;
 		else {
 			curr.update(it->second.ed, it->second.sclen, it->second.pos, it->second.indel, it->second.qcovlen);
@@ -418,7 +418,7 @@ void extend_left_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, 
 							new_lmpos, qseq_len, indel, edit_dist, sclen);
 	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\n", ref_seq, qseq);
 	
-	if (curr.ed + edit_dist <= ed_th) {
+	if ((curr.ed + edit_dist <= ed_th) and (sclen < qseq_len)) {
 		curr.update(edit_dist, sclen, new_lmpos, indel, qseq_len);
 		best.update_left(curr);
 	}
@@ -538,7 +538,7 @@ void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 		vafprintf(2, stderr, "lmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\tsclen: %d\n", 
 							it->second.pos, it->second.qcovlen, it->second.indel, it->second.ed, it->second.sclen);
 
-		if (curr.ed + it->second.ed > ed_th)
+		if ((curr.ed + it->second.ed > ed_th) or (it->second.sclen >= it->second.qcovlen))
 			return;
 		else {
 			curr.update(it->second.ed, it->second.sclen, it->second.pos, it->second.indel, it->second.qcovlen);
