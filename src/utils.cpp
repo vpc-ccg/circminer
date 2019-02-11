@@ -159,6 +159,30 @@ bool is_concord(const chain_t& a, int seq_len, MatchedMate& mr) {
 	return mr.is_concord;
 }
 
+bool is_concord2(const chain_t& a, int seq_len, MatchedMate& mr) {
+	if (a.chain_len < 2) {
+		mr.is_concord = false;
+	}
+	else if ((a.frags[a.chain_len-1].qpos + a.frags[a.chain_len-1].len - a.frags[0].qpos) >= seq_len) {
+		mr.is_concord = true;
+		mr.type = CONCRD;
+		
+		mr.spos = a.frags[0].rpos;
+		mr.epos = a.frags[a.chain_len-1].rpos + a.frags[a.chain_len-1].len - 1;
+		mr.matched_len = a.frags[a.chain_len-1].qpos + a.frags[a.chain_len-1].len - a.frags[0].qpos;
+		mr.qspos = a.frags[0].qpos;
+		mr.qepos = a.frags[a.chain_len-1].qpos + a.frags[a.chain_len-1].len - 1;
+	}
+	else {
+		mr.is_concord = false;
+		if (a.frags[0].qpos == 0 or a.frags[a.chain_len-1].qpos + a.frags[a.chain_len-1].len == seq_len) {
+			mr.type = CANDID;
+		}
+	}
+	return mr.is_concord;
+}
+
+
 // sm should start before lm
 bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm) {
 	if (sm.spos > lm.spos)

@@ -295,12 +295,18 @@ bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 
 	lmm.middle_ed = calc_middle_ed(lch, maxEd, lseq, lseq_len);
 	// fprintf(stderr, "Left middle ed: %d\n", lmm.middle_ed);
-	if (lmm.middle_ed > maxEd)
-		return false;
-
 	rmm.middle_ed = calc_middle_ed(rch, maxEd, rseq, lseq_len);
 	// fprintf(stderr, "Right middle ed: %d\n", rmm.middle_ed);
-	if (rmm.middle_ed > maxEd)
+
+	if (lmm.middle_ed <= maxEd) {
+		is_concord2(lch, lseq_len, lmm);
+	}
+
+	if (rmm.middle_ed <= maxEd) {
+		is_concord2(rch, lseq_len, rmm);
+	}
+
+	if (lmm.middle_ed > maxEd or rmm.middle_ed > maxEd)
 		return false;
 
 	bool l_extend = true;
