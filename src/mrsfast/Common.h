@@ -43,7 +43,6 @@
 
 #include <zlib.h>
 #include <stdint.h>
-#include <unordered_set>
 
 #define SEQ_MAX_LENGTH		500			// Seq Max Length
 #define CMP_SEQ_MAX_LENGTH	10			// Compressed Seq Max Length
@@ -107,7 +106,6 @@ extern int				fileCnt;
 extern long long		memUsage;
 extern char				*alphabet;
 extern char				checkSumLength;
-extern std::unordered_set<uint64_t> filtered_kmers;
 
 #pragma pack(push, 1)
 typedef struct

@@ -13,6 +13,7 @@
 #include <vector>
 #include <iostream>
 #include <bitset>
+#include <unordered_set>
 
 #include "interval_info.h"
 
@@ -97,6 +98,7 @@ extern vector <bitset <DEF_CONTIG_MAX_SIZE> > intronic_bs;
 
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];
+extern std::unordered_set<uint64_t> filtered_kmers;
 
 //---------- Structures ----------\\
 
