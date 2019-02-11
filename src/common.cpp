@@ -189,21 +189,11 @@ MatchedRead::MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_co
 // assuming r1 and r2 are on same chr
 bool MatchedRead::update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, 
 							uint16_t jun_between, bool gm_compatible, int type, bool r1_first) {
-	if (type > this->type)
+
+	if (!go_for_update(r1, r2, tlen, gm_compatible, type))
 		return false;
 
 	int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed + r2.left_ed + r2.middle_ed + r2.right_ed;
-
-	if (type == this->type) {
-		if (this->gm_compatible and !gm_compatible)
-			return false;
-
-		if ((this->gm_compatible == gm_compatible) and (this->ed_r1 + this->ed_r2 < edit_dist))
-			return false;
-
-		if ((this->gm_compatible == gm_compatible) and (this->ed_r1 + this->ed_r2 == edit_dist) and (this->tlen < tlen))
-			return false;
-	}
 
 	this->type = type;
 	this->chr_r1 = chr;
@@ -266,6 +256,51 @@ bool MatchedRead::update(const MatchedMate& r1, const MatchedMate& r2, const str
 bool MatchedRead::update_type(int type) {
 	if (type < this->type)
 		this->type = type;
+}
+
+
+inline bool MatchedRead::go_for_update(const MatchedMate& r1, const MatchedMate& r2, int32_t tlen, bool gm_compatible, int type) {
+	if (type < this->type)
+		return true;
+	if (type > this->type)
+		return false;
+
+	if (gm_compatible and !this->gm_compatible)
+		return true;
+	if (!gm_compatible and this->gm_compatible)
+		return false;
+
+	if (type < CHIBSJ) {
+		int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed + r2.left_ed + r2.middle_ed + r2.right_ed;
+		if (this->ed_r1 + this->ed_r2 > edit_dist)
+			return true;
+		if (this->ed_r1 + this->ed_r2 < edit_dist)
+			return false;
+
+		if (this->tlen > tlen)
+			return true;
+		if (this->tlen < tlen)
+			return false;
+
+		if (this->mlen_r1 + this->mlen_r2 < r1.matched_len + r2.matched_len)
+			return true;
+		if (this->mlen_r1 + this->mlen_r2 > r1.matched_len + r2.matched_len)
+			return false;
+	}
+
+	else {
+		if (this->mlen_r1 + this->mlen_r2 < r1.matched_len + r2.matched_len)
+			return true;
+		if (this->mlen_r1 + this->mlen_r2 > r1.matched_len + r2.matched_len)
+			return false;
+
+		int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed + r2.left_ed + r2.middle_ed + r2.right_ed;
+		if (this->ed_r1 + this->ed_r2 > edit_dist)
+			return true;
+		if (this->ed_r1 + this->ed_r2 < edit_dist)
+			return false;
+	}
+	return false;
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\

@@ -265,6 +265,8 @@ struct MatchedRead {
 							int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first);
 
 	bool update_type(int type);
+
+	inline bool go_for_update(const MatchedMate& r1, const MatchedMate& r2, int32_t tlen, bool gm_compatible, int type);
 };
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
