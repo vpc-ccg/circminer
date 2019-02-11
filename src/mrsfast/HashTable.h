@@ -59,7 +59,7 @@ int				getRefGenLength();
 int				getCmpRefGenLength();
 int				initLoadingHashTableMeta(char*, ContigLen**, int*);
 int				initLoadingHashTable(char*);
-HashTable		*getHashTable();
+IHashTable		*getHashTable();
 GeneralIndex	*getCandidates(int hv);
 unsigned char	*getAlphabetCount();
 void			rewindHashTable();

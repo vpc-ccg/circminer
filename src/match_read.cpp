@@ -54,6 +54,9 @@ int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk
 	if (cv < 0)
 		return 0;
 
+	if(filtered_kmers.count((hv << (checkSumLength*3)) | cv) > 0)
+		return 0;
+
 	GeneralIndex *it = getCandidates(hv);
 	uint32_t i, j;
 

@@ -888,9 +888,9 @@ int getRefGenomeOffset()
 	return _ih_refGenOff;
 }
 /**********************************************/
-HashTable *getHashTable()
+IHashTable *getHashTable()
 {
-	return NULL;
+	return _ih_hashTable;
 }
 /**********************************************/
 CompressedSeq *getCmpRefGenome()
