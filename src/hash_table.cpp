@@ -54,25 +54,19 @@ void RegionalHashTable::create_table (char* seq, uint32_t start, int len) {
 
 	// initialize
 	for (int i = 0; i < size; i++) {
-		if (kmer_count[i] == 0 or kmer_count[i] > MAXHIT) {
-			table[i].frag_count = 0;
-			table[i].qpos = 0;
-			// table[i].frags = NULL;
-			// kmer_count[i] = 0;
-			continue;
-		}
-		//table[i].frags = (GeneralIndex*) malloc(kmer_count[i] * sizeof(GeneralIndex));
+		table[i].frag_count = 0;
+		table[i].qpos = 0;
 	}
 
 	// fill hash table
 	uint32_t loc = start;
+	int hv;
 	for (int i = 0; i <= len - window_size; i++) {
-		add_loc(hash_val(seq + i), loc++);
+		hv = hash_val(seq + i);
+		if (kmer_count[hv] <= MAXHIT)
+			add_loc(hv, loc);
+		++loc;
 	}
-
-	//for (int i = 0; i < size; i++) {
-	//	fprintf(stderr, "table[%d].cnt = %d\n", i, table[i].cnt);
-	//}
 }
 
 // GIList* RegionalHashTable::find_hash (int hv) const {
