@@ -124,21 +124,21 @@ int mapping(int& last_round_num) {
 	/**GTF Parser Init**/
 	/*******************/
 
-	// gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
-	// if (! gtf_parser.load_gtf()) {
-	// 	fprintf(stdout, "Error in reading GTF file.\n");
-	// 	exit(1);
-	// }
-	// else 
-	// 	fprintf(stdout, "GTF file successfully loaded!\n");
+	gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
+	if (! gtf_parser.load_gtf()) {
+		fprintf(stdout, "Error in reading GTF file.\n");
+		exit(1);
+	}
+	else 
+		fprintf(stdout, "GTF file successfully loaded!\n");
 
-	// cputime_curr = get_cpu_time();
-	// realtime_curr = get_real_time();
+	cputime_curr = get_cpu_time();
+	realtime_curr = get_real_time();
 
-	// fprintf(stdout, "[P] Loaded GTF in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+	fprintf(stdout, "[P] Loaded GTF in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
 
-	// cputime_start = cputime_curr;
-	// realtime_start = realtime_curr;
+	cputime_start = cputime_curr;
+	realtime_start = realtime_curr;
 
 	/*****************/
 	/**Mapping Reads**/
@@ -158,7 +158,7 @@ int mapping(int& last_round_num) {
 		// 
 		IHashTable* _circ_hash_table = getHashTable();
 		int _circ_maxHashTableSize = pow(4, WINDOW_SIZE);
-
+		filtered_kmers.clear();
 		for(int i = 0; i < _circ_maxHashTableSize; i++)
 		{
 			if(_circ_hash_table[i].list != NULL)
@@ -172,7 +172,7 @@ int mapping(int& last_round_num) {
 					{
 						if(j - last_j > seedLim) // to be filtered
 						{
-							uint64_t hash_combined = (i << (checkSumLength*3)) | last_checksum;
+							uint64_t hash_combined = ((uint64_t)i << (checkSumLength*3)) | last_checksum;
 							filtered_kmers.insert(hash_combined);
 						}
 						last_j = j;
@@ -182,7 +182,7 @@ int mapping(int& last_round_num) {
 				// process the last one
 				if(j - last_j > seedLim) // to be filtered
 				{
-					uint64_t hash_combined = (i << (checkSumLength*3)) | last_checksum;
+					uint64_t hash_combined = ((uint64_t)i << (checkSumLength*3)) | last_checksum;
 					filtered_kmers.insert(hash_combined);
 				}
 			}
