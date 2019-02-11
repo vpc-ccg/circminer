@@ -231,19 +231,21 @@ int Alignment::global_one_side_banded_alignment(char* s, int n, char* t, int m, 
 	
 	// memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
 	j = 0;
-	for (i = w+1; i <= n; i++) {
+	for (i = 1; i <= n; i++) {
 		dp[i][j++] = DPTINF;
 	}
 
 	i = 0;
-	for (j = w+1; j <= m; j++)
+	for (j = w+1; j <= m; j++) {
 		dp[i++][j] = DPTINF;
+	}
 
 	// uint32_t dp[n+1][m+1];
 	// memset(dp, 127, (n+1) * (m+1) * sizeof(uint32_t));
 
-	for (j = 0; j <= w; j++)
+	for (j = 0; j <= w; j++) {
 		dp[0][j] = j;
+	}
 
 	for (i = 1; i <= n; i++) {
 		for (j = i; j <= i + w; j++) {
