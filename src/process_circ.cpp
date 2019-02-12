@@ -254,11 +254,14 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 
 		if (partial_mm.type == CONCRD) {
 			vafprintf(2, stderr, "Coordinates: [%d-%d]\n", partial_mm.spos, partial_mm.epos);
-			fprintf(stderr, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%u\t%u\t%d\n", current_record1->rname, mr.chr_r1.c_str(), 
-														partial_mm.spos, partial_mm.epos, partial_mm.matched_len,
-														mm_r1.spos, mm_r1.epos, mm_r1.matched_len,
-														mm_r2.spos, mm_r2.epos, mm_r2.matched_len);
+			fprintf(stderr, "%s\t%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", current_record1->rname, mr.chr_r1.c_str(), 
+														partial_mm.spos, partial_mm.epos, partial_mm.qspos, partial_mm.matched_len, partial_mm.dir,
+														mm_r1.spos, mm_r1.epos, mm_r1.qspos, mm_r1.matched_len, mm_r1.dir,
+														mm_r2.spos, mm_r2.epos, mm_r2.qspos, mm_r2.matched_len, mm_r2.dir);
 
+
+			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial);
+			fprintf(stderr, "%d\n", type);
 		}
 		else {
 			vafprintf(2, stderr, "Coordinates: [%d-%d]\n", rspos, repos);
@@ -366,13 +369,15 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 
 bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, 
 									int dir, uint32_t qspos, char* rseq, int rlen, int whole_len) {
-	qspos--;	// convert to 0-based
+
 	uint32_t partial_spos = bc.chains[0].frags[0].rpos;
 	uint32_t partial_epos = bc.chains[0].frags[bc.chains[0].chain_len - 1].rpos + bc.chains[0].frags[bc.chains[0].chain_len - 1].len - 1;
-	uint32_t partial_qspos = bc.chains[0].frags[0].qpos;
-	uint32_t partial_qepos = bc.chains[0].frags[bc.chains[0].chain_len - 1].qpos + bc.chains[0].frags[bc.chains[0].chain_len - 1].len - 1;
+	uint32_t partial_qspos = qspos;
+	uint32_t partial_qepos = qspos + rlen - 1;
 
 	partial_mm.set(partial_spos, partial_epos, partial_qspos, partial_qepos, dir);
+
+	--qspos;	// convert to 0-based
 
 	overlap_to_spos(mm_r1);
 	overlap_to_spos(mm_r2);
@@ -403,8 +408,6 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 	int err = partial_mm.middle_ed;
 	if (extend) {
 		partial_mm.matched_len = rlen;
-		partial_mm.qspos = 1;
-		partial_mm.qepos = rlen;
 		lok = extend_chain_left (common_tid, bc.chains[0], rseq + qspos, qspos, MINLB, partial_mm, err);
 		if (qspos == 0) {
 			rok = extend_chain_right(common_tid, bc.chains[0], rseq, rlen, MAXUB, partial_mm, err);
@@ -470,6 +473,60 @@ RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info, char*
 	}
 
 	return regional_ht;
+}
+
+int ProcessCirc::check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, bool r1_partial) {
+	if (r1_partial) {
+		if (mm_r1.qspos < partial_mm.qspos)
+			return final_check(mm_r2, mm_r1, partial_mm);
+		else 
+			return final_check(mm_r2, partial_mm, mm_r1);
+	}
+	else {
+		if (mm_r2.qspos < partial_mm.qspos)
+			return final_check(mm_r1, mm_r2, partial_mm);
+		else 
+			return final_check(mm_r1, partial_mm, mm_r2);
+	}
+	return UD;
+}
+
+// full_mm -> not split mate
+// split_mm_left -> left hand side of the split read
+// split_mm_right -> right hand side of the split read
+int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right) {
+	if (split_mm_left.epos < split_mm_right.spos) {
+		if (full_mm.dir == 1) {
+			if (full_mm.spos <= split_mm_left.spos)
+				return FR;
+			else if (full_mm.epos >= split_mm_right.epos)
+				return RF;
+		}
+
+		if (full_mm.dir == -1) {
+			if (full_mm.epos >= split_mm_right.epos)
+				return FR;
+			else if (full_mm.spos <= split_mm_left.spos)
+				return RF;
+		}
+	}
+
+	else if (split_mm_right.epos < split_mm_left.spos) {
+		if (full_mm.spos >= split_mm_right.spos and full_mm.epos <= split_mm_left.epos) {
+			// check splice site
+			overlap_to_spos(full_mm);
+			overlap_to_epos(full_mm);
+
+			overlap_to_spos(split_mm_right);
+			overlap_to_epos(split_mm_right);
+
+			overlap_to_spos(split_mm_left);
+			overlap_to_epos(split_mm_left);
+
+			return CR;
+		}
+	}
+	return UD;
 }
 
 int ProcessCirc::get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos) {
