@@ -24,7 +24,6 @@ using namespace std;
 
 GTFParser gtf_parser;
 Alignment alignment;
-RegionalHashTable regional_ht;
 
 int mapping(int& last_round_num);
 void circ_detect(int last_round_num);

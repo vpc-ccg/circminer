@@ -1,3 +1,4 @@
+#include <vector>
 #include <cstring>
 
 #include "process_circ.h"
@@ -10,6 +11,7 @@
 #include "utils.h"
 
 #define BINSIZE 5000
+#define MAXHTLISTSIZE 5
 
 ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	sprintf(fq_file1, "%s_%d_remain_R1.fastq", outputFilename, last_round_num);
@@ -25,7 +27,18 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 
 	window_size = ws;
 	step = 3;
-	regional_ht.init(ws);
+
+	RegionalHashTable* rht;
+	for (int i = 0; i < MAXHTLISTSIZE; ++i) {
+		rht = new RegionalHashTable(ws, 0, 0);
+		ind2ht.insert(make_pair(i, rht));
+
+		removables.insert(i);
+
+		gid2ind.insert(make_pair(INF-i, i));
+		gids.push_back(INF-i);
+	}
+
 
 	int max_kmer_cnt = (maxReadLength - window_size) / step + 1;
 	bc.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
@@ -214,15 +227,18 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 	MatchedMate mm_r1(mr, 1, current_record1->seq_len);
 	MatchedMate mm_r2(mr, 2, current_record2->seq_len);
 
-	for (int i = 0; i < gene_info->seg_list.size(); i++) {
+	check_removables(mr.spos_r1);
+	RegionalHashTable* regional_ht;
+
+	for (int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
 		char gene_seq[gene_len + 1];
 		gene_seq[gene_len] = '\0';
 		pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
 		//vafprintf(2, stderr, "Gene: %s\n", gene_seq);
 
-		regional_ht.create_table(gene_seq, 0, gene_len);
-
+		regional_ht = get_hash_table(gene_info->seg_list[i], gene_seq);
+		
 		vafprintf(2, stderr, "R%d partial: [%d-%d]\n", (int) (!r1_partial) + 1, qspos, qepos);
 		vafprintf(2, stderr, "%s\n", remain_seq);
 
@@ -250,14 +266,14 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 	}
 }
 
-void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, uint32_t gene_len) {
+void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len) {
 	int bin_num = gene_len / BINSIZE + 1;
 	int bins[bin_num];
 	int max_id = 0;
 	memset(bins, 0, bin_num * sizeof(int));
 
 	for (int i = qspos - 1; i <= qepos - window_size; i += step) {
-		GIMatchedKmer* gl = regional_ht.find_hash(regional_ht.hash_val(remain_seq + i));
+		GIMatchedKmer* gl = regional_ht->find_hash(regional_ht->hash_val(remain_seq + i));
 		if (gl == NULL) {
 			vafprintf(2, stderr, "Hash val not found!!!\n");
 		}
@@ -279,7 +295,7 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, const RegionalHashTabl
 
 }
 
-void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTable& regional_ht, char* remain_seq, 
+void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, 
 							uint32_t gene_len, uint32_t shift, uint32_t& rspos, uint32_t& repos) {
 	int seq_len = qepos - qspos + 1;
 	int kmer_cnt = ((qepos - qspos + 1) - window_size) / step + 1;
@@ -287,7 +303,7 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, const RegionalHashTab
 
 	int l = 0;
 	for (int i = qspos - 1; i <= qepos - window_size; i += step) {
-		GIMatchedKmer* gl = regional_ht.find_hash(regional_ht.hash_val(remain_seq + i));
+		GIMatchedKmer* gl = regional_ht->find_hash(regional_ht->hash_val(remain_seq + i));
 		if (gl == NULL) {	// has N inside kmer
 			vafprintf(2, stderr, "Hash val not found!!!\n");
 			continue;
@@ -402,6 +418,61 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 	return partial_mm.type == CONCRD;
 }
 
+void ProcessCirc::check_removables (uint32_t rspos) {
+	for (auto it = ind2ht.begin(); it != ind2ht.end(); ++it) {
+		if (rspos > it->second->gene_epos) {
+			removables.insert(it->first);
+			// fprintf(stderr, "Removed gid: %d --removables size: %d\n", gids[it->first], removables.size());
+		}
+	}
+}
+
+RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info, char* gene_seq) {
+	uint32_t gid, removable_ind;
+	RegionalHashTable* regional_ht;
+	RegionalHashTable* new_ht;
+
+	int gene_len = gene_info.end - gene_info.start + 1;
+	gid = gene_info.gene_id;
+	// fprintf(stderr, "Gene id: %d\n", gid);
+	
+	if (gid2ind.find(gid) != gid2ind.end()) {
+		uint32_t ind = gid2ind[gid];
+		regional_ht = ind2ht[ind];
+		// fprintf(stderr, "Found gid: %d\n", gid);
+	}
+	else {
+		if (removables.size() == 0) {
+			new_ht = new RegionalHashTable(window_size, gene_info.start, gene_info.end);
+
+			uint32_t new_ind = ind2ht.size();
+			ind2ht.insert(make_pair(new_ind, new_ht));
+			gid2ind.insert(make_pair(gid, new_ind));
+			gids.push_back(gid);
+			new_ht->create_table(gene_seq, 0, gene_len);
+			regional_ht = new_ht;
+			// fprintf(stderr, "Allocated new HT gid:\n");
+		}
+		else {
+			removable_ind = *(removables.cbegin());
+			removables.erase(removables.cbegin());
+			gid2ind.erase(gids[removable_ind]);
+			gid2ind.insert(make_pair(gid, removable_ind));
+			gids[removable_ind] = gid;
+
+			regional_ht = ind2ht[removable_ind];
+			regional_ht->gene_spos = gene_info.start;
+			regional_ht->gene_epos = gene_info.end;
+			regional_ht->create_table(gene_seq, 0, gene_len);
+
+		}
+		// fprintf(stderr, "Added gid: %d\n", gid);
+	}
+
+	return regional_ht;
+}
+
 int ProcessCirc::get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos) {
+
 
 }

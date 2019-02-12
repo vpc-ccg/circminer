@@ -9,8 +9,8 @@ RegionalHashTable::RegionalHashTable () {
 	
 }
 
-RegionalHashTable::RegionalHashTable (int ws) {
-	init(ws);
+RegionalHashTable::RegionalHashTable (int ws, uint32_t gspos, uint32_t gepos) {
+	init(ws, gspos, gepos);
 }
 
 RegionalHashTable::~RegionalHashTable (void) {
@@ -23,7 +23,9 @@ RegionalHashTable::~RegionalHashTable (void) {
 	free(table);
 }
 
-void RegionalHashTable::init(int ws) {
+void RegionalHashTable::init(int ws, uint32_t gspos, uint32_t gepos) {
+	gene_spos = gspos;
+	gene_epos = gepos;
 	window_size = ws;
 	size = 1 << (2 * ws);	// HT size = 4^ws
 
