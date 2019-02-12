@@ -222,7 +222,7 @@ bool GTFParser::load_gtf(void) {
 			if (current_record->chr_id >= gid2ginfo.size()) {
 				gid2ginfo.resize(current_record->chr_id+1);
 			}
-			GeneInfo tmp = {.start = current_record->start, .end = current_record->end};
+			GeneInfo tmp = {.start = current_record->start, .end = current_record->end, .gene_id = gid2ginfo[current_record->chr_id].size()};
 			gid2ginfo[current_record->chr_id].push_back(tmp);
 
 			if (current_record->chr_id >= merged_genes.size()) {

@@ -139,12 +139,13 @@ typedef struct {
 struct GeneInfo {
 	uint32_t start;
 	uint32_t end;
+	uint32_t gene_id;
 
 	friend ostream& operator<<(ostream& os, const GeneInfo& gi);
 
 	bool operator < (const GeneInfo& gi) const;
 
-	uint32_t length() { return end - start + 1; }
+	inline uint32_t length() { return end - start + 1; }
 };
 
 inline ostream& operator<<(ostream& os, const GeneInfo& gi);
