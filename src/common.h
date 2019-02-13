@@ -313,6 +313,20 @@ struct AllCoord {
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
+struct CircRes {
+	string chr;
+	string rname;
+	uint32_t spos;
+	uint32_t epos;
+
+	void set_bp (uint32_t sp, uint32_t ep);
+
+	bool operator < (const CircRes& r) const;
+	bool operator == (const CircRes& r) const;
+};
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
 //---------- Functions ----------\\
 
 FILE* open_file(char* filename, char* mode);

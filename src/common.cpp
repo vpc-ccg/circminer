@@ -351,3 +351,24 @@ bool AllCoord::operator < (const AllCoord& r) const {
 		return rlen < r.rlen;
 	return qlen < r.qlen;
 }
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
+void CircRes::set_bp (uint32_t sp, uint32_t ep) {
+	spos = sp;
+	epos = ep;
+}
+
+bool CircRes::operator < (const CircRes& r) const {
+	if (chr != r.chr) 
+		return chr < r.chr;
+	if (spos != r.spos)
+		return spos < r.spos;
+	return epos < r.epos;
+}
+
+bool CircRes::operator == (const CircRes& r) const {
+	return (chr == r.chr) and (spos == r.spos) and (epos == r.epos);
+}
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\

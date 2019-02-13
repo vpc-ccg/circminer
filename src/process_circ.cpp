@@ -1,5 +1,6 @@
 #include <vector>
 #include <cstring>
+#include <algorithm>
 
 #include "process_circ.h"
 #include "gene_annotation.h"
@@ -25,6 +26,8 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 
 	fprintf(stdout, "%s\n",fq_file1 );
 
+	report_file = NULL;
+
 	window_size = ws;
 	step = 3;
 
@@ -47,6 +50,8 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 }
 
 ProcessCirc::~ProcessCirc (void) {
+	close_file(report_file);
+
 	for (int i = 0; i < BESTCHAINLIM; i++)
 		free(bc.chains[i].frags);
 
@@ -183,6 +188,8 @@ void ProcessCirc::do_process (void) {
 		call_circ(current_record1, current_record2);
 	}
 
+	report_events();
+
 	cputime_curr = get_cpu_time();
 	realtime_curr = get_real_time();
 
@@ -258,10 +265,17 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 														partial_mm.spos, partial_mm.epos, partial_mm.qspos, partial_mm.matched_len, partial_mm.dir,
 														mm_r1.spos, mm_r1.epos, mm_r1.qspos, mm_r1.matched_len, mm_r1.dir,
 														mm_r2.spos, mm_r2.epos, mm_r2.qspos, mm_r2.matched_len, mm_r2.dir);
-
-
-			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial);
+			
+			CircRes cr;
+			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial, cr);
 			fprintf(stderr, "%d\n", type);
+			
+			if (type == CR) {
+				cr.chr = mr.chr_r1;
+				cr.rname = current_record1->rname;
+				circ_res.push_back(cr);
+				break;	// stop processing next genes
+			}
 		}
 		else {
 			vafprintf(2, stderr, "Coordinates: [%d-%d]\n", rspos, repos);
@@ -475,18 +489,18 @@ RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info, char*
 	return regional_ht;
 }
 
-int ProcessCirc::check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, bool r1_partial) {
+int ProcessCirc::check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, bool r1_partial, CircRes& cr) {
 	if (r1_partial) {
 		if (mm_r1.qspos < partial_mm.qspos)
-			return final_check(mm_r2, mm_r1, partial_mm);
+			return final_check(mm_r2, mm_r1, partial_mm, cr);
 		else 
-			return final_check(mm_r2, partial_mm, mm_r1);
+			return final_check(mm_r2, partial_mm, mm_r1, cr);
 	}
 	else {
 		if (mm_r2.qspos < partial_mm.qspos)
-			return final_check(mm_r1, mm_r2, partial_mm);
+			return final_check(mm_r1, mm_r2, partial_mm, cr);
 		else 
-			return final_check(mm_r1, partial_mm, mm_r2);
+			return final_check(mm_r1, partial_mm, mm_r2, cr);
 	}
 	return UD;
 }
@@ -494,7 +508,7 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, Matche
 // full_mm -> not split mate
 // split_mm_left -> left hand side of the split read
 // split_mm_right -> right hand side of the split read
-int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right) {
+int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr) {
 	if (split_mm_left.epos < split_mm_right.spos) {
 		if (full_mm.dir == 1) {
 			if (full_mm.spos <= split_mm_left.spos)
@@ -546,8 +560,10 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 
 			for (int i = 0; i < start_tids.size(); ++i)
 				for (int j = 0; j < end_tids.size(); ++j)
-					if (start_tids[i] == end_tids[j])
+					if (start_tids[i] == end_tids[j]) {
+						cr.set_bp(split_mm_right.spos, split_mm_left.epos);
 						return CR;
+					}
 
 
 			if (start_tids.size() > 0 and end_tids.size() > 0)
@@ -557,6 +573,33 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 		}
 	}
 	return UD;
+}
+
+void ProcessCirc::report_events (void) {
+	open_report_file();
+	if (circ_res.size() <= 0)
+		return;
+
+	sort(circ_res.begin(), circ_res.end());
+	int cnt = 1;
+	CircRes last = circ_res[0];
+	for (int i = 1; i < circ_res.size(); ++i) {
+		if (circ_res[i] == last) {
+			cnt++;
+		}
+		else {
+			fprintf(report_file, "%s\t%u\t%u\t%d\n", last.chr.c_str(), last.spos, last.epos, cnt);
+			cnt = 1;
+			last = circ_res[i];
+		}
+	}
+	fprintf(report_file, "%s\t%u\t%u\t%d\n", last.chr.c_str(), last.spos, last.epos, cnt);
+}
+
+void ProcessCirc::open_report_file (void) {
+	char temp_fname [FILE_NAME_LENGTH];
+	sprintf(temp_fname, "%s.circ_report", outputFilename);
+	report_file = open_file(temp_fname, "w");
 }
 
 int ProcessCirc::get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos) {

@@ -26,6 +26,8 @@ private:
 	char fq_file1[FILE_NAME_LENGTH];
 	char fq_file2[FILE_NAME_LENGTH];
 
+	FILE* report_file;
+
 	int window_size;
 	int step;
 	
@@ -37,10 +39,13 @@ private:
 	unordered_map <uint32_t, uint32_t> gid2ind;
 	vector <uint32_t> gids;
 
+	vector <CircRes> circ_res;
 
 public:
 	ProcessCirc (int last_round_num, int ws);
 	~ProcessCirc (void);
+
+	void open_report_file (void);
 
 	void sort_fq (char* fqname);
 
@@ -57,8 +62,10 @@ public:
 	void check_removables (uint32_t rspos);
 	RegionalHashTable* get_hash_table (const GeneInfo& gene_info, char* gene_seq);
 
-	int check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, bool r1_partial);
-	int final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right);
+	int check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, bool r1_partial, CircRes& cr);
+	int final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr);
+
+	void report_events (void);
 
 	int get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos);
 
