@@ -163,6 +163,7 @@ void FASTQParser::fill_map_info(int cnt) {
 			current_record->mr->tlen 		= atoi(tokens[18]);
 			current_record->mr->junc_num 	= strtoul(tokens[19], &stop_string, base);
 			current_record->mr->gm_compatible = (tokens[20][0] == '1');
+			current_record->mr->contig_num	= atoi(tokens[21]);
 		}
 		else {
 			current_record->mr->chr_r1 		= "-";	
@@ -186,6 +187,7 @@ void FASTQParser::fill_map_info(int cnt) {
 			current_record->mr->tlen 		= INF;
 			current_record->mr->junc_num 	= 0;
 			current_record->mr->gm_compatible = false;
+			current_record->mr->contig_num	= 0;
 		}
 	}
 }

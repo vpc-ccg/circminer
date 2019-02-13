@@ -256,6 +256,7 @@ struct MatchedRead {
 	int32_t 	tlen;
 	uint16_t 	junc_num;
 	bool		gm_compatible;
+	int 		contig_num;
 	
 	string		chr_r1;
 	string		chr_r2;
