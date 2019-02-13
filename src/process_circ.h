@@ -34,6 +34,8 @@ private:
 	MatchedRead mr;
 	chain_list bc;
 
+	int pre_contig;
+
 	unordered_map <uint32_t, RegionalHashTable*> ind2ht;
 	unordered_set <uint32_t> removables;
 	unordered_map <uint32_t, uint32_t> gid2ind;
@@ -46,11 +48,10 @@ public:
 	~ProcessCirc (void);
 
 	void open_report_file (void);
-
+	void load_genome (void);
 	void sort_fq (char* fqname);
 
 	void do_process (void);
-
 	void call_circ (Record* current_record1, Record* current_record2);
 
 	void binning (uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len);

@@ -31,6 +31,8 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	window_size = ws;
 	step = 3;
 
+	pre_contig = -1;
+
 	RegionalHashTable* rht;
 	for (int i = 0; i < MAXHTLISTSIZE; ++i) {
 		rht = new RegionalHashTable(ws, 0, 0);
@@ -83,8 +85,6 @@ void ProcessCirc::do_process (void) {
 	double cputime_curr;
 	double realtime_curr;
 
-	double tmpTime;
-	int	flag;
 	checkSumLength = (WINDOW_SIZE > kmer) ? 0 : kmer - WINDOW_SIZE;
 
 	char index_file [FILE_NAME_LENGTH];
@@ -106,18 +106,6 @@ void ProcessCirc::do_process (void) {
 	if (!initLoadingHashTableMeta(index_file, &orig_contig_len, &contig_cnt))
 		return;
 
-	fprintf(stdout, "Started loading index...\n");
-
-	flag = loadCompressedRefGenome ( &tmpTime );  			// Reading a fragment
-
-	cputime_curr = get_cpu_time();
-	realtime_curr = get_real_time();
-
-	fprintf(stdout, "[P] Loaded genome index successfully in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
-
-	cputime_start = cputime_curr;
-	realtime_start = realtime_curr;
-
 	/**********************/
 	/**Finised Loading HT**/
 	/**********************/
@@ -126,28 +114,30 @@ void ProcessCirc::do_process (void) {
 	/**GTF Parser Init**/
 	/*******************/
 
-	gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
-	if (! gtf_parser.load_gtf()) {
-		fprintf(stdout, "Error in reading GTF file.\n");
-		exit(1);
+	if (stage == 1) { 
+		gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
+		if (! gtf_parser.load_gtf()) {
+			fprintf(stdout, "Error in reading GTF file.\n");
+			exit(1);
+		}
+		else 
+			fprintf(stdout, "GTF file successfully loaded!\n");
+
+		cputime_curr = get_cpu_time();
+		realtime_curr = get_real_time();
+
+		fprintf(stdout, "[P] Loaded GTF in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+
+		cputime_start = cputime_curr;
+		realtime_start = realtime_curr;
 	}
-	else 
-		fprintf(stdout, "GTF file successfully loaded!\n");
-
-	cputime_curr = get_cpu_time();
-	realtime_curr = get_real_time();
-
-	fprintf(stdout, "[P] Loaded GTF in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
-
-	cputime_start = cputime_curr;
-	realtime_start = realtime_curr;
 
 	/*******************/
 	/**Finished GTF PI**/
 	/*******************/
 
-	double fq_cputime_start = cputime_curr;
-	double fq_realtime_start = realtime_curr;
+	double fq_cputime_start = cputime_start;
+	double fq_realtime_start = realtime_start;
 
 	contigName = getRefGenomeName();
 
@@ -185,6 +175,11 @@ void ProcessCirc::do_process (void) {
 			lookup_cnt = 0;
 		}
 
+		while (pre_contig != current_record1->mr->contig_num) {
+			load_genome();
+			pre_contig = atoi(getRefGenomeName()) - 1;
+		}
+
 		call_circ(current_record1, current_record2);
 	}
 
@@ -194,6 +189,8 @@ void ProcessCirc::do_process (void) {
 	realtime_curr = get_real_time();
 
 	fprintf(stdout, "[P] Mapping in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
+
+	finalizeLoadingHashTable();
 }
 
 // PE
@@ -600,6 +597,26 @@ void ProcessCirc::open_report_file (void) {
 	char temp_fname [FILE_NAME_LENGTH];
 	sprintf(temp_fname, "%s.circ_report", outputFilename);
 	report_file = open_file(temp_fname, "w");
+}
+
+void ProcessCirc::load_genome (void) {
+	double cputime_start = get_cpu_time();
+	double realtime_start = get_real_time();
+	double cputime_curr;
+	double realtime_curr;
+	double tmpTime;
+
+	fprintf(stdout, "Started loading index...\n");
+
+	int flag = loadCompressedRefGenome ( &tmpTime );  			// Reading a fragment
+
+	cputime_curr = get_cpu_time();
+	realtime_curr = get_real_time();
+
+	fprintf(stdout, "[P] Loaded genome index successfully in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+
+	cputime_start = cputime_curr;
+	realtime_start = realtime_curr;
 }
 
 int ProcessCirc::get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos) {
