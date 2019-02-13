@@ -66,7 +66,7 @@ void ProcessCirc::sort_fq(char* fqname) {
 	}
 
 	char command [FILE_NAME_LENGTH];
-	sprintf(command, "paste - - - - < %s | sort -k3,3 -k4,4n | tr \"\t\" \"\n\" > %s.srt", fqname, fqname);
+	sprintf(command, "paste - - - - < %s | sort -k22,22 -k3,3 -k4,4n | tr \"\t\" \"\n\" > %s.srt", fqname, fqname);
 
 	int ret = system(command);
 	if (ret == 0)
