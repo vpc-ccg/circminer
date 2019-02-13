@@ -523,7 +523,37 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 			overlap_to_spos(split_mm_left);
 			overlap_to_epos(split_mm_left);
 
-			return CR;
+			if (split_mm_left.exons_epos == NULL or split_mm_right.exons_spos == NULL)
+				return MCR;
+
+			vector <uint32_t> end_tids;
+			for (int i = 0; i < split_mm_left.exons_epos->seg_list.size(); ++i) {
+				if (split_mm_left.epos == split_mm_left.exons_epos->seg_list[i].end) {
+					for (int j = 0; j < split_mm_left.exons_epos->seg_list[i].trans_id.size(); ++j) {
+						end_tids.push_back(split_mm_left.exons_epos->seg_list[i].trans_id[j]);
+					}
+				}
+			}
+
+			vector <uint32_t> start_tids;
+			for (int i = 0; i < split_mm_right.exons_spos->seg_list.size(); ++i) {
+				if (split_mm_right.spos == split_mm_right.exons_spos->seg_list[i].start) {
+					for (int j = 0; j < split_mm_right.exons_spos->seg_list[i].trans_id.size(); ++j) {
+						start_tids.push_back(split_mm_right.exons_spos->seg_list[i].trans_id[j]);
+					}
+				}
+			}
+
+			for (int i = 0; i < start_tids.size(); ++i)
+				for (int j = 0; j < end_tids.size(); ++j)
+					if (start_tids[i] == end_tids[j])
+						return CR;
+
+
+			if (start_tids.size() > 0 and end_tids.size() > 0)
+				return NCR;
+
+			return MCR;
 		}
 	}
 	return UD;

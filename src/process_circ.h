@@ -12,7 +12,9 @@
 
 #define FR 0	// Forward Reverse
 #define RF 1	// Reverse Forward
-#define CR 2	// Circular RNA
+#define CR 20	// Circular RNA
+#define NCR 21	// Novel Circular RNA
+#define MCR 22	// Missed Circular RNA
 #define UD 3	// Undefined
 
 #define BPRES 4
