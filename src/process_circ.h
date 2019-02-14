@@ -55,7 +55,7 @@ public:
 	void call_circ (Record* current_record1, Record* current_record2);
 
 	void binning (uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len);
-	void chaining (uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift, uint32_t& rspos, uint32_t& repos);
+	void chaining (uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift);
 
 	bool find_exact_coord (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, 
 							int dir, uint32_t qspos, char* rseq, int rlen, int whole_len);
@@ -69,6 +69,9 @@ public:
 	void report_events (void);
 
 	int get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos);
+
+	void print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 
+										MatchedMate& partial_mm, ConShift& con_shift);
 
 };
 

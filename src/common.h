@@ -285,6 +285,14 @@ struct MatePair {
 	MatePair& operator = (const MatePair& other);
 	bool operator < (const MatePair& r) const;
 };
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
+typedef struct {
+	string contig;
+	uint32_t shift;
+} ConShift;
+
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 struct GenRegion {
