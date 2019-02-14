@@ -31,6 +31,8 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	window_size = ws;
 	step = 3;
 
+	pre_contig = -1;
+
 	RegionalHashTable* rht;
 	for (int i = 0; i < MAXHTLISTSIZE; ++i) {
 		rht = new RegionalHashTable(ws, 0, 0);
@@ -66,7 +68,7 @@ void ProcessCirc::sort_fq(char* fqname) {
 	}
 
 	char command [FILE_NAME_LENGTH];
-	sprintf(command, "paste - - - - < %s | sort -k3,3 -k4,4n | tr \"\t\" \"\n\" > %s.srt", fqname, fqname);
+	sprintf(command, "paste - - - - < %s | sort -k22,22 -k3,3 -k4,4n | tr \"\t\" \"\n\" > %s.srt", fqname, fqname);
 
 	int ret = system(command);
 	if (ret == 0)
@@ -83,8 +85,6 @@ void ProcessCirc::do_process (void) {
 	double cputime_curr;
 	double realtime_curr;
 
-	double tmpTime;
-	int	flag;
 	checkSumLength = (WINDOW_SIZE > kmer) ? 0 : kmer - WINDOW_SIZE;
 
 	char index_file [FILE_NAME_LENGTH];
@@ -106,18 +106,6 @@ void ProcessCirc::do_process (void) {
 	if (!initLoadingHashTableMeta(index_file, &orig_contig_len, &contig_cnt))
 		return;
 
-	fprintf(stdout, "Started loading index...\n");
-
-	flag = loadCompressedRefGenome ( &tmpTime );  			// Reading a fragment
-
-	cputime_curr = get_cpu_time();
-	realtime_curr = get_real_time();
-
-	fprintf(stdout, "[P] Loaded genome index successfully in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
-
-	cputime_start = cputime_curr;
-	realtime_start = realtime_curr;
-
 	/**********************/
 	/**Finised Loading HT**/
 	/**********************/
@@ -126,28 +114,30 @@ void ProcessCirc::do_process (void) {
 	/**GTF Parser Init**/
 	/*******************/
 
-	gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
-	if (! gtf_parser.load_gtf()) {
-		fprintf(stdout, "Error in reading GTF file.\n");
-		exit(1);
+	if (stage == 1) { 
+		gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
+		if (! gtf_parser.load_gtf()) {
+			fprintf(stdout, "Error in reading GTF file.\n");
+			exit(1);
+		}
+		else 
+			fprintf(stdout, "GTF file successfully loaded!\n");
+
+		cputime_curr = get_cpu_time();
+		realtime_curr = get_real_time();
+
+		fprintf(stdout, "[P] Loaded GTF in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+
+		cputime_start = cputime_curr;
+		realtime_start = realtime_curr;
 	}
-	else 
-		fprintf(stdout, "GTF file successfully loaded!\n");
-
-	cputime_curr = get_cpu_time();
-	realtime_curr = get_real_time();
-
-	fprintf(stdout, "[P] Loaded GTF in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
-
-	cputime_start = cputime_curr;
-	realtime_start = realtime_curr;
 
 	/*******************/
 	/**Finished GTF PI**/
 	/*******************/
 
-	double fq_cputime_start = cputime_curr;
-	double fq_realtime_start = realtime_curr;
+	double fq_cputime_start = cputime_start;
+	double fq_realtime_start = realtime_start;
 
 	contigName = getRefGenomeName();
 
@@ -185,6 +175,12 @@ void ProcessCirc::do_process (void) {
 			lookup_cnt = 0;
 		}
 
+		while (pre_contig != current_record1->mr->contig_num) {
+			load_genome();
+			pre_contig = atoi(getRefGenomeName()) - 1;
+			contigNum = pre_contig;
+		}
+
 		call_circ(current_record1, current_record2);
 	}
 
@@ -194,6 +190,8 @@ void ProcessCirc::do_process (void) {
 	realtime_curr = get_real_time();
 
 	fprintf(stdout, "[P] Mapping in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
+
+	finalizeLoadingHashTable();
 }
 
 // PE
@@ -222,6 +220,10 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 		return;
 	}
 
+	// convert to position on contig
+	gtf_parser.chrloc2conloc(mr.chr_r1, mr.spos_r1, mr.epos_r1);
+	gtf_parser.chrloc2conloc(mr.chr_r2, mr.spos_r2, mr.epos_r2);
+
 	const IntervalInfo<GeneInfo>* gene_info = gtf_parser.get_gene_overlap(mr.spos_r1, false);
 	bool found = (gene_info != NULL);
 	if (! found) {
@@ -233,6 +235,7 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 	// fill MatchedMate
 	MatchedMate mm_r1(mr, 1, current_record1->seq_len);
 	MatchedMate mm_r2(mr, 2, current_record2->seq_len);
+	ConShift con_shift;
 
 	check_removables(mr.spos_r1);
 	RegionalHashTable* regional_ht;
@@ -250,8 +253,7 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 		vafprintf(2, stderr, "%s\n", remain_seq);
 
 		//binning(qspos, qepos, regional_ht, remain_seq, gene_len);
-		uint32_t rspos, repos;
-		chaining(qspos, qepos, regional_ht, remain_seq, gene_len, gene_info->seg_list[i].start, rspos, repos);
+		chaining(qspos, qepos, regional_ht, remain_seq, gene_len, gene_info->seg_list[i].start);
 
 		// find rspos and repos for the best chain
 		bool forward = (r1_partial) ? (mr.r1_forward) : (mr.r2_forward);
@@ -260,25 +262,23 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 		find_exact_coord(mm_r1, mm_r2, partial_mm, dir, qspos, remain_seq, remain_len, whole_seq_len);
 
 		if (partial_mm.type == CONCRD) {
-			vafprintf(2, stderr, "Coordinates: [%d-%d]\n", partial_mm.spos, partial_mm.epos);
-			fprintf(stderr, "%s\t%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", current_record1->rname, mr.chr_r1.c_str(), 
-														partial_mm.spos, partial_mm.epos, partial_mm.qspos, partial_mm.matched_len, partial_mm.dir,
-														mm_r1.spos, mm_r1.epos, mm_r1.qspos, mm_r1.matched_len, mm_r1.dir,
-														mm_r2.spos, mm_r2.epos, mm_r2.qspos, mm_r2.matched_len, mm_r2.dir);
+			con_shift = gtf_parser.get_shift(contigNum, mm_r1.spos);
+			vafprintf(2, stderr, "Coordinates: [%d-%d]\n", partial_mm.spos - con_shift.shift, partial_mm.epos - con_shift.shift);
+			
+			print_split_mapping(current_record1->rname, mm_r1, mm_r2, partial_mm, con_shift);
 			
 			CircRes cr;
 			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial, cr);
 			fprintf(stderr, "%d\n", type);
 			
 			if (type == CR) {
-				cr.chr = mr.chr_r1;
+				cr.chr = con_shift.contig;
 				cr.rname = current_record1->rname;
+				cr.spos -= con_shift.shift;
+				cr.epos -= con_shift.shift;
 				circ_res.push_back(cr);
 				break;	// stop processing next genes
 			}
-		}
-		else {
-			vafprintf(2, stderr, "Coordinates: [%d-%d]\n", rspos, repos);
 		}
 	}
 }
@@ -313,7 +313,7 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, RegionalHashTable* reg
 }
 
 void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, 
-							uint32_t gene_len, uint32_t shift, uint32_t& rspos, uint32_t& repos) {
+							uint32_t gene_len, uint32_t shift) {
 	int seq_len = qepos - qspos + 1;
 	int kmer_cnt = ((qepos - qspos + 1) - window_size) / step + 1;
 	GIMatchedKmer fl[kmer_cnt+1];
@@ -348,32 +348,15 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 	int allowed_missed_kmers = (qepos - qspos + 1) / 20 * 3 + 1;
 	vafprintf(2, stderr, "Allowed missing kmers: %d\n", allowed_missed_kmers);
 
-	rspos = 0;
-	repos = 0;
-	uint32_t curr_rspos, curr_repos;
-	int least_miss = INF;
-	int least_miss_ind = -1;
 	int missing;
+	int least_miss = INF;
 	for (int j = 0; j < bc.best_chain_count; j++) {
 		missing = kmer_cnt - bc.chains[j].chain_len;
 		vafprintf(2, stderr, "Actual missing: %d\n", missing);
 		if (missing > least_miss)
 			break;
 
-		curr_rspos = bc.chains[j].frags[0].rpos - bc.chains[j].frags[0].qpos;
-		curr_repos = bc.chains[j].frags[bc.chains[j].chain_len - 1].rpos + (seq_len - 1 - bc.chains[j].frags[bc.chains[j].chain_len - 1].qpos);
-		uint32_t curr_qlen = bc.chains[j].frags[bc.chains[j].chain_len - 1].qpos - bc.chains[j].frags[0].qpos;
-		uint32_t qlen = (least_miss_ind != -1) ? bc.chains[least_miss_ind].frags[bc.chains[least_miss_ind].chain_len - 1].qpos - bc.chains[least_miss_ind].frags[0].qpos : 0;
-		if (missing < least_miss or (missing == least_miss and curr_qlen > qlen)) {
-			least_miss = missing;
-			least_miss_ind = j;
-			
-			// rspos = curr_rspos + shift;
-			// repos = curr_repos + shift;
-
-			rspos = bc.chains[j].frags[0].rpos;
-			repos = bc.chains[j].frags[bc.chains[j].chain_len - 1].rpos + bc.chains[j].frags[bc.chains[j].chain_len - 1].len - 1;
-		}
+		least_miss = missing;
 
 		for (int i = 0; i < bc.chains[j].chain_len; i++) {
 			vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, bc.chains[j].frags[i].rpos, bc.chains[j].frags[i].qpos, bc.chains[j].frags[i].len);
@@ -600,6 +583,39 @@ void ProcessCirc::open_report_file (void) {
 	char temp_fname [FILE_NAME_LENGTH];
 	sprintf(temp_fname, "%s.circ_report", outputFilename);
 	report_file = open_file(temp_fname, "w");
+}
+
+void ProcessCirc::load_genome (void) {
+	double cputime_start = get_cpu_time();
+	double realtime_start = get_real_time();
+	double cputime_curr;
+	double realtime_curr;
+	double tmpTime;
+
+	fprintf(stdout, "Started loading index...\n");
+
+	int flag = loadCompressedRefGenome ( &tmpTime );  			// Reading a fragment
+
+	cputime_curr = get_cpu_time();
+	realtime_curr = get_real_time();
+
+	fprintf(stdout, "[P] Loaded genome index successfully in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+
+	cputime_start = cputime_curr;
+	realtime_start = realtime_curr;
+}
+
+void ProcessCirc::print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 
+										MatchedMate& partial_mm, ConShift& con_shift) {
+	fprintf(stderr, "%s\t%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
+					rname, con_shift.contig.c_str(), 
+					partial_mm.spos - con_shift.shift, partial_mm.epos - con_shift.shift, 
+					partial_mm.qspos, partial_mm.matched_len, partial_mm.dir,
+					mm_r1.spos - con_shift.shift, mm_r1.epos - con_shift.shift, 
+					mm_r1.qspos, mm_r1.matched_len, mm_r1.dir,
+					mm_r2.spos - con_shift.shift, mm_r2.epos - con_shift.shift, 
+					mm_r2.qspos, mm_r2.matched_len, mm_r2.dir);
+			
 }
 
 int ProcessCirc::get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos) {

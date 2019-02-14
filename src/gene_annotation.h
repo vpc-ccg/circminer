@@ -42,11 +42,6 @@ typedef struct {
 	string gene_name;
 } GTFRecord;
 
-typedef struct {
-	string contig;
-	uint32_t shift;
-} ConShift;
-
 class GTFParser {
 private:
 	FILE* input;
@@ -70,9 +65,6 @@ private:
 	map <string, ConShift> chr2con;
 	map <string, int> level;
 
-	void set_contig_shift(const ContigLen* contig_len, int contig_count);
-	void chrloc2conloc(string& chr, uint32_t& start, uint32_t& end);
-
 public:
 	vector <vector <string> > gene_ids;
 	vector <vector <string> > transcript_ids;
@@ -90,6 +82,9 @@ public:
 	void tokenize(char* line, int len, const string& delim, vector<string>& gtf_fields);
 	bool parse_gtf_rec (char* line, int len, GTFRecord* cr);
 	bool load_gtf (void);
+
+	void set_contig_shift(const ContigLen* contig_len, int contig_count);
+	void chrloc2conloc(string& chr, uint32_t& start, uint32_t& end);
 
 	int binary_search(const vector <ExonSeg>& seg, int beg, int end, bool on_start, uint32_t target);
 

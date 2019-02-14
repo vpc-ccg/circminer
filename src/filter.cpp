@@ -242,14 +242,14 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 	char r1_dir = (mr.r1_forward) ? '+' : '-';
 	char r2_dir = (mr.r2_forward) ? '+' : '-';
 	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
-		sprintf(comment, " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d", 
+		sprintf(comment, " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d", 
 						mr.type, 
 						mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1,
 						mr.chr_r2.c_str(), mr.spos_r2, mr.epos_r2, mr.mlen_r2, mr.qspos_r2, mr.qepos_r2, r2_dir, mr.ed_r2,
-						mr.tlen, mr.junc_num, mr.gm_compatible);
+						mr.tlen, mr.junc_num, mr.gm_compatible, mr.contig_num);
 	}
 	else {
-		sprintf(comment, " %d * * * * * * * * * * * * * * * * * * *", mr.type);
+		sprintf(comment, " %d * * * * * * * * * * * * * * * * * * * *", mr.type);
 	}
 
 	fprintf(temp_fq_r1, "@%s%s\n%s%s%s", current_record1->rname, comment, current_record1->seq, current_record1->comment, current_record1->qual);

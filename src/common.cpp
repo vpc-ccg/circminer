@@ -184,7 +184,7 @@ void MatchedMate::operator = (const MatchedMate& mm) {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 MatchedRead::MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), chr_r1("-"), chr_r2("-"), 
-					r1_forward(true), r2_forward(true), ed_r1(maxEd+1), ed_r2(maxEd+1) { }
+					r1_forward(true), r2_forward(true), ed_r1(maxEd+1), ed_r2(maxEd+1), contig_num(0) { }
 
 // assuming r1 and r2 are on same chr
 bool MatchedRead::update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, 
@@ -249,6 +249,8 @@ bool MatchedRead::update(const MatchedMate& r1, const MatchedMate& r2, const str
 	this->tlen = tlen;
 	this->junc_num = jun_between + r1.junc_num + r2.junc_num;
 	this->gm_compatible = gm_compatible;
+
+	this->contig_num = contigNum;
 
 	return true;
 }
