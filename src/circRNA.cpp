@@ -158,6 +158,7 @@ int mapping(int& last_round_num) {
 		// 
 		IHashTable* _circ_hash_table = getHashTable();
 		int _circ_maxHashTableSize = pow(4, WINDOW_SIZE);
+		int _circ_maxCheckSumSize = pow(4, checkSumLength);
 		filtered_kmers.clear();
 		for(int i = 0; i < _circ_maxHashTableSize; i++)
 		{
@@ -175,6 +176,13 @@ int mapping(int& last_round_num) {
 							uint64_t hash_combined = ((uint64_t)i << (checkSumLength*3)) | last_checksum;
 							filtered_kmers.insert(hash_combined);
 						}
+						
+						for (int cs = last_checksum + 1; cs < _circ_hash_table[i].list[j].checksum; ++cs) 
+						{
+							uint64_t hash_combined = ((uint64_t)i << (checkSumLength*3)) | cs;
+							filtered_kmers.insert(hash_combined);
+						}
+
 						last_j = j;
 						last_checksum = _circ_hash_table[i].list[j].checksum;
 					}
@@ -183,6 +191,12 @@ int mapping(int& last_round_num) {
 				if(j - last_j > seedLim) // to be filtered
 				{
 					uint64_t hash_combined = ((uint64_t)i << (checkSumLength*3)) | last_checksum;
+					filtered_kmers.insert(hash_combined);
+				}
+
+				for (int cs = last_checksum + 1; cs < _circ_maxCheckSumSize; ++cs) 
+				{
+					uint64_t hash_combined = ((uint64_t)i << (checkSumLength*3)) | cs;
 					filtered_kmers.insert(hash_combined);
 				}
 			}
