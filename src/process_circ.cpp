@@ -103,7 +103,7 @@ void ProcessCirc::do_process (void) {
 
 	ContigLen* orig_contig_len;
 	int contig_cnt;
-	if (!initLoadingHashTableMeta(index_file, &orig_contig_len, &contig_cnt))
+	if (!initLoadingCompressedGenomeMeta(index_file, &orig_contig_len, &contig_cnt))
 		return;
 
 	/**********************/
@@ -138,8 +138,6 @@ void ProcessCirc::do_process (void) {
 
 	double fq_cputime_start = cputime_start;
 	double fq_realtime_start = realtime_start;
-
-	contigName = getRefGenomeName();
 
 	bool is_pe = pairedEnd;
 
@@ -177,8 +175,6 @@ void ProcessCirc::do_process (void) {
 
 		while (pre_contig != current_record1->mr->contig_num) {
 			load_genome();
-			pre_contig = atoi(getRefGenomeName()) - 1;
-			contigNum = pre_contig;
 		}
 
 		call_circ(current_record1, current_record2);
@@ -191,7 +187,7 @@ void ProcessCirc::do_process (void) {
 
 	fprintf(stdout, "[P] Mapping in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
 
-	finalizeLoadingHashTable();
+	finalizeLoadingCompressedGenome();
 }
 
 // PE
@@ -595,6 +591,9 @@ void ProcessCirc::load_genome (void) {
 	fprintf(stdout, "Started loading index...\n");
 
 	int flag = loadCompressedRefGenome ( &tmpTime );  			// Reading a fragment
+
+	pre_contig = atoi(getRefGenomeName()) - 1;
+	contigNum = pre_contig;
 
 	cputime_curr = get_cpu_time();
 	realtime_curr = get_real_time();
