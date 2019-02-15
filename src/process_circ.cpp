@@ -175,6 +175,7 @@ void ProcessCirc::do_process (void) {
 
 		while (pre_contig != current_record1->mr->contig_num) {
 			load_genome();
+			refresh_hash_table_list();
 		}
 
 		call_circ(current_record1, current_record2);
@@ -414,6 +415,12 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 	return partial_mm.type == CONCRD;
 }
 
+void ProcessCirc::refresh_hash_table_list (void) {
+	for (auto it = ind2ht.begin(); it != ind2ht.end(); ++it) {
+		removables.insert(it->first);
+	}
+}
+
 void ProcessCirc::check_removables (uint32_t rspos) {
 	for (auto it = ind2ht.begin(); it != ind2ht.end(); ++it) {
 		if (rspos > it->second->gene_epos) {
@@ -447,7 +454,7 @@ RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info, char*
 			gids.push_back(gid);
 			new_ht->create_table(gene_seq, 0, gene_len);
 			regional_ht = new_ht;
-			// fprintf(stderr, "Allocated new HT gid:\n");
+			// fprintf(stderr, "Allocated new HT gid: %d, %s [%u-%u]\n", gid, mr.chr_r1.c_str(), mr.spos_r1, mr.spos_r2);
 		}
 		else {
 			removable_ind = *(removables.cbegin());
@@ -555,6 +562,8 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 }
 
 void ProcessCirc::report_events (void) {
+	// fprintf(stdout, "Hash table pool size: %d\n", ind2ht.size());
+	// fprintf(stdout, "gid2ind size: %d\n", gid2ind.size());
 	open_report_file();
 	if (circ_res.size() <= 0)
 		return;

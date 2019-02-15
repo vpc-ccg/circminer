@@ -60,6 +60,7 @@ public:
 	bool find_exact_coord (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, 
 							int dir, uint32_t qspos, char* rseq, int rlen, int whole_len);
 
+	void refresh_hash_table_list (void);
 	void check_removables (uint32_t rspos);
 	RegionalHashTable* get_hash_table (const GeneInfo& gene_info, char* gene_seq);
 
