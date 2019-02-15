@@ -251,6 +251,8 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 
 		//binning(qspos, qepos, regional_ht, remain_seq, gene_len);
 		chaining(qspos, qepos, regional_ht, remain_seq, gene_len, gene_info->seg_list[i].start);
+		if (bc.best_chain_count <= 0)
+			continue;
 
 		// find rspos and repos for the best chain
 		bool forward = (r1_partial) ? (mr.r1_forward) : (mr.r2_forward);
