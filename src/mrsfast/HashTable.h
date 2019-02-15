@@ -57,6 +57,7 @@ CompressedSeq	*getCmpRefGenome();
 CompressedSeq	*getCmpRefGenOrigin();
 int				getRefGenLength();
 int				getCmpRefGenLength();
+int				initLoadingCompressedGenomeMeta(char*, ContigLen**, int*);
 int				initLoadingHashTableMeta(char*, ContigLen**, int*);
 int				initLoadingHashTable(char*);
 HashTable		*getHashTable();
@@ -70,6 +71,7 @@ int				generateHashTable(char*, char*);
 int				checkHashTable(char*);
 int				loadHashTable(double*);
 int  			loadCompressedRefGenome(double *loadTime);
+void			finalizeLoadingCompressedGenome();
 void			finalizeLoadingHashTable();
 
 #endif
