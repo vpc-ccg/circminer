@@ -67,11 +67,18 @@ void			rewindHashTable();
 int 			getChrCnt();
 char 			**getChrNames();
 int 			getMaxChrLength();
+int				generateHashTableOnDisk(char*, char*);
 int				generateHashTable(char*, char*);
 int				checkHashTable(char*);
 int				loadHashTable(double*);
-int  			loadCompressedRefGenome(double *loadTime);
+int	 			loadCompressedRefGenome(double *loadTime);
+void			generateCompressedGenome(char* refGen, unsigned int refGenLength, CompressedSeq* crefGen);
+unsigned int	calculateHashTableSize(unsigned int *hashTable, unsigned int maxSize);
+void			setHashTablePointers(GeneralIndex* fullTable, unsigned int hashTableMaxSize, unsigned int* hashTable, IHashTable* hashTablePointer);
 void			finalizeLoadingCompressedGenome();
 void			finalizeLoadingHashTable();
+
+void			*calculateHashTableOnFly(int *idp);
+void			*sortHashTable(int *id);
 
 #endif

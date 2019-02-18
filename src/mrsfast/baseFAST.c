@@ -53,13 +53,26 @@ int main(int argc, char *argv[])
 	if (!parseCommandLine(argc, argv))
 		return 1;
 
+	int indexType = 1;
+
 	/****************************************************
 	 * INDEXING
 	 ***************************************************/
 	if (indexingMode)
 	{
-		if (!generateHashTable(fileName[0], fileName[1]))
-			return 1;
+		if (indexType == 0) {
+			if (!generateHashTable(fileName[0], fileName[1]))
+				return 1;
+		}
+		else {
+			fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
+			int i;
+			for (i = 0; i < 255; i++)
+				THREAD_ID[i] = i;
+			
+			if (!generateHashTableOnDisk(fileName[0], fileName[1]))
+				return 1;	
+		}
 	}
 	/****************************************************
 	 * SEARCHING
