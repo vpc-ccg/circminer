@@ -112,6 +112,8 @@ int mapping(int& last_round_num) {
 	if (!checkHashTable(index_file))
 		return 1;
 
+	fprintf(stdout, "Load full table? %d\n", loadFullHashTable);
+
 	ContigLen* orig_contig_len;
 	int contig_cnt;
 	if (!initLoadingHashTableMeta(index_file, &orig_contig_len, &contig_cnt))

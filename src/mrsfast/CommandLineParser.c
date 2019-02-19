@@ -77,6 +77,7 @@ unsigned short			DISCORDANT_CUT_OFF = 300;
 double					MAX_MEMORY = 4;// GB
 int						THREAD_ID[255];
 int						SNP_QUAL_THRESHOLD = 53;
+int						loadFullHashTable;
 
 
 

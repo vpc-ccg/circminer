@@ -269,6 +269,7 @@ int generateHashTableOnDisk(char *fileName, char *indexName)
 	int				i, hv, l, flag, stack , val, loc;
 	char			lookup[128];
 	unsigned int	windowMask			= 0xffffffff >> (sizeof(unsigned int)*8 - WINDOW_SIZE*2);
+	unsigned int 	curMemSize;
 
 	memset(lookup, 4, 128);
 	lookup['A'] = 0;
@@ -352,8 +353,8 @@ int generateHashTableOnDisk(char *fileName, char *indexName)
 		_ih_hashTable = getMem (sizeof(IHashTable) * _ih_maxHashTableSize);
 		memset(_ih_hashTable, 0, _ih_maxHashTableSize * sizeof(IHashTable));
 
-		_ih_hashTableMemSize = calculateHashTableSize(hashTable, hashTableMaxSize);
-		_ih_hashTableMem = getMem(_ih_hashTableMemSize*sizeof(GeneralIndex));
+		curMemSize = calculateHashTableSize(hashTable, hashTableMaxSize);
+		_ih_hashTableMem = getMem(curMemSize * sizeof(GeneralIndex));
 
 		setHashTablePointers(_ih_hashTableMem, hashTableMaxSize, hashTable, _ih_hashTable);
 
@@ -371,7 +372,9 @@ int generateHashTableOnDisk(char *fileName, char *indexName)
 			pthread_join(_ih_threads[i], NULL);
 		freeMem(_ih_threads, sizeof(pthread_t) * THREAD_COUNT);
 
-		saveFullHashTable(hashTable, hashTableSize, hashTableMaxSize, _ih_hashTableMemSize, refGenLength, crefGen, refGenName, refGenOff, flag);
+		saveFullHashTable(hashTable, hashTableSize, hashTableMaxSize, curMemSize, refGenLength, crefGen, refGenName, refGenOff, flag);
+		freeMem(_ih_hashTableMem, curMemSize * sizeof(GeneralIndex));
+		freeMem(_ih_hashTable, sizeof(IHashTable) * _ih_maxHashTableSize);
 		freeMem(crefGen, crefGenLength * sizeof(CompressedSeq));
 	} while (flag);
 
@@ -402,6 +405,7 @@ int generateHashTable(char *fileName, char *indexName)
 	int				i, hv, l, flag, stack , val, loc;
 	char			lookup[128];
 	unsigned int	windowMask			= 0xffffffff >> (sizeof(unsigned int)*8 - WINDOW_SIZE*2);
+	unsigned int 	curMemSize;
 
 	memset(lookup, 4, 128);
 	lookup['A'] = 0;
@@ -475,8 +479,8 @@ int generateHashTable(char *fileName, char *indexName)
 			}
 		}
 
-		_ih_hashTableMemSize = calculateHashTableSize(hashTable, hashTableMaxSize);
-		saveHashTable(hashTable, hashTableSize, hashTableMaxSize, _ih_hashTableMemSize, refGenLength, crefGen, refGenName, refGenOff, flag);
+		curMemSize = calculateHashTableSize(hashTable, hashTableMaxSize);
+		saveHashTable(hashTable, hashTableSize, hashTableMaxSize, curMemSize, refGenLength, crefGen, refGenName, refGenOff, flag);
 		freeMem(crefGen, crefGenLength * sizeof(CompressedSeq));
 	} while (flag);
 
@@ -514,6 +518,8 @@ int checkHashTable(char *fileName)
 		fprintf(stdout, "Error: Please use version 2.x.x.x or upgrade your index.\n");
 		return 0;
 	}
+
+	loadFullHashTable = (magicNumber == 3) ? 1 : 0;
 
 	tmp = fread(&WINDOW_SIZE, sizeof(WINDOW_SIZE), 1, _ih_fp);
 	tmp = fread(&_ih_hashTableMemSize, sizeof(_ih_hashTableMemSize), 1, _ih_fp);
@@ -837,6 +843,8 @@ void *calculateHashTableOnFly(int *idp)
 {
 	int id = *idp;
 
+	checkSumLength = 6;
+
 	int windowMaskSize = WINDOW_SIZE + checkSumLength;
 	unsigned long long windowMask =   0xffffffffffffffff >> (sizeof(unsigned long long)*8 - windowMaskSize*2);
 	unsigned long long checkSumMask = 0xffffffffffffffff >> (sizeof(unsigned long long)*8 - (checkSumLength)*2);
@@ -1122,17 +1130,25 @@ int  loadHashTable(double *loadTime)
 		}
 	}
 
-	// // creating hash table
-	for (i = 0; i < THREAD_COUNT; i++)
-		pthread_create(_ih_threads + i, NULL, (void*)calculateHashTableOnFly, THREAD_ID + i);
-	for (i = 0; i < THREAD_COUNT; i++)
-		pthread_join(_ih_threads[i], NULL);
+	if (loadFullHashTable) {
+		// reading hash table values
+		unsigned int memSize;
+		tmp = fread(&memSize, sizeof(memSize), 1, _ih_fp);
+		tmp = fread(_ih_hashTableMem, sizeof(GeneralIndex), memSize, _ih_fp);
+	}
+	else {
+		// creating hash table
+		for (i = 0; i < THREAD_COUNT; i++)
+			pthread_create(_ih_threads + i, NULL, (void*)calculateHashTableOnFly, THREAD_ID + i);
+		for (i = 0; i < THREAD_COUNT; i++)
+			pthread_join(_ih_threads[i], NULL);
 
-	// sorting based on checksum
-	for (i = 0; i < THREAD_COUNT; i++)
-		pthread_create(_ih_threads + i, NULL, (void*)sortHashTable, THREAD_ID + i);
-	for (i = 0; i < THREAD_COUNT; i++)
-		pthread_join(_ih_threads[i], NULL);
+		// sorting based on checksum
+		for (i = 0; i < THREAD_COUNT; i++)
+			pthread_create(_ih_threads + i, NULL, (void*)sortHashTable, THREAD_ID + i);
+		for (i = 0; i < THREAD_COUNT; i++)
+			pthread_join(_ih_threads[i], NULL);
+	}
 
 	*loadTime = getTime()-startTime;
 	return extraInfo;
