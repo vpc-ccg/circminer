@@ -1,4 +1,4 @@
-**Some Acro**: Spliced Aligner for Transcriptome-Level Abberration Detection (circRNA, Fusion)
+Spliced Aligner for Transcriptome-Level Abberration Detection (circRNA, Fusion)
 ===================
 ## What is it?
 It is a computational tool for detecting structural variations from RNA-Seq reads and gene models.
@@ -6,8 +6,8 @@ It is a computational tool for detecting structural variations from RNA-Seq read
 # Table of contents
 1. [Installation](#installation)
 2. [Commands Options](#commands-options)
-3. [Output Format](#output-format)
-4. [Example Commands](#example-commands)
+3. [Example Commands](#example-commands)
+4. [Output Format](#output-format)
 5. [Contact & Support](#contact)
 
 ## Installation
@@ -37,9 +37,6 @@ Now you are ready to go!
 ### OPTIONS
 Run `circrna -h` to see available options.
 
-## Output Format
-The mapping results are stored in .pam files if the coresponding option is used while running the tool.
-
 ### Example Commands
 #### Indexing reference genome:
 
@@ -49,9 +46,12 @@ The mapping results are stored in .pam files if the coresponding option is used 
 	
 	$ ./circrna -r genome.fasta -g ga.gtf -f reads.fastq -k 20 -o output [--pe] 
 
-### Contact & Support
+## Output Format
+The mapping results are stored in .pam files if the coresponding option is used while running the tool.
 
-Feel free to drop any inquiry to [hasghari at sfu dot ca](mailto:).
+## Contact & Support
+
+Feel free to drop any inquiry to Hossein Asghari [hasghari at sfu dot ca].
 
 ## Copyright and License
-This software is released under GNU General Public License (v3.0)
+This software is released under GNU General Public License (v3.0).
