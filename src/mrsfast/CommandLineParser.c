@@ -89,299 +89,299 @@ extern char _binary_HELP_end;
 #endif
 
 
-void printHelp()
-{
-#if (defined(__MACH__) && defined(__APPLE__))
-	size_t i, sz = getsectbyname("binary", "HELP")->size;
-	const uint8_t *c =  (const uint8_t*) getsectbyname("binary", "HELP")->addr;
-	for (i = 0; i < sz; i++) 
-		putchar(c[i]); 
-#else
-	char *c;
-	for (c = &_binary_HELP_start; c != &_binary_HELP_end; c++)
-		putchar(*c);
-#endif
-	exit(EXIT_SUCCESS);
-}
+// void printHelp()
+// {
+// #if (defined(__MACH__) && defined(__APPLE__))
+// 	size_t i, sz = getsectbyname("binary", "HELP")->size;
+// 	const uint8_t *c =  (const uint8_t*) getsectbyname("binary", "HELP")->addr;
+// 	for (i = 0; i < sz; i++) 
+// 		putchar(c[i]); 
+// #else
+// 	char *c;
+// 	for (c = &_binary_HELP_start; c != &_binary_HELP_end; c++)
+// 		putchar(*c);
+// #endif
+// 	exit(EXIT_SUCCESS);
+// }
 
-int parseCommandLine (int argc, char *argv[])
-{
-	int index, len, o;
-	char *fastaFile = NULL;
-	char *fastaOutputFile = NULL;
-	char *indexFile = NULL;
-	char *SNPFile = NULL;
+// int parseCommandLine (int argc, char *argv[])
+// {
+// 	int index, len, o;
+// 	char *fastaFile = NULL;
+// 	char *fastaOutputFile = NULL;
+// 	char *indexFile = NULL;
+// 	char *SNPFile = NULL;
 
-	mappingOutput = getMem(FILE_NAME_LENGTH);
-	mappingOutputPath = getMem(FILE_NAME_LENGTH);
-	unmappedOutput = getMem(FILE_NAME_LENGTH);
-	concordantStatOutput = getMem(FILE_NAME_LENGTH);
-	strcpy(mappingOutput, "output");
-	strcpy(unmappedOutput, "output.nohit");
-	strcpy(concordantStatOutput, "concordant.statistic");
-	mappingOutputPath[0] = '\0';
+// 	mappingOutput = getMem(FILE_NAME_LENGTH);
+// 	mappingOutputPath = getMem(FILE_NAME_LENGTH);
+// 	unmappedOutput = getMem(FILE_NAME_LENGTH);
+// 	concordantStatOutput = getMem(FILE_NAME_LENGTH);
+// 	strcpy(mappingOutput, "output");
+// 	strcpy(unmappedOutput, "output.nohit");
+// 	strcpy(concordantStatOutput, "concordant.statistic");
+// 	mappingOutputPath[0] = '\0';
 
-	static struct option longOptions[] = 
-	{
-		{"pe",						no_argument,		&pairedEndMode,		1},
-		{"discordant-vh",			no_argument,		&pairedEndDiscordantMode,	1},
-		{"seqcomp",					no_argument,		&seqCompressed,		1},
-		{"outcomp",					no_argument,		&outCompressed,		1},
-		{"progress",				no_argument,		&progressRep,		1},
-		{"best",					no_argument,		&bestMappingMode,	1},
-		{"disable-nohits",			no_argument,		&nohitDisabled,		1},
-		{"disable-sam-header",		no_argument,		&noSamHeader,		1},
-		{"index",					required_argument,	0, 					'i'},
-		{"search",					required_argument,	0,					's'},
-		{"help",					no_argument,		0,					'h'},
-		{"version",					no_argument,		0,					'v'},
-		{"seq",						required_argument,	0,					'x'},
-		{"seq1",					required_argument,	0,					'x'},
-		{"seq2",					required_argument,	0,					'y'},
-		{"ws",						required_argument,  0,					'w'},
-		{"min",						required_argument,  0,					'l'},
-		{"max",						required_argument,  0,					'm'},
-		{"crop",					required_argument,  0,					'c'},
-		{"tail-crop",				required_argument,  0,					'f'},
-		{"threads",					required_argument,  0,					't'},
-		{"mem",						required_argument,  0,					'z'},
-		{"snp",						required_argument,  0,					'p'},
-		{"max-discordant-cutoff",	required_argument,  0,                  'd'},
-		{"snp-qual",				required_argument,  0,                  'q'},
-		{0,0,0,0}
-	};
-
-
-
-	while ( (o = getopt_long ( argc, argv, "f:i:u:o:s:e:n:bhv", longOptions, &index))!= -1 )
-	{
-		switch (o)
-		{
-			case 'i':
-				indexingMode = 1;
-				fastaFile = optarg;
-				break;
-			case 's':
-				searchingMode = 1;
-				fastaFile = optarg;
-				break;
-			case 'c': 
-				cropSize = atoi(optarg);
-				break;
-			case 'f': 
-				tailCropSize = atoi(optarg);
-				break;
-			case 'w':
-				if (searchingMode == 1)
-				{
-					fprintf(stderr, "Error: Window size can only be set in indexing mode.\n");
-					return 0;
-				}
-				WINDOW_SIZE = atoi(optarg);
-				break;
-			case 'x':
-				seqFile1 = optarg;
-				break;
-			case 'y':
-				seqFile2 = optarg;
-				break;
-			case 'u':
-				strcpy(unmappedOutput, optarg);
-				break;
-			case 'o':
-				stripPath (optarg, &mappingOutputPath, &mappingOutput);
-				sprintf(unmappedOutput, "%s%s.nohit", mappingOutputPath, mappingOutput );
-				break;
-			case 'n':
-				maxHits = atoi(optarg);
-				break;
-			case 'e':
-				errThreshold = atoi(optarg);
-				break;
-			case 'q':
-				SNP_QUAL_THRESHOLD = atoi(optarg);
-				break;
-			case 'l':
-				minPairEndedDistance = atoi(optarg);
-				break;
-			case 'm':
-				maxPairEndedDistance = atoi(optarg);
-				break;					
-			case 'h':
-				printHelp();
-				return 0;
-				break;
-			case 'v':
-				fprintf(stdout, "Version: %s\nBuild Date: %s\n", MRSFAST_VERSION, BUILD_DATE);
-				return 0;
-				break;
-			case 't':
-				THREAD_COUNT = atoi(optarg);
-				if (THREAD_COUNT == 0 || THREAD_COUNT > sysconf( _SC_NPROCESSORS_ONLN ))
-					THREAD_COUNT = sysconf( _SC_NPROCESSORS_ONLN );
-				break;
-			case 'z':
-				MAX_MEMORY = atoi(optarg);
-				break;
-			case 'd':
-				DISCORDANT_CUT_OFF = atoi(optarg);
-				break;
-			case 'p':
-				SNPMode = 1;
-				SNPFile = optarg;
-				break;
-		}
-
-	}
-
-#ifndef MRSFAST_SSE4
-	if (searchingMode)
-		fprintf(stdout, "==> This version is compiled without any SSE4 optimization <==\n");
-#endif
-	if (bestMappingMode)
-	{
-		nohitDisabled = 1;
-	}
-
-	if (indexingMode + searchingMode != 1)
-	{
-		fprintf(stdout, "ERROR: Indexing / Searching mode should be selected\n");
-		return 0;
-	}
-
-	if (WINDOW_SIZE > 14 || WINDOW_SIZE < 8)
-	{
-		fprintf(stdout, "ERROR: Window size should be in [8..14]\n");
-		return 0;
-	}
-
-	if (MAX_MEMORY < 2)
-		fprintf(stdout, "ERROR: At least 2 GB of memory is required for running mrsFAST\n");
+// 	static struct option longOptions[] = 
+// 	{
+// 		{"pe",						no_argument,		&pairedEndMode,		1},
+// 		{"discordant-vh",			no_argument,		&pairedEndDiscordantMode,	1},
+// 		{"seqcomp",					no_argument,		&seqCompressed,		1},
+// 		{"outcomp",					no_argument,		&outCompressed,		1},
+// 		{"progress",				no_argument,		&progressRep,		1},
+// 		{"best",					no_argument,		&bestMappingMode,	1},
+// 		{"disable-nohits",			no_argument,		&nohitDisabled,		1},
+// 		{"disable-sam-header",		no_argument,		&noSamHeader,		1},
+// 		{"index",					required_argument,	0, 					'i'},
+// 		{"search",					required_argument,	0,					's'},
+// 		{"help",					no_argument,		0,					'h'},
+// 		{"version",					no_argument,		0,					'v'},
+// 		{"seq",						required_argument,	0,					'x'},
+// 		{"seq1",					required_argument,	0,					'x'},
+// 		{"seq2",					required_argument,	0,					'y'},
+// 		{"ws",						required_argument,  0,					'w'},
+// 		{"min",						required_argument,  0,					'l'},
+// 		{"max",						required_argument,  0,					'm'},
+// 		{"crop",					required_argument,  0,					'c'},
+// 		{"tail-crop",				required_argument,  0,					'f'},
+// 		{"threads",					required_argument,  0,					't'},
+// 		{"mem",						required_argument,  0,					'z'},
+// 		{"snp",						required_argument,  0,					'p'},
+// 		{"max-discordant-cutoff",	required_argument,  0,                  'd'},
+// 		{"snp-qual",				required_argument,  0,                  'q'},
+// 		{0,0,0,0}
+// 	};
 
 
-	if ( indexingMode )
-	{
-		CONTIG_SIZE		= DEF_CONTIG_SIZE;
-		CONTIG_MAX_SIZE	= DEF_CONTIG_MAX_SIZE;
 
-		if (fastaFile == NULL)
-		{
-			fprintf(stdout, "ERROR: Reference(s) should be indicated for indexing\n");
-			return 0;
-		}
-	}
+// 	while ( (o = getopt_long ( argc, argv, "f:i:u:o:s:e:n:bhv", longOptions, &index))!= -1 )
+// 	{
+// 		switch (o)
+// 		{
+// 			case 'i':
+// 				indexingMode = 1;
+// 				fastaFile = optarg;
+// 				break;
+// 			case 's':
+// 				searchingMode = 1;
+// 				fastaFile = optarg;
+// 				break;
+// 			case 'c': 
+// 				cropSize = atoi(optarg);
+// 				break;
+// 			case 'f': 
+// 				tailCropSize = atoi(optarg);
+// 				break;
+// 			case 'w':
+// 				if (searchingMode == 1)
+// 				{
+// 					fprintf(stderr, "Error: Window size can only be set in indexing mode.\n");
+// 					return 0;
+// 				}
+// 				WINDOW_SIZE = atoi(optarg);
+// 				break;
+// 			case 'x':
+// 				seqFile1 = optarg;
+// 				break;
+// 			case 'y':
+// 				seqFile2 = optarg;
+// 				break;
+// 			case 'u':
+// 				strcpy(unmappedOutput, optarg);
+// 				break;
+// 			case 'o':
+// 				stripPath (optarg, &mappingOutputPath, &mappingOutput);
+// 				sprintf(unmappedOutput, "%s%s.nohit", mappingOutputPath, mappingOutput );
+// 				break;
+// 			case 'n':
+// 				maxHits = atoi(optarg);
+// 				break;
+// 			case 'e':
+// 				errThreshold = atoi(optarg);
+// 				break;
+// 			case 'q':
+// 				SNP_QUAL_THRESHOLD = atoi(optarg);
+// 				break;
+// 			case 'l':
+// 				minPairEndedDistance = atoi(optarg);
+// 				break;
+// 			case 'm':
+// 				maxPairEndedDistance = atoi(optarg);
+// 				break;					
+// 			case 'h':
+// 				printHelp();
+// 				return 0;
+// 				break;
+// 			case 'v':
+// 				fprintf(stdout, "Version: %s\nBuild Date: %s\n", MRSFAST_VERSION, BUILD_DATE);
+// 				return 0;
+// 				break;
+// 			case 't':
+// 				THREAD_COUNT = atoi(optarg);
+// 				if (THREAD_COUNT == 0 || THREAD_COUNT > sysconf( _SC_NPROCESSORS_ONLN ))
+// 					THREAD_COUNT = sysconf( _SC_NPROCESSORS_ONLN );
+// 				break;
+// 			case 'z':
+// 				MAX_MEMORY = atoi(optarg);
+// 				break;
+// 			case 'd':
+// 				DISCORDANT_CUT_OFF = atoi(optarg);
+// 				break;
+// 			case 'p':
+// 				SNPMode = 1;
+// 				SNPFile = optarg;
+// 				break;
+// 		}
 
-	if (maxHits)
-	{
-		if (maxHits < 0)
-		{
-			fprintf(stdout, "ERROR: Number of maximum hits must be greater than 0\n");
-			return 0;
-		}
+// 	}
 
-		if (bestMappingMode)
-		{
-			fprintf(stdout, "ERROR: Maximum number of mappings could not be set in best mapping mode. Maximum mappings input ignored\n");
-			maxHits = 0;
-		}
-	}
+// #ifndef MRSFAST_SSE4
+// 	if (searchingMode)
+// 		fprintf(stdout, "==> This version is compiled without any SSE4 optimization <==\n");
+// #endif
+// 	if (bestMappingMode)
+// 	{
+// 		nohitDisabled = 1;
+// 	}
 
-	if ( searchingMode )
-	{
-		CONTIG_SIZE		= DEF_CONTIG_SIZE;
-		CONTIG_MAX_SIZE	= DEF_CONTIG_MAX_SIZE;
+// 	if (indexingMode + searchingMode != 1)
+// 	{
+// 		fprintf(stdout, "ERROR: Indexing / Searching mode should be selected\n");
+// 		return 0;
+// 	}
 
-		if ( cropSize && tailCropSize)
-		{
-			fprintf(stdout, "ERROR: Sequences can be cropped from only one side\n");
-			return 0;
-		}
+// 	if (WINDOW_SIZE > 14 || WINDOW_SIZE < 8)
+// 	{
+// 		fprintf(stdout, "ERROR: Window size should be in [8..14]\n");
+// 		return 0;
+// 	}
 
-		if (pairedEndDiscordantMode)
-		{
-			pairedEndDiscordantMode = pairedEndMode = 1;
-		}
+// 	if (MAX_MEMORY < 2)
+// 		fprintf(stdout, "ERROR: At least 2 GB of memory is required for running mrsFAST\n");
+
+
+// 	if ( indexingMode )
+// 	{
+// 		CONTIG_SIZE		= DEF_CONTIG_SIZE;
+// 		CONTIG_MAX_SIZE	= DEF_CONTIG_MAX_SIZE;
+
+// 		if (fastaFile == NULL)
+// 		{
+// 			fprintf(stdout, "ERROR: Reference(s) should be indicated for indexing\n");
+// 			return 0;
+// 		}
+// 	}
+
+// 	if (maxHits)
+// 	{
+// 		if (maxHits < 0)
+// 		{
+// 			fprintf(stdout, "ERROR: Number of maximum hits must be greater than 0\n");
+// 			return 0;
+// 		}
+
+// 		if (bestMappingMode)
+// 		{
+// 			fprintf(stdout, "ERROR: Maximum number of mappings could not be set in best mapping mode. Maximum mappings input ignored\n");
+// 			maxHits = 0;
+// 		}
+// 	}
+
+// 	if ( searchingMode )
+// 	{
+// 		CONTIG_SIZE		= DEF_CONTIG_SIZE;
+// 		CONTIG_MAX_SIZE	= DEF_CONTIG_MAX_SIZE;
+
+// 		if ( cropSize && tailCropSize)
+// 		{
+// 			fprintf(stdout, "ERROR: Sequences can be cropped from only one side\n");
+// 			return 0;
+// 		}
+
+// 		if (pairedEndDiscordantMode)
+// 		{
+// 			pairedEndDiscordantMode = pairedEndMode = 1;
+// 		}
 		
-		if (fastaFile == NULL)
-		{
-			fprintf(stdout, "ERROR: Index File(s) should be indiciated for searching\n");
-			return 0;
-		}
+// 		if (fastaFile == NULL)
+// 		{
+// 			fprintf(stdout, "ERROR: Index File(s) should be indiciated for searching\n");
+// 			return 0;
+// 		}
 
-		if (seqFile1 == NULL && seqFile2 == NULL)
-		{
-			fprintf(stdout, "ERROR: Please indicate a sequence file for searching.\n");
-			return 0;
-		}
+// 		if (seqFile1 == NULL && seqFile2 == NULL)
+// 		{
+// 			fprintf(stdout, "ERROR: Please indicate a sequence file for searching.\n");
+// 			return 0;
+// 		}
 		
-		if (!pairedEndMode && seqFile2 != NULL)
-		{
-			fprintf(stdout, "ERROR: Second File can be indicated in pairedend mode\n");
-			return 0;
-		}
+// 		if (!pairedEndMode && seqFile2 != NULL)
+// 		{
+// 			fprintf(stdout, "ERROR: Second File can be indicated in pairedend mode\n");
+// 			return 0;
+// 		}
 
-		if (pairedEndMode)
-		{
-			if (minPairEndedDistance < 0 && maxPairEndedDistance < 0)
-			{
-				pairedEndProfilingMode = 1;
-			}
-			else if ( minPairEndedDistance <0 || maxPairEndedDistance < 0 || minPairEndedDistance > maxPairEndedDistance )
-			{
-				fprintf(stdout, "ERROR: Please enter a valid range for pairedend sequences.\n");
-				return 0;
-			}
+// 		if (pairedEndMode)
+// 		{
+// 			if (minPairEndedDistance < 0 && maxPairEndedDistance < 0)
+// 			{
+// 				pairedEndProfilingMode = 1;
+// 			}
+// 			else if ( minPairEndedDistance <0 || maxPairEndedDistance < 0 || minPairEndedDistance > maxPairEndedDistance )
+// 			{
+// 				fprintf(stdout, "ERROR: Please enter a valid range for pairedend sequences.\n");
+// 				return 0;
+// 			}
 
-			if (seqFile1 == NULL)
-			{
-				fprintf(stdout, "ERROR: Please indicate the first file for pairedend search.\n");
-				return 0;
-			}
-		}
-	}
+// 			if (seqFile1 == NULL)
+// 			{
+// 				fprintf(stdout, "ERROR: Please indicate the first file for pairedend search.\n");
+// 				return 0;
+// 			}
+// 		}
+// 	}
 
-	int i = 0;
+// 	int i = 0;
 
-	sprintf(fileName[0], "%s", fastaFile);
-	sprintf(fileName[1], "%s.index", fileName[0]);
-	if (SNPMode)
-		sprintf(fileName[2], "%s", SNPFile);
+// 	sprintf(fileName[0], "%s", fastaFile);
+// 	sprintf(fileName[1], "%s.index", fileName[0]);
+// 	if (SNPMode)
+// 		sprintf(fileName[2], "%s", SNPFile);
 
-	if (!indexingMode)
-	{
-		fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
-		for (i = 0; i < 255; i++)
-			THREAD_ID[i] = i;
-	}
+// 	if (!indexingMode)
+// 	{
+// 		fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
+// 		for (i = 0; i < 255; i++)
+// 			THREAD_ID[i] = i;
+// 	}
 
-	char fname1[FILE_NAME_LENGTH];
-	char fname2[FILE_NAME_LENGTH];
-	char fname3[FILE_NAME_LENGTH];
-	char fname4[FILE_NAME_LENGTH];
-	char fname5[FILE_NAME_LENGTH];
+// 	char fname1[FILE_NAME_LENGTH];
+// 	char fname2[FILE_NAME_LENGTH];
+// 	char fname3[FILE_NAME_LENGTH];
+// 	char fname4[FILE_NAME_LENGTH];
+// 	char fname5[FILE_NAME_LENGTH];
 
-	// Why is this one here?
-	if (pairedEndMode)
-	{
-		sprintf(fname1, "%s__%s__1", mappingOutputPath, mappingOutput);
-		sprintf(fname2, "%s__%s__2", mappingOutputPath, mappingOutput);
-		sprintf(fname3, "%s__%s__disc", mappingOutputPath, mappingOutput);
-		sprintf(fname4, "%s__%s__oea1", mappingOutputPath, mappingOutput);
-		sprintf(fname5, "%s__%s__oea2", mappingOutputPath, mappingOutput);
-		unlink(fname1);
-		unlink(fname2);
-		unlink(fname3);
-		unlink(fname4);
-		unlink(fname5);
-	}
-	initCommon();
-	return 1;
-}
-/**********************************************/
-void finalizeCommandParser()
-{
-	freeMem(mappingOutput, FILE_NAME_LENGTH);
-	freeMem(unmappedOutput, FILE_NAME_LENGTH);
-	freeMem(mappingOutputPath, FILE_NAME_LENGTH);
-	freeMem(concordantStatOutput, FILE_NAME_LENGTH);
-}
+// 	// Why is this one here?
+// 	if (pairedEndMode)
+// 	{
+// 		sprintf(fname1, "%s__%s__1", mappingOutputPath, mappingOutput);
+// 		sprintf(fname2, "%s__%s__2", mappingOutputPath, mappingOutput);
+// 		sprintf(fname3, "%s__%s__disc", mappingOutputPath, mappingOutput);
+// 		sprintf(fname4, "%s__%s__oea1", mappingOutputPath, mappingOutput);
+// 		sprintf(fname5, "%s__%s__oea2", mappingOutputPath, mappingOutput);
+// 		unlink(fname1);
+// 		unlink(fname2);
+// 		unlink(fname3);
+// 		unlink(fname4);
+// 		unlink(fname5);
+// 	}
+// 	initCommon();
+// 	return 1;
+// }
+// /**********************************************/
+// void finalizeCommandParser()
+// {
+// 	freeMem(mappingOutput, FILE_NAME_LENGTH);
+// 	freeMem(unmappedOutput, FILE_NAME_LENGTH);
+// 	freeMem(mappingOutputPath, FILE_NAME_LENGTH);
+// 	freeMem(concordantStatOutput, FILE_NAME_LENGTH);
+// }
