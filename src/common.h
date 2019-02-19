@@ -67,6 +67,8 @@ using namespace std;
 
 //---------- Global Variables ----------\\
 
+extern bool indexMode;
+extern bool compactIndex;
 extern bool pairedEnd;
 
 extern int kmer;

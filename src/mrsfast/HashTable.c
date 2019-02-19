@@ -843,8 +843,6 @@ void *calculateHashTableOnFly(int *idp)
 {
 	int id = *idp;
 
-	checkSumLength = 6;
-
 	int windowMaskSize = WINDOW_SIZE + checkSumLength;
 	unsigned long long windowMask =   0xffffffffffffffff >> (sizeof(unsigned long long)*8 - windowMaskSize*2);
 	unsigned long long checkSumMask = 0xffffffffffffffff >> (sizeof(unsigned long long)*8 - (checkSumLength)*2);

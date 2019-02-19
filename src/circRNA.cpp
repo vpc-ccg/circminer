@@ -33,16 +33,36 @@ int main(int argc, char **argv) {
 	if (exit_c == 1)
 		return 0;
 
-	// 0 <= stage <= 2
-	int last_round_num = 1;
-	if (stage != 1) {
-		int map_ret = mapping(last_round_num);
-		if (map_ret == 1)
-			return 1;
+	/****************************************************
+	 * INDEXING
+	 ***************************************************/
+	if (indexMode)
+	{
+		if (compactIndex) {
+			if (!generateHashTable(fileName[0], fileName[1]))
+				return 1;
+		}
+		else {
+			if (!generateHashTableOnDisk(fileName[0], fileName[1]))
+				return 1;	
+		}
 	}
 
-	if (stage != 0) {
-		circ_detect(last_round_num);
+	/****************************************************
+	 * SEARCHING
+	 ***************************************************/
+	else {
+		// 0 <= stage <= 2
+		int last_round_num = 1;
+		if (stage != 1) {
+			int map_ret = mapping(last_round_num);
+			if (map_ret == 1)
+				return 1;
+		}
+
+		if (stage != 0) {
+			circ_detect(last_round_num);
+		}
 	}
 
 	return 0;
@@ -99,15 +119,6 @@ int mapping(int& last_round_num) {
 
 	int	flag;
 	double tmpTime;
-
-	checkSumLength = (WINDOW_SIZE > kmer) ? 0 : kmer - WINDOW_SIZE;
-
-	initCommon();
-	
-	THREAD_COUNT = threads;
-	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
-	for (int i = 0; i < 255; i++)
-		THREAD_ID[i] = i;
 
 	if (!checkHashTable(index_file))
 		return 1;

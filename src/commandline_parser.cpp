@@ -4,6 +4,8 @@
 
 using namespace std;
 
+bool indexMode = false;
+bool compactIndex = false;
 bool pairedEnd = false;
 int kmer = 19;
 int maxReadLength = 120;
@@ -17,6 +19,7 @@ int maxTlen = MAXTLEN;
 int maxIntronLen = MAXINTRON;
 int threads = 1;
 int stage = 0;
+int maxCheckSumLen = sizeof(uint16_t) * 8 / 2;	// 2bit per bp
 
 char gtfFilename[FILE_NAME_LENGTH];
 char referenceFilename[FILE_NAME_LENGTH];
@@ -46,6 +49,8 @@ int parse_command( int argc, char *argv[] )
 	{
 		{"help", no_argument, 0, 'h'},
 		{"version", no_argument, 0, 'v'},
+		{"index", no_argument, 0, 'i'},
+		{"compact_index", no_argument, 0, 'm'},
 		{"fastq", required_argument, 0, 'f'},
 		{"reference", required_argument, 0, 'r'},
 		{"gtf", required_argument, 0, 'g'},
@@ -66,7 +71,7 @@ int parse_command( int argc, char *argv[] )
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvf:r:g:pk:l:o:t:d:s:e:c:w:S:T:I:q:", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvimf:r:g:pk:l:o:t:d:s:e:c:w:S:T:I:q:", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
@@ -77,6 +82,14 @@ int parse_command( int argc, char *argv[] )
 			case 'v': {
 				fprintf(stdout, "%s.%s\n", versionNumberMajor, versionNumberMinor);
 				return 1;
+			}
+			case 'i': {
+				indexMode = true;
+				break;
+			}
+			case 'm': {
+				compactIndex = true;
+				break;
 			}
 			case 'f': {
 				strncpy(fastqFilename, optarg, FILE_NAME_LENGTH );
@@ -109,6 +122,8 @@ int parse_command( int argc, char *argv[] )
 			}
 			case 't': {
 				threads = atoi(optarg);
+				if (threads == 0 || threads > sysconf( _SC_NPROCESSORS_ONLN ))
+					threads = sysconf( _SC_NPROCESSORS_ONLN );
 				break;
 			}
 			case 'd': {
@@ -160,7 +175,36 @@ int parse_command( int argc, char *argv[] )
 				printHELP();
 		}
 	}
+
+	if (kmer > WINDOW_SIZE + maxCheckSumLen || kmer < WINDOW_SIZE)
+	{
+		fprintf(stdout, "ERROR: kmer size should be in [%d..%d]\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen);
+		return 1;
+	}
+
+	checkSumLength = (WINDOW_SIZE > kmer) ? 0 : kmer - WINDOW_SIZE;
+
+	if (indexMode)
+	{
+		CONTIG_SIZE		= DEF_CONTIG_SIZE;
+		CONTIG_MAX_SIZE	= DEF_CONTIG_MAX_SIZE;
+
+		// if (referenceFilename == NULL)
+		// {
+		// 	fprintf(stdout, "ERROR: Reference(s) should be indicated for indexing\n");
+		// 	return 0;
+		// }
+		sprintf(fileName[0], "%s", referenceFilename);
+		sprintf(fileName[1], "%s.index", fileName[0]);
+	}
+
+	initCommon();
 	
+	THREAD_COUNT = threads;
+	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
+	for (int i = 0; i < 255; i++)
+		THREAD_ID[i] = i;
+
 	return 0;
 }
 
@@ -176,7 +220,7 @@ void printHELP()
 	
 	fprintf(stdout, "\nAdvanced Options:\n");
 	fprintf(stdout, "-p|--pe:\t\tPaired end.\n");
-	fprintf(stdout, "-k|--kmer:\t\tKmer size (default = 19).\n");
+	fprintf(stdout, "-k|--kmer:\t\tKmer size [%d..%d] (default = 19).\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen);
 	fprintf(stdout, "-l|--rlen:\t\tMax read length (default = 120).\n");
 	fprintf(stdout, "-e|--max_ed:\t\tMax allowed edit distance on each mate (default = %d).\n", EDTH);
 	fprintf(stdout, "-c|--max_sc:\t\tMax allowed soft clipping on each mate (default = %d).\n", SOFTCLIPTH);
