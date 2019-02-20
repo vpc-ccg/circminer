@@ -1053,6 +1053,12 @@ int  loadCompressedRefGenome(double *loadTime)
 			i++;
 		}
 	}
+	if (loadFullHashTable) {
+		// reading hash table values
+		unsigned int memSize;
+		tmp = fread(&memSize, sizeof(memSize), 1, _ih_fp);
+		fseek(_ih_fp, sizeof(GeneralIndex) * memSize, SEEK_CUR);
+	}
 
 	*loadTime = getTime()-startTime;
 	return extraInfo;
