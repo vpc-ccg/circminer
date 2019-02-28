@@ -53,7 +53,7 @@ FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, 
 	}
 
 	// openning pam files
-	char* output_names[11] = { "concordant", "discordant", "circ_RF", "circ_bsj", "fusion", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
+	char* output_names[CATNUM] = { "concordant", "discordant", "circ_RF", "circ_bsj", "circ_2bsj", "fusion", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
 	char cat_fname [FILE_NAME_LENGTH];
 
 	char mode[2];
@@ -241,7 +241,7 @@ void FilterRead::write_read_category (Record* current_record, int state) {
 void FilterRead::write_read_category (Record* current_record1, Record* current_record2, const MatchedRead& mr) {
 	char r1_dir = (mr.r1_forward) ? '+' : '-';
 	char r2_dir = (mr.r2_forward) ? '+' : '-';
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
 		sprintf(comment, " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d", 
 						mr.type, 
 						mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1,
@@ -260,7 +260,7 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 	char r1_dir = (mr.r1_forward) ? '+' : '-';
 	char r2_dir = (mr.r2_forward) ? '+' : '-';
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
 		fprintf(cat_file_pam[mr.type], "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%d\t%d\t%d\t%d\n", 
 										rname, 
 										mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1, 
@@ -556,61 +556,58 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 			success = extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, mate_pairs[i].common_tid, forward_rec->seq, 
 								backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
 			
-			if (success and r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
+			if (success) {
 				ConShift con_shift = gtf_parser.get_shift(contigNum, r1_mm.spos);
-				
+					
 				overlap_to_epos(r1_mm);
 				overlap_to_spos(r1_mm);
 
 				overlap_to_epos(r2_mm);
 				overlap_to_spos(r2_mm);
-			
-				if (concordant_explanation(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward) and scanLevel == 0) {
-					return CONCRD;
+
+				if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
+					if (concordant_explanation(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward) and scanLevel == 0) {
+						return CONCRD;
+					}
 				}
-			}
-			
-			// potentially back splice junction?
-			else if (success and ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID))) {
-				ConShift con_shift = gtf_parser.get_shift(contigNum, r1_mm.spos);
 				
-				overlap_to_epos(r1_mm);
-				overlap_to_spos(r1_mm);
+				// potentially back splice junction?
+				else if ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID)) {
+					check_bsj(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward);
+				}
 
-				overlap_to_epos(r2_mm);
-				overlap_to_spos(r2_mm);
-			
-				check_bsj(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward);
+				else if (r1_mm.type == CANDID and r2_mm.type == CANDID) {
+					check_2bsj(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward);
+				}
 			}
 		}
 
 		if (forward_start > reverse_start) {
 			//extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
-			success = extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
+			success = extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, 
+								forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
 			
-			if (success and r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
+			if (success) {
 				ConShift con_shift = gtf_parser.get_shift(contigNum, r2_mm.spos);
-				
+					
 				overlap_to_epos(r1_mm);
 				overlap_to_spos(r1_mm);
 
 				overlap_to_epos(r2_mm);
 				overlap_to_spos(r2_mm);
-			
-				check_chimeric(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
-			}
-			
-			// potentially back splice junction?
-			else if (success and ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID))) {
-				ConShift con_shift = gtf_parser.get_shift(contigNum, r2_mm.spos);
-				
-				overlap_to_epos(r1_mm);
-				overlap_to_spos(r1_mm);
 
-				overlap_to_epos(r2_mm);
-				overlap_to_spos(r2_mm);
-			
-				check_bsj(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
+				if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
+					check_chimeric(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
+				}
+				
+				// potentially back splice junction?
+				else if ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID)) {
+					check_bsj(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
+				}
+
+				else if (r1_mm.type == CANDID and r2_mm.type == CANDID) {
+					check_2bsj(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
+				}
 			}
 		}
 

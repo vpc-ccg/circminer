@@ -15,7 +15,9 @@ bool is_concord(const chain_t& a, int seq_len, MatchedMate& mr);
 bool is_concord2(const chain_t& a, int seq_len, MatchedMate& mr);
 bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm);
 bool check_chimeric(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm);
+
 bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm);
+bool check_2bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm);
 
 void intersect_trans(const vector<uint32_t>& tid1, const vector<uint32_t>& tid2, vector<uint32_t>& common_tid);
 bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, vector<uint32_t>& common_tid);

@@ -141,7 +141,8 @@ void FASTQParser::fill_map_info(int cnt) {
 		int base = 10;
 		current_record->mr->type 	= atoi(tokens[1]);
 
-		if (current_record->mr->type == CONCRD or current_record->mr->type == DISCRD or current_record->mr->type == CHIORF or current_record->mr->type == CHIBSJ) {
+		if (current_record->mr->type == CONCRD or current_record->mr->type == DISCRD or current_record->mr->type == CHIORF or 
+			current_record->mr->type == CHIBSJ or current_record->mr->type == CHI2BSJ) {
 			current_record->mr->chr_r1 		= tokens[2];	
 			current_record->mr->spos_r1 	= strtoul(tokens[3], &stop_string, base);
 			current_record->mr->epos_r1 	= strtoul(tokens[4], &stop_string, base);

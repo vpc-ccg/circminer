@@ -50,20 +50,21 @@ using namespace std;
 #define LARIAT2BEGTH 1000
 
 // ouput categories
-#define CATNUM 11	// number of output categories
+#define CATNUM 12	// number of output categories
 
 // the order matters:
 #define CONCRD	0
 #define DISCRD	1
 #define CHIORF	2
 #define CHIBSJ	3
-#define CHIFUS	4
-#define OEA2	5
-#define CANDID	6
-#define OEANCH	7
-#define ORPHAN	8
-#define NOPROC_MANYHIT 9
-#define NOPROC_NOMATCH 10
+#define CHI2BSJ	4
+#define CHIFUS	5
+#define OEA2	6
+#define CANDID	7
+#define OEANCH	8
+#define ORPHAN	9
+#define NOPROC_MANYHIT 10
+#define NOPROC_NOMATCH 11
 
 //---------- Global Variables ----------\\
 

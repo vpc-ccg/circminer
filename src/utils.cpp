@@ -260,6 +260,8 @@ bool check_chimeric(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& m
 	return false;
 }
 
+// check for one valid split mate
+// -> one fully mapped mate and one partially mapped
 bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm) {
 	if (mr.type == CONCRD or mr.type == DISCRD)
 		return false;
@@ -274,8 +276,6 @@ bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& 
 		}
 
 		// checking for ciRNA
-		//overlap_to_spos(sm);
-		//overlap_to_epos(lm);
 		//fprintf(stderr, "R1 start ind: %d\tR2 end ind: %d\n To beg of intron: %d\n", sm.exon_ind_spos, lm.exon_ind_epos, sm.spos - gtf_parser.get_interval_epos(sm.exon_ind_spos));
 		if ((intronic_bs[contigNum][sm.spos]) and ((intronic_bs[contigNum][lm.spos])) and 
 			(sm.exon_ind_spos >= 0) and (lm.exon_ind_epos >= 0) and (sm.exon_ind_spos == lm.exon_ind_epos) and 
@@ -283,14 +283,6 @@ bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& 
 			mr.update(sm, lm, chr, shift, lm.epos - sm.spos + 1, 0, false, CHIBSJ, r1_sm);
 			return true;
 		}
-		
-		//gene_overlap(sm);
-		//gene_overlap(lm);
-		//if (same_gene(sm.epos, sm.gene_info, lm.spos, lm.gene_info)) {
-		//	mr.update(sm, lm, chr, shift, lm.epos - sm.spos + 1, 0, false, CHIBSJ);
-		//	return true;
-		//}
-
 		return false;
 	}
 
@@ -303,6 +295,56 @@ bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& 
 	return false;
 }
 
+// check for two valid split mates
+// -> two partially mapped mates
+bool check_2bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm) {
+	if (mr.type < CHI2BSJ)
+		return false;
+
+	if (sm.spos > lm.spos)
+		return false;
+
+	// ...<----
+	// ...-->
+	if (sm.right_ok and lm.right_ok and (sm.spos != lm.spos))
+		return false;
+
+	//  <--...
+	// --->...
+	if (sm.left_ok and lm.left_ok and (sm.epos != lm.epos))
+		return false;
+
+	// ...<---   --->...
+	// OR
+	// ...-->     <--...
+	if ((!sm.right_ok) or (!lm.left_ok))
+		return false;
+
+	if (sm.exons_spos == NULL or lm.exons_spos == NULL) {
+		if ((sm.exons_spos != NULL and same_gene(sm, lm)) or (lm.exons_spos != NULL and same_gene(lm, sm))) {
+			mr.update(sm, lm, chr, shift, lm.epos - sm.spos + 1, 0, false, CHI2BSJ, r1_sm);
+			return true;
+		}
+
+		// checking for ciRNA
+		//fprintf(stderr, "R1 start ind: %d\tR2 end ind: %d\n To beg of intron: %d\n", sm.exon_ind_spos, lm.exon_ind_epos, sm.spos - gtf_parser.get_interval_epos(sm.exon_ind_spos));
+		if ((intronic_bs[contigNum][sm.spos]) and ((intronic_bs[contigNum][lm.spos])) and 
+			(sm.exon_ind_spos >= 0) and (lm.exon_ind_epos >= 0) and (sm.exon_ind_spos == lm.exon_ind_epos) and 
+			(sm.spos - gtf_parser.get_interval_epos(sm.exon_ind_spos) <= LARIAT2BEGTH)) {
+			mr.update(sm, lm, chr, shift, lm.epos - sm.spos + 1, 0, false, CHI2BSJ, r1_sm);
+			return true;
+		}
+		return false;
+	}
+
+	for (int i = 0; i < sm.exons_spos->seg_list.size(); i++)
+		for (int j = 0; j < lm.exons_spos->seg_list.size(); j++)
+			if (sm.exons_spos->seg_list[i].same_gene(lm.exons_spos->seg_list[j])) {
+				mr.update(sm, lm, chr, shift, lm.epos - sm.spos + 1, 0, false, CHI2BSJ, r1_sm);
+				return true;
+			}
+	return false;
+}
 
 void intersect_trans(const vector<uint32_t>& tid_l1, const vector<uint32_t>& tid_l2, vector<uint32_t>& common_tid) {
 	for (int i = 0; i < tid_l1.size(); i++) {
