@@ -301,6 +301,8 @@ bool check_2bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string&
 	if (mr.type < CHI2BSJ)
 		return false;
 
+	fprintf(stderr, "In check_2bsj... sm: [%d-%d], lm: [%d-%d]\n", sm.spos, sm.epos, lm.spos, lm.epos);
+
 	if (sm.spos > lm.spos)
 		return false;
 
@@ -317,7 +319,10 @@ bool check_2bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string&
 	// ...<---   --->...
 	// OR
 	// ...-->     <--...
-	if ((!sm.right_ok) or (!lm.left_ok))
+	//if sm.right_ok and lm.left_ok -> continue
+
+	// o.w.
+	if (sm.left_ok and lm.right_ok)
 		return false;
 
 	if (sm.exons_spos == NULL or lm.exons_spos == NULL) {

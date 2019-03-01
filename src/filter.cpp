@@ -619,7 +619,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 
 	}
 
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ) {
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
 		return mr.type;
 	}
 
