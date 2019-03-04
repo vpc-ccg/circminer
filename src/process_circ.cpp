@@ -14,6 +14,8 @@
 #define BINSIZE 5000
 #define MAXHTLISTSIZE 5
 
+void set_mm(const chain_t& ch, uint32_t qspos, int rlen, int dir, MatchedMate& mm);
+
 ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	sprintf(fq_file1, "%s_%d_remain_R1.fastq", outputFilename, last_round_num);
 	sprintf(fq_file2, "%s_%d_remain_R2.fastq", outputFilename, last_round_num);
@@ -46,18 +48,25 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 
 
 	int max_kmer_cnt = (maxReadLength - window_size) / step + 1;
-	bc.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+	bc1.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
 	for (int i = 0; i < BESTCHAINLIM; i++)
-		bc.chains[i].frags = (fragment_t*) malloc(max_kmer_cnt * sizeof(fragment_t));
+		bc1.chains[i].frags = (fragment_t*) malloc(max_kmer_cnt * sizeof(fragment_t));
+	bc2.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+	for (int i = 0; i < BESTCHAINLIM; i++)
+		bc2.chains[i].frags = (fragment_t*) malloc(max_kmer_cnt * sizeof(fragment_t));
 }
 
 ProcessCirc::~ProcessCirc (void) {
 	close_file(report_file);
 
 	for (int i = 0; i < BESTCHAINLIM; i++)
-		free(bc.chains[i].frags);
+		free(bc1.chains[i].frags);
 
-	free(bc.chains);
+	for (int i = 0; i < BESTCHAINLIM; i++)
+		free(bc2.chains[i].frags);
+
+	free(bc1.chains);
+	free(bc2.chains);
 }
 
 void ProcessCirc::sort_fq(char* fqname) {
@@ -201,6 +210,16 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 									mr.chr_r2.c_str(), mr.spos_r2, mr.epos_r2, mr.mlen_r2, mr.qspos_r2, mr.qepos_r2, mr.ed_r2,
 									mr.tlen, mr.junc_num, mr.gm_compatible, mr.type);
 
+	if (mr.type == CHIBSJ) {
+		call_circ_single_split(current_record1, current_record2);
+	}
+	else if (mr.type == CHI2BSJ) {
+		call_circ_double_split(current_record1, current_record2);
+	}
+}
+
+void ProcessCirc::call_circ_single_split(Record* current_record1, Record* current_record2) {
+	MatchedRead mr = *(current_record1->mr);
 	bool r1_partial = mr.mlen_r1 < mr.mlen_r2;
 	char* remain_seq = (r1_partial) ? ((mr.r1_forward) ? current_record1->seq : current_record1->rcseq) : 
 									  ((mr.r2_forward) ? current_record2->seq : current_record2->rcseq) ;
@@ -242,23 +261,21 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 		char gene_seq[gene_len + 1];
 		gene_seq[gene_len] = '\0';
 		pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
-		//vafprintf(2, stderr, "Gene: %s\n", gene_seq);
 
 		regional_ht = get_hash_table(gene_info->seg_list[i], gene_seq);
 		
 		vafprintf(2, stderr, "R%d partial: [%d-%d]\n", (int) (!r1_partial) + 1, qspos, qepos);
 		vafprintf(2, stderr, "%s\n", remain_seq);
 
-		//binning(qspos, qepos, regional_ht, remain_seq, gene_len);
-		chaining(qspos, qepos, regional_ht, remain_seq, gene_len, gene_info->seg_list[i].start);
-		if (bc.best_chain_count <= 0)
+		chaining(qspos, qepos, regional_ht, remain_seq, gene_len, gene_info->seg_list[i].start, bc1);
+		if (bc1.best_chain_count <= 0)
 			continue;
 
 		// find rspos and repos for the best chain
 		bool forward = (r1_partial) ? (mr.r1_forward) : (mr.r2_forward);
 		int dir = (forward) ? 1 : -1;
 		MatchedMate partial_mm;
-		find_exact_coord(mm_r1, mm_r2, partial_mm, dir, qspos, remain_seq, remain_len, whole_seq_len);
+		find_exact_coord(mm_r1, mm_r2, partial_mm, dir, qspos, remain_seq, remain_len, whole_seq_len, bc1.chains[0]);
 
 		if (partial_mm.type == CONCRD) {
 			con_shift = gtf_parser.get_shift(contigNum, mm_r1.spos);
@@ -268,6 +285,117 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 			
 			CircRes cr;
 			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial, cr);
+			fprintf(stderr, "%d\n", type);
+			
+			if (type == CR) {
+				cr.chr = con_shift.contig;
+				cr.rname = current_record1->rname;
+				cr.spos -= con_shift.shift;
+				cr.epos -= con_shift.shift;
+				circ_res.push_back(cr);
+				break;	// stop processing next genes
+			}
+		}
+	}
+}
+
+void ProcessCirc::call_circ_double_split(Record* current_record1, Record* current_record2) {
+	MatchedRead mr = *(current_record1->mr);
+	vafprintf(2, stderr, "Double split read...\n");
+	char* r1_remain_seq = (mr.r1_forward) ? current_record1->seq : current_record1->rcseq;
+	char* r2_remain_seq = (mr.r2_forward) ? current_record2->seq : current_record2->rcseq;
+
+	uint32_t r1_qspos = ((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (1) : (mr.qepos_r1 + 1);
+	uint32_t r2_qspos = ((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (1) : (mr.qepos_r2 + 1);
+
+	uint32_t r1_qepos = ((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (mr.qspos_r1 - 1) : (current_record1->seq_len);
+	uint32_t r2_qepos = ((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (mr.qspos_r2 - 1) : (current_record2->seq_len);
+
+
+	int r1_whole_seq_len = current_record1->seq_len;
+	int r2_whole_seq_len = current_record2->seq_len;
+	
+	int r1_remain_len = r1_qepos - r1_qspos + 1;
+	int r2_remain_len = r2_qepos - r2_qspos + 1;
+	
+	// if (qepos < qspos or remain_len < window_size) {	// it was fully mapped
+	// 	return;
+	// }
+
+	// convert to position on contig
+	gtf_parser.chrloc2conloc(mr.chr_r1, mr.spos_r1, mr.epos_r1);
+	gtf_parser.chrloc2conloc(mr.chr_r2, mr.spos_r2, mr.epos_r2);
+
+	const IntervalInfo<GeneInfo>* gene_info = gtf_parser.get_gene_overlap(mr.spos_r1, false);
+	bool found = (gene_info != NULL);
+	if (! found) {
+		vafprintf(2, stderr, "Gene not found!\n");
+		return;
+	}
+	vafprintf(2, stderr, "# Gene overlaps: %d\n", gene_info->seg_list.size());
+
+	// fill MatchedMate
+	MatchedMate mm_r1(mr, 1, current_record1->seq_len);
+	MatchedMate mm_r2(mr, 2, current_record2->seq_len);
+	ConShift con_shift;
+
+	check_removables(mr.spos_r1);
+	RegionalHashTable* regional_ht;
+
+	for (int i = 0; i < gene_info->seg_list.size(); ++i) {
+		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
+		char gene_seq[gene_len + 1];
+		gene_seq[gene_len] = '\0';
+		pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
+
+		regional_ht = get_hash_table(gene_info->seg_list[i], gene_seq);
+		
+		vafprintf(2, stderr, "R1 partial: [%d-%d]\nremain: %s\n", r1_qspos, r1_qepos, r1_remain_seq);
+		chaining(r1_qspos, r1_qepos, regional_ht, r1_remain_seq, gene_len, gene_info->seg_list[i].start, bc1);
+		vafprintf(2, stderr, "R2 partial: [%d-%d]\nremain: %s\n", r2_qspos, r2_qepos, r2_remain_seq);
+		chaining(r2_qspos, r2_qepos, regional_ht, r2_remain_seq, gene_len, gene_info->seg_list[i].start, bc2);
+		
+		if (bc1.best_chain_count <= 0 or bc2.best_chain_count <= 0)
+			continue;
+
+		// find rspos and repos for the best chain
+		MatchedMate r1_partial_mm;
+		MatchedMate r2_partial_mm;
+
+		set_mm(bc1.chains[0], r1_qspos, r1_remain_len, mm_r1.dir, r1_partial_mm);
+		set_mm(bc2.chains[0], r2_qspos, r2_remain_len, mm_r2.dir, r2_partial_mm);
+
+		overlap_to_spos(mm_r1);
+		overlap_to_spos(mm_r2);
+		overlap_to_spos(r1_partial_mm);
+		overlap_to_spos(r2_partial_mm);
+
+		vector <uint32_t> common_tid;
+		if (! same_transcript(mm_r1.exons_spos, mm_r2.exons_spos, r1_partial_mm.exons_spos, r2_partial_mm.exons_spos, common_tid))
+			continue;
+
+		bool success = false;
+		if (bc1.chains[0].frags[0].rpos <= bc2.chains[0].frags[0].rpos) {
+			success = extend_both_mates(bc1.chains[0], bc2.chains[0], common_tid, r1_remain_seq, r2_remain_seq, 
+						r1_remain_len, r2_remain_len, r1_partial_mm, r2_partial_mm);
+		}
+		else {
+			success = extend_both_mates(bc2.chains[0], bc1.chains[0], common_tid, r2_remain_seq, r1_remain_seq, 
+						r2_remain_len, r1_remain_len, r2_partial_mm, r1_partial_mm);
+		}
+
+		if (! success)
+			continue;
+
+		if (r1_partial_mm.type == CONCRD and r2_partial_mm.type == CONCRD) {
+			con_shift = gtf_parser.get_shift(contigNum, mm_r1.spos);
+			vafprintf(2, stderr, "R1 Partial Coordinates: [%d-%d]\n", r1_partial_mm.spos - con_shift.shift, r1_partial_mm.epos - con_shift.shift);
+			vafprintf(2, stderr, "R2 Partial Coordinates: [%d-%d]\n", r2_partial_mm.spos - con_shift.shift, r2_partial_mm.epos - con_shift.shift);
+			
+			print_split_mapping(current_record1->rname, mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, con_shift);
+			
+			CircRes cr;
+			int type = check_split_map(mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, cr);
 			fprintf(stderr, "%d\n", type);
 			
 			if (type == CR) {
@@ -312,7 +440,7 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, RegionalHashTable* reg
 }
 
 void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, 
-							uint32_t gene_len, uint32_t shift) {
+							uint32_t gene_len, uint32_t shift, chain_list& bc) {
 	int seq_len = qepos - qspos + 1;
 	int kmer_cnt = ((qepos - qspos + 1) - window_size) / step + 1;
 	GIMatchedKmer fl[kmer_cnt+1];
@@ -364,15 +492,9 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 }
 
 bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, 
-									int dir, uint32_t qspos, char* rseq, int rlen, int whole_len) {
+									int dir, uint32_t qspos, char* rseq, int rlen, int whole_len, const chain_t& bc) {
 
-	uint32_t partial_spos = bc.chains[0].frags[0].rpos;
-	uint32_t partial_epos = bc.chains[0].frags[bc.chains[0].chain_len - 1].rpos + bc.chains[0].frags[bc.chains[0].chain_len - 1].len - 1;
-	uint32_t partial_qspos = qspos;
-	uint32_t partial_qepos = qspos + rlen - 1;
-
-	partial_mm.set(partial_spos, partial_epos, partial_qspos, partial_qepos, dir);
-
+	set_mm(bc, qspos, rlen, dir, partial_mm);
 	--qspos;	// convert to 0-based
 
 	overlap_to_spos(mm_r1);
@@ -386,14 +508,14 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 		return false;
 	}
 
-	partial_mm.middle_ed = calc_middle_ed(bc.chains[0], maxEd, rseq, rlen);
+	partial_mm.middle_ed = calc_middle_ed(bc, maxEd, rseq, rlen);
 	// fprintf(stderr, "Middle ed: %d\n", partial_mm.middle_ed);
 	if (partial_mm.middle_ed > maxEd)
 		return false;
 
 	bool extend = true;
 	partial_mm.is_concord = false;
-	if (bc.chains[0].chain_len <= 0) {
+	if (bc.chain_len <= 0) {
 		partial_mm.type = ORPHAN;
 		partial_mm.matched_len = 0;
 		return false;
@@ -404,12 +526,12 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 	int err = partial_mm.middle_ed;
 	if (extend) {
 		partial_mm.matched_len = rlen;
-		lok = extend_chain_left (common_tid, bc.chains[0], rseq + qspos, qspos, MINLB, partial_mm, err);
+		lok = extend_chain_left (common_tid, bc, rseq + qspos, qspos, MINLB, partial_mm, err);
 		if (qspos == 0) {
-			rok = extend_chain_right(common_tid, bc.chains[0], rseq, rlen, MAXUB, partial_mm, err);
+			rok = extend_chain_right(common_tid, bc, rseq, rlen, MAXUB, partial_mm, err);
 		}
 		else {
-			rok = extend_chain_right(common_tid, bc.chains[0], rseq, whole_len, MAXUB, partial_mm, err);
+			rok = extend_chain_right(common_tid, bc, rseq, whole_len, MAXUB, partial_mm, err);
 		}
 		update_match_mate_info(lok, rok, err, partial_mm);
 	}
@@ -491,6 +613,91 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, Matche
 			return final_check(mm_r1, partial_mm, mm_r2, cr);
 	}
 	return UD;
+}
+
+int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, MatchedMate& mm_r1_2, MatchedMate& mm_r2_2, CircRes& cr) {
+	MatchedMate mm_r1_l = (mm_r1_1.spos <= mm_r1_2.spos) ? mm_r1_1 : mm_r1_2;
+	MatchedMate mm_r1_r = (mm_r1_1.spos <= mm_r1_2.spos) ? mm_r1_2 : mm_r1_1;
+
+	MatchedMate mm_r2_l = (mm_r2_1.spos <= mm_r2_2.spos) ? mm_r2_1 : mm_r2_2;
+	MatchedMate mm_r2_r = (mm_r2_1.spos <= mm_r2_2.spos) ? mm_r2_2 : mm_r2_1;
+
+	bool r1_regular_bsj = (mm_r1_l.qspos < mm_r1_r.qspos);
+	bool r2_regular_bsj = (mm_r2_l.qspos < mm_r2_r.qspos);
+
+	// RF or FR check
+	if (r1_regular_bsj and r2_regular_bsj) {
+		if (mm_r1_l.dir == 1) {
+			if (mm_r1_r.spos <= mm_r2_l.spos)
+				return FR;
+			else if (mm_r1_l.epos >= mm_r2_r.epos)
+				return RF;
+		}
+		if (mm_r1_l.dir == -1) {
+			if (mm_r2_r.spos <= mm_r1_l.spos)
+				return FR;
+			else if (mm_r2_l.epos >= mm_r1_r.epos)
+				return RF;
+		}
+	}
+
+	// single BSJ on R2
+	else if (r1_regular_bsj and !r2_regular_bsj) {
+		MatchedMate full_mm = mm_r1_l;
+		if (!full_mm.merge_to_right(mm_r1_r))
+			return UD;
+		return final_check(full_mm, mm_r2_l, mm_r2_r, cr);
+	}
+
+	// single BSJ on R1
+	else if (!r1_regular_bsj and r2_regular_bsj) {
+		MatchedMate full_mm = mm_r2_l;
+		if (!full_mm.merge_to_right(mm_r2_r))
+			return UD;
+		return final_check(full_mm, mm_r1_l, mm_r1_r, cr);
+	}
+
+	// BSJ on the overlap
+	else if (!r1_regular_bsj and !r2_regular_bsj) {
+		if (mm_r1_l.spos == mm_r2_l.spos and mm_r1_r.epos == mm_r2_r.epos) {
+			overlap_to_spos(mm_r1_l);
+			overlap_to_epos(mm_r1_r);
+
+			if (mm_r1_l.exons_spos == NULL or mm_r1_r.exons_epos == NULL)
+				return MCR;
+
+			vector <uint32_t> start_tids;
+			for (int i = 0; i < mm_r1_l.exons_spos->seg_list.size(); ++i) {
+				if (mm_r1_l.spos == mm_r1_l.exons_spos->seg_list[i].start) {
+					for (int j = 0; j < mm_r1_l.exons_spos->seg_list[i].trans_id.size(); ++j) {
+						start_tids.push_back(mm_r1_l.exons_spos->seg_list[i].trans_id[j]);
+					}
+				}
+			}
+
+			vector <uint32_t> end_tids;
+			for (int i = 0; i < mm_r1_r.exons_epos->seg_list.size(); ++i) {
+				if (mm_r1_r.epos == mm_r1_r.exons_epos->seg_list[i].end) {
+					for (int j = 0; j < mm_r1_r.exons_epos->seg_list[i].trans_id.size(); ++j) {
+						end_tids.push_back(mm_r1_r.exons_epos->seg_list[i].trans_id[j]);
+					}
+				}
+			}
+
+			for (int i = 0; i < start_tids.size(); ++i)
+				for (int j = 0; j < end_tids.size(); ++j)
+					if (start_tids[i] == end_tids[j]) {
+						cr.set_bp(mm_r1_l.spos, mm_r1_r.epos);
+						return CR;
+					}
+
+
+			if (start_tids.size() > 0 and end_tids.size() > 0)
+				return NCR;
+
+			return MCR;
+		}
+	}
 }
 
 // full_mm -> not split mate
@@ -628,7 +835,30 @@ void ProcessCirc::print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedM
 			
 }
 
+void ProcessCirc::print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 
+										MatchedMate& r1_partial_mm, MatchedMate& r2_partial_mm, ConShift& con_shift) {
+	fprintf(stderr, "%s\t%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
+					rname, con_shift.contig.c_str(), 
+					r1_partial_mm.spos - con_shift.shift, r1_partial_mm.epos - con_shift.shift, 
+					r1_partial_mm.qspos, r1_partial_mm.matched_len, r1_partial_mm.dir,
+					r2_partial_mm.spos - con_shift.shift, r2_partial_mm.epos - con_shift.shift, 
+					r2_partial_mm.qspos, r2_partial_mm.matched_len, r2_partial_mm.dir,
+					mm_r1.spos - con_shift.shift, mm_r1.epos - con_shift.shift, 
+					mm_r1.qspos, mm_r1.matched_len, mm_r1.dir,
+					mm_r2.spos - con_shift.shift, mm_r2.epos - con_shift.shift, 
+					mm_r2.qspos, mm_r2.matched_len, mm_r2.dir);
+			
+}
+
 int ProcessCirc::get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos) {
 
 
+}
+
+void set_mm(const chain_t& ch, uint32_t qspos, int rlen, int dir, MatchedMate& mm) {
+	uint32_t spos = ch.frags[0].rpos;
+	uint32_t epos = ch.frags[ch.chain_len - 1].rpos + ch.frags[ch.chain_len - 1].len - 1;
+	uint32_t qepos = qspos + rlen - 1;
+
+	mm.set(spos, epos, qspos, qepos, dir);
 }

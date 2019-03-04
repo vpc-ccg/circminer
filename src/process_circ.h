@@ -32,7 +32,8 @@ private:
 	int step;
 	
 	MatchedRead mr;
-	chain_list bc;
+	chain_list bc1;
+	chain_list bc2;
 
 	int pre_contig;
 
@@ -54,17 +55,21 @@ public:
 	void do_process (void);
 	void call_circ (Record* current_record1, Record* current_record2);
 
+	void call_circ_single_split(Record* current_record1, Record* current_record2);
+	void call_circ_double_split(Record* current_record1, Record* current_record2);
+
 	void binning (uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len);
-	void chaining (uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift);
+	void chaining (uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift, chain_list& bc);
 
 	bool find_exact_coord (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, 
-							int dir, uint32_t qspos, char* rseq, int rlen, int whole_len);
+							int dir, uint32_t qspos, char* rseq, int rlen, int whole_len, const chain_t& bc);
 
 	void refresh_hash_table_list (void);
 	void check_removables (uint32_t rspos);
 	RegionalHashTable* get_hash_table (const GeneInfo& gene_info, char* gene_seq);
 
 	int check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, bool r1_partial, CircRes& cr);
+	int check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, MatchedMate& mm_r1_2, MatchedMate& mm_r2_2, CircRes& cr);
 	int final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr);
 
 	void report_events (void);
@@ -73,6 +78,9 @@ public:
 
 	void print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 
 										MatchedMate& partial_mm, ConShift& con_shift);
+
+	void print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 
+										MatchedMate& r1_partial_mm, MatchedMate& r2_partial_mm, ConShift& con_shift);
 
 };
 

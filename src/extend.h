@@ -7,6 +7,11 @@
 #include "common.h"
 #include "align.h"
 
+bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
+						int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm);
+
+int extend_chain_both_sides(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir);
+
 bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int seq_len, int ub, MatchedMate& mr, int& err);
 bool extend_chain_left (const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int32_t qspos, int lb, MatchedMate& mr, int& err);
 

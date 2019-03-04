@@ -61,6 +61,9 @@ int main(int argc, char **argv) {
 		}
 
 		if (stage != 0) {
+			// dirty turnaround --should be removed later
+			if (stage == 1)
+				last_round_num = 3;
 			circ_detect(last_round_num);
 		}
 	}
@@ -228,7 +231,7 @@ int mapping(int& last_round_num) {
 
 				if (skip or is_last)
 					filter_read.print_mapping(current_record1->rname, *(current_record1->mr));
-				if ((!is_last and !skip) or (is_last and current_record1->mr->type == CHIBSJ))
+				if ((!is_last and !skip) or (is_last and (current_record1->mr->type == CHIBSJ or current_record1->mr->type == CHI2BSJ)))
 					filter_read.write_read_category(current_record1, current_record2, *(current_record1->mr));
 			}
 			else {

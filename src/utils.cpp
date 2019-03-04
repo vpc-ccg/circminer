@@ -390,7 +390,7 @@ bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>
 	if (s == NULL or r == NULL or q == NULL)
 		return false;
 	
-	vector <uint32_t> sr_common_tid	;
+	vector <uint32_t> sr_common_tid;
 	bool sr_intersect = same_transcript(s, r, sr_common_tid);
 	if (! sr_intersect)
 		return false;
@@ -402,6 +402,28 @@ bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>
 			seg_tid.push_back(s->seg_list[i].trans_id[k]);
 
 	intersect_trans(sr_common_tid, seg_tid, common_tid);
+
+	return common_tid.size() != 0;
+}
+
+bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, 
+					 const IntervalInfo<UniqSeg>* q, const IntervalInfo<UniqSeg>* p, vector<uint32_t>& common_tid) {
+	
+	common_tid.clear();
+	if (s == NULL or r == NULL or q == NULL or p == NULL)
+		return false;
+	
+	vector <uint32_t> sr_common_tid;
+	bool sr_intersect = same_transcript(s, r, sr_common_tid);
+	if (! sr_intersect)
+		return false;
+
+	vector <uint32_t> qp_common_tid;
+	bool qp_intersect = same_transcript(q, p, qp_common_tid);
+	if (! qp_intersect)
+		return false;
+
+	intersect_trans(sr_common_tid, qp_common_tid, common_tid);
 
 	return common_tid.size() != 0;
 }

@@ -118,6 +118,35 @@ void MatchedMate::set (uint32_t rs, uint32_t re, uint32_t qs, uint32_t qe, int d
 	dir = d;
 }
 
+bool MatchedMate::merge_to_right(const MatchedMate& rmm) {
+	if (dir != rmm.dir)
+		return false;
+
+	epos = rmm.epos;
+	qepos = rmm.qepos;
+
+	middle_ed += right_ed + rmm.left_ed;
+	right_ed = rmm.right_ed;
+
+	matched_len += rmm.matched_len + sclen_right + rmm.sclen_left;
+
+	middle_ed += sclen_right + rmm.sclen_left;
+
+	sclen_right = rmm.sclen_right;
+
+	// junc_num += rmm.junc_num;
+	right_ok = rmm.right_ok;
+
+	looked_up_epos = rmm.looked_up_epos;
+	exon_ind_epos = rmm.exon_ind_epos;
+
+	if (left_ed + middle_ed + right_ed > maxEd) {
+		return false;
+	}
+	else 
+		return true;
+}
+
 MatchedMate::MatchedMate(const MatchedRead& mr, int r1_2, int rlen) : 
 					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), 
 					exons_spos(NULL), exons_epos(NULL), 

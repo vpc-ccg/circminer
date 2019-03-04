@@ -22,6 +22,8 @@ bool check_2bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string&
 void intersect_trans(const vector<uint32_t>& tid1, const vector<uint32_t>& tid2, vector<uint32_t>& common_tid);
 bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, vector<uint32_t>& common_tid);
 bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, const IntervalInfo<UniqSeg>* q, vector<uint32_t>& common_tid);
+bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, 
+					 const IntervalInfo<UniqSeg>* q, const IntervalInfo<UniqSeg>* p, vector<uint32_t>& common_tid);
 
 bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r);
 bool same_gene(const IntervalInfo<UniqSeg>* mate, uint32_t s, uint32_t e);

@@ -19,7 +19,6 @@ extern "C" {
 
 
 void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits);
-int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir);
 int process_mates(const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, MatchedRead& mr, bool r1_forward);
 
 FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, bool last_round, char* fq_file1, char* fq_file2) {
@@ -98,7 +97,7 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 
 	get_best_chains(current_record->seq, current_record->seq_len, kmer_size, forward_best_chain, fl, fhh);
 	for (int i = 0; i < forward_best_chain.best_chain_count; i++) {
-		ex_ret = extend_chain(forward_best_chain.chains[i], current_record->seq, current_record->seq_len, mr, 1); 
+		ex_ret = extend_chain_both_sides(forward_best_chain.chains[i], current_record->seq, current_record->seq_len, mr, 1); 
 		
 		if (ex_ret == CONCRD)
 			return CONCRD;
@@ -109,7 +108,7 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 
 	get_best_chains(current_record->rcseq, current_record->seq_len, kmer_size, backward_best_chain, bl, bhh);
 	for (int i = 0; i < backward_best_chain.best_chain_count; i++) {
-		ex_ret = extend_chain(backward_best_chain.chains[i], current_record->rcseq, current_record->seq_len, mr, -1); 
+		ex_ret = extend_chain_both_sides(backward_best_chain.chains[i], current_record->rcseq, current_record->seq_len, mr, -1); 
 		
 		if (ex_ret == CONCRD)
 			return CONCRD;
@@ -287,180 +286,6 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& bes
 			high_hits++;
 }
 
-bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
-						int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
-	
-	// lmm.middle_ed = estimate_middle_error(lch);
-	// rmm.middle_ed = estimate_middle_error(rch);
-
-	lmm.middle_ed = calc_middle_ed(lch, maxEd, lseq, lseq_len);
-	// fprintf(stderr, "Left middle ed: %d\n", lmm.middle_ed);
-	rmm.middle_ed = calc_middle_ed(rch, maxEd, rseq, lseq_len);
-	// fprintf(stderr, "Right middle ed: %d\n", rmm.middle_ed);
-
-	if (lmm.middle_ed <= maxEd) {
-		is_concord2(lch, lseq_len, lmm);
-	}
-
-	if (rmm.middle_ed <= maxEd) {
-		is_concord2(rch, lseq_len, rmm);
-	}
-
-	if (lmm.middle_ed > maxEd or rmm.middle_ed > maxEd)
-		return false;
-
-	bool l_extend = true;
-	lmm.is_concord = false;
-	if (lch.chain_len <= 0) {
-		lmm.type = ORPHAN;
-		lmm.matched_len = 0;
-		l_extend = false;
-	}
-
-	bool r_extend = true;
-	rmm.is_concord = false;
-	if (rch.chain_len <= 0) {
-		rmm.type = ORPHAN;
-		rmm.matched_len = 0;
-		r_extend = false;
-	}
-
-	bool llok;
-	bool lrok;
-	bool rlok;
-	bool rrok;
-
-	int lerr = lmm.middle_ed;
-	int rerr = rmm.middle_ed;
-
-	if (l_extend) {
-		lmm.matched_len = lseq_len;
-		lmm.qspos = 1;
-		lmm.qepos = lseq_len;
-		llok = extend_chain_left(common_tid, lch, lseq, 0, MINLB, lmm, lerr);
-	}
-
-	if (r_extend) {
-		rmm.matched_len = rseq_len;
-		rmm.qspos = 1;
-		rmm.qepos = rseq_len;
-		rlok = extend_chain_left(common_tid, rch, rseq, 0, (l_extend) ? lmm.spos : MINLB, rmm, rerr);
-	}
-	
-	if (r_extend) {
-		rrok = extend_chain_right(common_tid, rch, rseq, rseq_len, MAXUB, rmm, rerr);
-	}
-	
-	if (l_extend) {
-		lrok = extend_chain_right(common_tid, lch, lseq, lseq_len, (r_extend) ? rmm.epos : MAXUB, lmm, lerr);
-	}
-	
-	if (l_extend) {
-		update_match_mate_info(llok, lrok, lerr, lmm);
-	}
-
-	if (r_extend) {
-		update_match_mate_info(rlok, rrok, rerr, rmm);
-	}
-
-	// check accurate edit distance for middle part
-	return true;
-
-	// int ledth = maxEd - (lmm.left_ed + lmm.right_ed);
-	// lmm.middle_ed = calc_middle_ed(lch, ledth, lseq, lseq_len);
-	// if (lmm.middle_ed + lmm.right_ed + lmm.left_ed > maxEd)
-	// 	return false;
-	
-	// int redth = maxEd - (rmm.left_ed + rmm.right_ed);
-	// rmm.middle_ed = calc_middle_ed(rch, redth, rseq, lseq_len);
-	// return (rmm.middle_ed + rmm.right_ed + rmm.left_ed <= maxEd);
-}
-
-// return:
-// CONCRD:0 if mapped to both sides
-// CANDID:1 if at least one side is mapped
-// ORPHAN:3 if not mappable (not reaching either side)
-int extend_chain(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir) {
-	mr.is_concord = false;
-	if (ch.chain_len <= 0) {
-		mr.type = ORPHAN;
-		return mr.type;
-	}
-
-	mr.middle_ed = estimate_middle_error(ch);
-
-	if (is_concord(ch, seq_len, mr)) {
-		mr.dir = dir;
-		return mr.type;
-	}
-
-	bool left_ok = true;
-	bool right_ok = true;
-	int sclen_left = 0;
-	int sclen_right = 0;
-	
-	int err_left = 0;
-	int err_right = 0;
-
-	uint32_t lm_pos = ch.frags[0].rpos;
-	int remain_beg = ch.frags[0].qpos;
-
-	left_ok = (remain_beg <= 0);
-	AlignRes best_alignment_left(MINLB);
-	vector <uint32_t> empty;
-
-	char remain_str_beg[remain_beg+5];
-	if (remain_beg > 0) {
-		left_ok = extend_left(empty, seq, lm_pos, remain_beg, maxEd - mr.middle_ed, MINLB, best_alignment_left);
-	}
-
-	err_left = best_alignment_left.ed;
-	sclen_left = best_alignment_left.sclen;
-	remain_beg -= best_alignment_left.rcovlen;
-
-	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
-	int remain_end = seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len);
-
-	right_ok = (remain_end <= 0);
-	AlignRes best_alignment(MAXUB);
-
-	char remain_str_end[remain_end+5];
-	if (remain_end > 0) {
-		right_ok = extend_right(empty, seq + seq_len - remain_end, rm_pos, remain_end, maxEd - mr.middle_ed - err_left, MAXUB, best_alignment);
-	}
-
-	err_right = best_alignment.ed;
-	sclen_right = best_alignment.sclen;
-	remain_end -= best_alignment.rcovlen;
-
-	mr.spos = lm_pos;
-	mr.epos = rm_pos;
-	mr.matched_len = seq_len;
-	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
-	mr.matched_len -= (right_ok) ? sclen_right: remain_end;
-
-	mr.qspos = 1 + (left_ok) ? sclen_left : remain_beg;
-	mr.qepos = seq_len - (right_ok) ? sclen_right: remain_end;
-
-	mr.right_ed = best_alignment.ed;
-	mr.left_ed  = best_alignment_left.ed;
-
-	mr.dir = dir;
-	
-	//fprintf(stderr, "############################# left_ok: %d\tright_ok: %d\terr_left: %d\terr_right: %d\n", left_ok, right_ok, err_left, err_right);
-	if (left_ok and right_ok and (err_left + err_right <= maxEd)) {
-		mr.is_concord = true;
-		mr.type = CONCRD;
-	}
-	else if (left_ok or right_ok) {
-		mr.type = CANDID;
-	}
-	else
-		mr.type = ORPHAN;
-
-	return mr.type;
-}
-
 void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired) {
 	vector <const IntervalInfo<UniqSeg>*> forward_exon_list(forward_chain.best_chain_count);
 	vector <const IntervalInfo<UniqSeg>*> reverse_exon_list(reverse_chain.best_chain_count);
@@ -628,7 +453,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 	if (min_ret1 != CONCRD)
 		for (int i = 0; i < forward_chain.best_chain_count; i++) {
 			if (!forward_paired[i]) {
-				ex_ret = extend_chain(forward_chain.chains[i], forward_rec->seq, forward_rec->seq_len, mm1, 1);
+				ex_ret = extend_chain_both_sides(forward_chain.chains[i], forward_rec->seq, forward_rec->seq_len, mm1, 1);
 				min_ret1 = minM(ex_ret, min_ret1);
 
 				overlap_to_spos(mm1);
@@ -642,7 +467,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 	if (min_ret2 != CONCRD)
 		for (int i = 0; i < backward_chain.best_chain_count; i++) {
 			if (!backward_paired[i]) {
-				ex_ret = extend_chain(backward_chain.chains[i], backward_rec->rcseq, backward_rec->seq_len, mm2, -1);
+				ex_ret = extend_chain_both_sides(backward_chain.chains[i], backward_rec->rcseq, backward_rec->seq_len, mm2, -1);
 				min_ret2 = minM(ex_ret, min_ret2);
 				
 				overlap_to_spos(mm2);

@@ -199,13 +199,13 @@ struct MatchedMate {
 
 	int			sclen_right;
 	int			sclen_left;
-	int 		matched_len;
-	int 		dir;
-	int 		type;
+	int			matched_len;
+	int			dir;
+	int			type;
 
 	uint16_t	junc_num;
 
-	bool 		is_concord;
+	bool		is_concord;
 
 	bool		left_ok;
 	bool		right_ok;
@@ -227,6 +227,7 @@ struct MatchedMate {
 	MatchedMate (const MatchedRead& mr, int r1_2, int rlen);
 	
 	void set (uint32_t rs, uint32_t re, uint32_t qs, uint32_t qe, int d);
+	bool merge_to_right(const MatchedMate& rmm);
 
 	void operator = (const MatchedMate& mm);
 
