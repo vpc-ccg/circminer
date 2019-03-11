@@ -56,7 +56,7 @@ bool FASTQParser::has_next (void) {
 
 bool FASTQParser::read_next (void) {
 	int rname_len = getline(&current_record->rname, &max_line_size, input);
-	extract_map_info(current_record->rname);
+	rname_len = extract_map_info(current_record->rname);
 
 	getline(&current_record->seq, &max_line_size, input);
 	current_record->seq_len = strlen(current_record->seq) - 1;	// skipping newline at the end
@@ -66,6 +66,8 @@ bool FASTQParser::read_next (void) {
 
 	getline(&current_record->qual, &max_line_size, input);
 	
+
+
 	if (current_record->rname[rname_len - 3] == '/')
 		current_record->rname[rname_len - 3] = '\0';
 	else
@@ -106,7 +108,7 @@ void FASTQParser::set_reverse_comp (void) {
 	current_record->rcseq[len] = '\0';
 }
 
-void FASTQParser::extract_map_info(char* str) {
+int FASTQParser::extract_map_info(char* str) {
 	// Returns first token  
 	char *token = strtok(str, " "); 
     
@@ -125,6 +127,7 @@ void FASTQParser::extract_map_info(char* str) {
 	current_record->rname[rname_len] = '\0';
 
 	fill_map_info(i);
+	return rname_len;
 }
 
 void FASTQParser::fill_map_info(int cnt) {

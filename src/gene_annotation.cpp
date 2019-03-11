@@ -197,8 +197,11 @@ bool GTFParser::load_gtf(void) {
 		chrloc2conloc(current_record->chr, current_record->start, current_record->end);
 		current_record->chr_id = atoi(current_record->chr.c_str()) - 1;
 
-		if (current_record->chr == "0")	// chr not found in genome index
+		if (current_record->chr_id < 0)	// chr not present in genome index
 			continue;
+
+		// if (current_record->chr == "0")	// chr not found in genome index
+		// 	continue;
 
 		if (current_record->type == "gene") {
 			if (current_record->chr_id >= gene_ids.size()) {

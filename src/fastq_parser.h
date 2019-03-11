@@ -57,7 +57,7 @@ public:
 
 	void set_comp (void);
 
-	void extract_map_info(char* str);
+	int extract_map_info(char* str);
 	void fill_map_info(int cnt);
 };
 
