@@ -224,7 +224,7 @@ struct MatchedMate {
 	const IntervalInfo<GeneInfo>* gene_info;
 
 	MatchedMate ();
-	MatchedMate (const MatchedRead& mr, int r1_2, int rlen);
+	MatchedMate (const MatchedRead& mr, int r1_2, int rlen, bool partial);
 	
 	void set (uint32_t rs, uint32_t re, uint32_t qs, uint32_t qe, int d);
 	bool merge_to_right(const MatchedMate& rmm);

@@ -147,7 +147,8 @@ bool MatchedMate::merge_to_right(const MatchedMate& rmm) {
 		return true;
 }
 
-MatchedMate::MatchedMate(const MatchedRead& mr, int r1_2, int rlen) : 
+// r1_2 = 1 or 2
+MatchedMate::MatchedMate(const MatchedRead& mr, int r1_2, int rlen, bool partial) : 
 					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), 
 					exons_spos(NULL), exons_epos(NULL), 
 					exon_ind_spos(-1), exon_ind_epos(-1), gene_info(NULL) {
@@ -160,8 +161,6 @@ MatchedMate::MatchedMate(const MatchedRead& mr, int r1_2, int rlen) :
 		qepos = mr.qepos_r1;
 		
 		middle_ed = mr.ed_r1;
-		sclen_right = qspos - 1;
-		sclen_left = rlen - qepos;
 
 		matched_len = mr.mlen_r1;
 		dir = (mr.r1_forward) ? 1 : -1;
@@ -173,11 +172,24 @@ MatchedMate::MatchedMate(const MatchedRead& mr, int r1_2, int rlen) :
 		qepos = mr.qepos_r2;
 		
 		middle_ed = mr.ed_r2;
-		sclen_right = qspos - 1;
-		sclen_left = rlen - qepos;
 
 		matched_len = mr.mlen_r2;
 		dir = (mr.r2_forward) ? 1 : -1;
+	}
+
+	if (partial) {
+		if ((qspos - 1) > (rlen - qepos)) { // right-side matched
+			sclen_left = 0;
+			sclen_right = rlen - qepos;
+		}
+		else { // left-side matched
+			sclen_left = qspos - 1;
+			sclen_right = 0;
+		}
+	}
+	else {
+		sclen_left = qspos - 1;
+		sclen_right = rlen - qepos;
 	}
 }
 

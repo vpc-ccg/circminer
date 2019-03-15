@@ -249,8 +249,8 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 	vafprintf(2, stderr, "# Gene overlaps: %d\n", gene_info->seg_list.size());
 
 	// fill MatchedMate
-	MatchedMate mm_r1(mr, 1, current_record1->seq_len);
-	MatchedMate mm_r2(mr, 2, current_record2->seq_len);
+	MatchedMate mm_r1(mr, 1, current_record1->seq_len, r1_partial);
+	MatchedMate mm_r2(mr, 2, current_record2->seq_len, !r1_partial);
 	ConShift con_shift;
 
 	check_removables(mr.spos_r1);
@@ -335,8 +335,8 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 	vafprintf(2, stderr, "# Gene overlaps: %d\n", gene_info->seg_list.size());
 
 	// fill MatchedMate
-	MatchedMate mm_r1(mr, 1, current_record1->seq_len);
-	MatchedMate mm_r2(mr, 2, current_record2->seq_len);
+	MatchedMate mm_r1(mr, 1, current_record1->seq_len, true);
+	MatchedMate mm_r2(mr, 2, current_record2->seq_len, true);
 	ConShift con_shift;
 
 	check_removables(mr.spos_r1);
@@ -668,7 +668,7 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 
 			vector <uint32_t> start_tids;
 			for (int i = 0; i < mm_r1_l.exons_spos->seg_list.size(); ++i) {
-				if (mm_r1_l.spos == mm_r1_l.exons_spos->seg_list[i].start) {
+				if (mm_r1_l.spos - mm_r1_l.sclen_left == mm_r1_l.exons_spos->seg_list[i].start) {
 					for (int j = 0; j < mm_r1_l.exons_spos->seg_list[i].trans_id.size(); ++j) {
 						start_tids.push_back(mm_r1_l.exons_spos->seg_list[i].trans_id[j]);
 					}
@@ -677,7 +677,7 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 
 			vector <uint32_t> end_tids;
 			for (int i = 0; i < mm_r1_r.exons_epos->seg_list.size(); ++i) {
-				if (mm_r1_r.epos == mm_r1_r.exons_epos->seg_list[i].end) {
+				if (mm_r1_r.epos + mm_r1_r.sclen_right == mm_r1_r.exons_epos->seg_list[i].end) {
 					for (int j = 0; j < mm_r1_r.exons_epos->seg_list[i].trans_id.size(); ++j) {
 						end_tids.push_back(mm_r1_r.exons_epos->seg_list[i].trans_id[j]);
 					}
@@ -687,7 +687,7 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 			for (int i = 0; i < start_tids.size(); ++i)
 				for (int j = 0; j < end_tids.size(); ++j)
 					if (start_tids[i] == end_tids[j]) {
-						cr.set_bp(mm_r1_l.spos, mm_r1_r.epos);
+						cr.set_bp(mm_r1_l.spos - mm_r1_l.sclen_left, mm_r1_r.epos + mm_r1_r.sclen_right);
 						return CR;
 					}
 
@@ -737,7 +737,7 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 
 			vector <uint32_t> end_tids;
 			for (int i = 0; i < split_mm_left.exons_epos->seg_list.size(); ++i) {
-				if (split_mm_left.epos == split_mm_left.exons_epos->seg_list[i].end) {
+				if (split_mm_left.epos + split_mm_left.sclen_right == split_mm_left.exons_epos->seg_list[i].end) {
 					for (int j = 0; j < split_mm_left.exons_epos->seg_list[i].trans_id.size(); ++j) {
 						end_tids.push_back(split_mm_left.exons_epos->seg_list[i].trans_id[j]);
 					}
@@ -746,7 +746,7 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 
 			vector <uint32_t> start_tids;
 			for (int i = 0; i < split_mm_right.exons_spos->seg_list.size(); ++i) {
-				if (split_mm_right.spos == split_mm_right.exons_spos->seg_list[i].start) {
+				if (split_mm_right.spos - split_mm_right.sclen_left == split_mm_right.exons_spos->seg_list[i].start) {
 					for (int j = 0; j < split_mm_right.exons_spos->seg_list[i].trans_id.size(); ++j) {
 						start_tids.push_back(split_mm_right.exons_spos->seg_list[i].trans_id[j]);
 					}
@@ -756,7 +756,7 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 			for (int i = 0; i < start_tids.size(); ++i)
 				for (int j = 0; j < end_tids.size(); ++j)
 					if (start_tids[i] == end_tids[j]) {
-						cr.set_bp(split_mm_right.spos, split_mm_left.epos);
+						cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left, split_mm_left.epos + split_mm_left.sclen_right);
 						return CR;
 					}
 
