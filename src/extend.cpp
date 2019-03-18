@@ -9,16 +9,16 @@
 #include "gene_annotation.h"
 #include "utils.h"
 
-
+// lseq_len, rseq_len: length of left and right mate sequences
 bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
-						int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
+						int lqspos, int rqspos, int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
 	
 	// lmm.middle_ed = estimate_middle_error(lch);
 	// rmm.middle_ed = estimate_middle_error(rch);
 
 	lmm.middle_ed = calc_middle_ed(lch, maxEd, lseq, lseq_len);
 	// fprintf(stderr, "Left middle ed: %d\n", lmm.middle_ed);
-	rmm.middle_ed = calc_middle_ed(rch, maxEd, rseq, lseq_len);
+	rmm.middle_ed = calc_middle_ed(rch, maxEd, rseq, rseq_len);
 	// fprintf(stderr, "Right middle ed: %d\n", rmm.middle_ed);
 
 	if (lmm.middle_ed <= maxEd) {
@@ -26,7 +26,7 @@ bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 	}
 
 	if (rmm.middle_ed <= maxEd) {
-		is_concord2(rch, lseq_len, rmm);
+		is_concord2(rch, rseq_len, rmm);
 	}
 
 	if (lmm.middle_ed > maxEd or rmm.middle_ed > maxEd)
@@ -57,17 +57,17 @@ bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 	int rerr = rmm.middle_ed;
 
 	if (l_extend) {
-		lmm.matched_len = lseq_len;
-		lmm.qspos = 1;
+		lmm.matched_len = lseq_len - lqspos + 1;
+		lmm.qspos = lqspos;
 		lmm.qepos = lseq_len;
-		llok = extend_chain_left(common_tid, lch, lseq, 0, MINLB, lmm, lerr);
+		llok = extend_chain_left(common_tid, lch, lseq, lqspos - 1, MINLB, lmm, lerr);
 	}
 
 	if (r_extend) {
-		rmm.matched_len = rseq_len;
-		rmm.qspos = 1;
+		rmm.matched_len = rseq_len - rqspos + 1;
+		rmm.qspos = rqspos;
 		rmm.qepos = rseq_len;
-		rlok = extend_chain_left(common_tid, rch, rseq, 0, (l_extend) ? lmm.spos : MINLB, rmm, rerr);
+		rlok = extend_chain_left(common_tid, rch, rseq, rqspos - 1, (l_extend) ? lmm.spos : MINLB, rmm, rerr);
 	}
 	
 	if (r_extend) {

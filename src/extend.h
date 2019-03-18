@@ -8,7 +8,7 @@
 #include "align.h"
 
 bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
-						int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm);
+						int lqspos, int rqspos, int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm);
 
 int extend_chain_both_sides(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir);
 

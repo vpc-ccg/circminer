@@ -379,7 +379,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 		if (forward_start <= reverse_end) {
 			//extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, forward_rec->seq, backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
 			success = extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, mate_pairs[i].common_tid, forward_rec->seq, 
-								backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
+								backward_rec->rcseq, 1, 1, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
 			
 			if (success) {
 				ConShift con_shift = gtf_parser.get_shift(contigNum, r1_mm.spos);
@@ -410,7 +410,7 @@ int process_mates(const chain_list& forward_chain, const Record* forward_rec, co
 		if (forward_start > reverse_start) {
 			//extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
 			success = extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, 
-								forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
+								forward_rec->seq, 1, 1, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
 			
 			if (success) {
 				ConShift con_shift = gtf_parser.get_shift(contigNum, r2_mm.spos);
