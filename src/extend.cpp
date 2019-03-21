@@ -262,6 +262,7 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 	map <AllCoord, AlignRes> align_res; 
 	
 	for (int i = 0; i < common_tid.size(); i++) {
+		// fprintf(stderr, "common_tid[%d] = %d -> %s\n", i, common_tid[i], gtf_parser.transcript_ids[contigNum][common_tid[i]].c_str());
 		extend_right_trans(common_tid[i], pos, ref_seq, ref_len, seq, seq_len, ed_th, ub, best_alignment, consecutive, align_res);
 		//best_alignment.print();
 		// if (best_alignment.qcovlen >= seq_len and best_alignment.ed == 0 and best_alignment.sclen == 0) {
@@ -521,7 +522,38 @@ void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 		}
 	}
 
-	if (covered >= qseq_len or (rspos + qseq_len - covered > ub) or (exon_len < qseq_len - covered))	// last argument is for when we reach end of transcript and read remains
+
+	if ((exon_len > 0) and (exon_len < qseq_len - covered) and (rspos + exon_len <= ub)) { // reached end of transcript and read remains
+		int remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
+
+		// search in map
+		AllCoord tmp_coord(rspos, exon_len, covered, remain_qseq_len);
+		map <AllCoord, AlignRes>::iterator it;
+		it = align_res.find(tmp_coord);
+		if (it != align_res.end()) {
+			vafprintf(2, stderr, "[Found] Middle Right Ext Going for %lu - %lu\n", rspos + 1, rspos + exon_len);
+			vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\n", 
+					it->second.pos, it->second.qcovlen, it->second.indel, it->second.ed);
+
+			if (curr.ed + it->second.ed > ed_th)
+				return;
+			else {
+				curr.update(it->second.ed, it->second.sclen, it->second.pos, it->second.indel, it->second.qcovlen);
+				best.update_right(curr);
+			}
+		}
+		else {
+			bool success = extend_right_middle(rspos, ref_seq, exon_len, qseq + covered, remain_qseq_len, 
+											ed_th, best, curr, exon_res);
+
+			align_res.insert(pair <AllCoord, AlignRes>(tmp_coord, exon_res));
+			if (! success)
+				return;
+		}
+		return;
+	}
+
+	if (covered >= qseq_len or (rspos + qseq_len - covered > ub) or (exon_len < qseq_len - covered))
 		return;
 
 	consecutive = (rspos == pos);
@@ -696,6 +728,36 @@ void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 			covered += exon_len - indel;
 			exon_len = 0;
 		}
+	}
+
+	if ((exon_len > 0) and (exon_len < qseq_len - covered) and (lepos >= lb + exon_len)) { // reached end of transcript and read remains
+		int remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
+
+		// search in map
+		AllCoord tmp_coord(lepos, exon_len, covered, remain_qseq_len);
+		map <AllCoord, AlignRes>::iterator it;
+		it = align_res.find(tmp_coord);
+		if (it != align_res.end()) {
+			vafprintf(2, stderr, "[Found] Middle Left Ext Going for %lu - %lu\n", lepos - exon_len, lepos - 1);
+			vafprintf(2, stderr, "lmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\n", 
+					it->second.pos, it->second.qcovlen, it->second.indel, it->second.ed);
+
+			if (curr.ed + it->second.ed > ed_th)
+				return;
+			else {
+				curr.update(it->second.ed, it->second.sclen, it->second.pos, it->second.indel, it->second.qcovlen);
+				best.update_left(curr);
+			}
+		}
+		else {
+			bool success = extend_left_middle(lepos, ref_seq, exon_len, qseq + qseq_len - covered - remain_qseq_len, remain_qseq_len, 
+											ed_th, best, curr, exon_res);
+
+			align_res.insert(pair <AllCoord, AlignRes>(tmp_coord, exon_res));
+			if (! success)
+				return;
+		}
+		return;
 	}
 
 	if (covered >= qseq_len or (lepos < lb + qseq_len - covered) or (exon_len < qseq_len - covered))
