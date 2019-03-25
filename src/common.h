@@ -331,6 +331,7 @@ struct CircRes {
 	string rname;
 	uint32_t spos;
 	uint32_t epos;
+	int type;
 
 	void set_bp (uint32_t sp, uint32_t ep);
 

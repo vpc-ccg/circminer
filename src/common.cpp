@@ -407,11 +407,14 @@ bool CircRes::operator < (const CircRes& r) const {
 		return chr < r.chr;
 	if (spos != r.spos)
 		return spos < r.spos;
-	return epos < r.epos;
+	if (epos != r.epos)
+		return epos < r.epos;
+	return type < r.type;
 }
 
 bool CircRes::operator == (const CircRes& r) const {
 	return (chr == r.chr) and (spos == r.spos) and (epos == r.epos);
+	// return (chr == r.chr) and (spos == r.spos) and (epos == r.epos) and (type == r.type);
 }
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\

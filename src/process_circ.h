@@ -15,9 +15,10 @@
 #define CR 20	// Circular RNA
 #define NCR 21	// Novel Circular RNA
 #define MCR 22	// Missed Circular RNA
-#define UD 3	// Undefined
+#define UD 30	// Undefined
+#define NF 40	// Not found
 
-#define BPRES 4
+#define BPRES 5
 
 using namespace std;
 
@@ -43,6 +44,7 @@ private:
 	vector <uint32_t> gids;
 
 	vector <CircRes> circ_res;
+	vector <string> circ_type;
 
 public:
 	ProcessCirc (int last_round_num, int ws);

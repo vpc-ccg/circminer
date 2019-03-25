@@ -1,6 +1,8 @@
 #include <vector>
 #include <cstring>
 #include <algorithm>
+#include <utility>
+#include <cstdlib>
 
 #include "process_circ.h"
 #include "gene_annotation.h"
@@ -13,6 +15,8 @@
 
 #define BINSIZE 5000
 #define MAXHTLISTSIZE 5
+
+typedef pair<uint32_t, int> pu32i;
 
 void set_mm(const chain_t& ch, uint32_t qspos, int rlen, int dir, MatchedMate& mm);
 
@@ -54,6 +58,14 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	bc2.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
 	for (int i = 0; i < BESTCHAINLIM; i++)
 		bc2.chains[i].frags = (fragment_t*) malloc(max_kmer_cnt * sizeof(fragment_t));
+
+	// circ_type.push_back("SingleTranscriptomeCircRNA");
+	// circ_type.push_back("MultiTranscriptomeCircRNA");
+	// circ_type.push_back("NovelCircRNA");
+
+	circ_type.push_back("STC");
+	circ_type.push_back("MTC");
+	circ_type.push_back("NC");
 }
 
 ProcessCirc::~ProcessCirc (void) {
@@ -256,6 +268,8 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 	check_removables(mr.spos_r1);
 	RegionalHashTable* regional_ht;
 
+	CircRes best_cr;
+	best_cr.type = NF;
 	for (int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
 		char gene_seq[gene_len + 1];
@@ -287,16 +301,20 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial, cr);
 			fprintf(stderr, "%d\n", type);
 			
-			if (type == CR) {
-				cr.chr = con_shift.contig;
-				cr.rname = current_record1->rname;
-				cr.spos -= con_shift.shift;
-				cr.epos -= con_shift.shift;
-				circ_res.push_back(cr);
-				break;	// stop processing next genes
+			if (type >= CR and type <= MCR and type < best_cr.type) {
+				best_cr.chr = con_shift.contig;
+				best_cr.rname = current_record1->rname;
+				best_cr.spos = cr.spos - con_shift.shift;
+				best_cr.epos = cr.epos - con_shift.shift;
+				best_cr.type = type;
+				if (type == CR)
+					break;	// stop processing next genes
 			}
 		}
 	}
+
+	if (best_cr.type >= CR and best_cr.type <= MCR)
+		circ_res.push_back(best_cr);
 }
 
 void ProcessCirc::call_circ_double_split(Record* current_record1, Record* current_record2) {
@@ -342,6 +360,8 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 	check_removables(mr.spos_r1);
 	RegionalHashTable* regional_ht;
 
+	CircRes best_cr;
+	best_cr.type = NF;
 	for (int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
 		char gene_seq[gene_len + 1];
@@ -397,17 +417,21 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 			CircRes cr;
 			int type = check_split_map(mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, cr);
 			fprintf(stderr, "%d\n", type);
-			
-			if (type == CR) {
-				cr.chr = con_shift.contig;
-				cr.rname = current_record1->rname;
-				cr.spos -= con_shift.shift;
-				cr.epos -= con_shift.shift;
-				circ_res.push_back(cr);
-				break;	// stop processing next genes
+
+			if (type >= CR and type <= MCR and type < best_cr.type) {
+				best_cr.chr = con_shift.contig;
+				best_cr.rname = current_record1->rname;
+				best_cr.spos = cr.spos - con_shift.shift;
+				best_cr.epos = cr.epos - con_shift.shift;
+				best_cr.type = type;
+				if (type == CR)
+					break;	// stop processing next genes
 			}
 		}
 	}
+
+	if (best_cr.type >= CR and best_cr.type <= MCR)
+		circ_res.push_back(best_cr);
 }
 
 void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len) {
@@ -663,41 +687,52 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 			overlap_to_spos(mm_r1_l);
 			overlap_to_epos(mm_r1_r);
 
-			if (mm_r1_l.exons_spos == NULL or mm_r1_r.exons_epos == NULL)
+			if (mm_r1_l.exons_spos == NULL or mm_r1_r.exons_epos == NULL) {
+				cr.set_bp(mm_r1_l.spos - mm_r1_l.sclen_left, mm_r1_r.epos + mm_r1_r.sclen_right);
 				return MCR;
+			}
 
-			vector <uint32_t> start_tids;
+			vector <pu32i> start_tids;
+			int diff;
 			for (int i = 0; i < mm_r1_l.exons_spos->seg_list.size(); ++i) {
-				if (mm_r1_l.spos - mm_r1_l.sclen_left == mm_r1_l.exons_spos->seg_list[i].start) {
+				diff = mm_r1_l.spos - mm_r1_l.sclen_left - mm_r1_l.exons_spos->seg_list[i].start;
+				if (abs(diff) <= BPRES) {
 					for (int j = 0; j < mm_r1_l.exons_spos->seg_list[i].trans_id.size(); ++j) {
-						start_tids.push_back(mm_r1_l.exons_spos->seg_list[i].trans_id[j]);
+						start_tids.push_back(make_pair(mm_r1_l.exons_spos->seg_list[i].trans_id[j], diff));
 					}
 				}
 			}
 
-			vector <uint32_t> end_tids;
+			vector <pu32i> end_tids;
 			for (int i = 0; i < mm_r1_r.exons_epos->seg_list.size(); ++i) {
-				if (mm_r1_r.epos + mm_r1_r.sclen_right == mm_r1_r.exons_epos->seg_list[i].end) {
+				diff = mm_r1_r.epos + mm_r1_r.sclen_right - mm_r1_r.exons_epos->seg_list[i].end;
+				if (abs(diff) <= BPRES) {
 					for (int j = 0; j < mm_r1_r.exons_epos->seg_list[i].trans_id.size(); ++j) {
-						end_tids.push_back(mm_r1_r.exons_epos->seg_list[i].trans_id[j]);
+						end_tids.push_back(make_pair(mm_r1_r.exons_epos->seg_list[i].trans_id[j], diff));
 					}
 				}
 			}
 
-			for (int i = 0; i < start_tids.size(); ++i)
-				for (int j = 0; j < end_tids.size(); ++j)
-					if (start_tids[i] == end_tids[j]) {
-						cr.set_bp(mm_r1_l.spos - mm_r1_l.sclen_left, mm_r1_r.epos + mm_r1_r.sclen_right);
+			int sdiff, ediff;
+			for (int i = 0; i < start_tids.size(); ++i) {
+				for (int j = 0; j < end_tids.size(); ++j) {
+					sdiff = start_tids[i].second;
+					ediff = end_tids[j].second;
+					if (start_tids[i].first == end_tids[j].first and sdiff + ediff == 0) {
+						cr.set_bp(mm_r1_l.spos - mm_r1_l.sclen_left - sdiff, mm_r1_r.epos + mm_r1_r.sclen_right - ediff);
 						return CR;
 					}
+				}
+			}
 
-
+			cr.set_bp(mm_r1_l.spos - mm_r1_l.sclen_left, mm_r1_r.epos + mm_r1_r.sclen_right);
 			if (start_tids.size() > 0 and end_tids.size() > 0)
 				return NCR;
 
 			return MCR;
 		}
 	}
+	return UD;
 }
 
 // full_mm -> not split mate
@@ -732,35 +767,45 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 			overlap_to_spos(split_mm_left);
 			overlap_to_epos(split_mm_left);
 
-			if (split_mm_left.exons_epos == NULL or split_mm_right.exons_spos == NULL)
+			if (split_mm_left.exons_epos == NULL or split_mm_right.exons_spos == NULL) {
+				cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left, split_mm_left.epos + split_mm_left.sclen_right);
 				return MCR;
+			}
 
-			vector <uint32_t> end_tids;
+			vector <pu32i> end_tids;
+			int diff;
 			for (int i = 0; i < split_mm_left.exons_epos->seg_list.size(); ++i) {
-				if (split_mm_left.epos + split_mm_left.sclen_right == split_mm_left.exons_epos->seg_list[i].end) {
+				diff = split_mm_left.epos + split_mm_left.sclen_right - split_mm_left.exons_epos->seg_list[i].end;
+				if (abs(diff) <= BPRES) {
 					for (int j = 0; j < split_mm_left.exons_epos->seg_list[i].trans_id.size(); ++j) {
-						end_tids.push_back(split_mm_left.exons_epos->seg_list[i].trans_id[j]);
+						end_tids.push_back(make_pair(split_mm_left.exons_epos->seg_list[i].trans_id[j], diff));
 					}
 				}
 			}
 
-			vector <uint32_t> start_tids;
+			vector <pu32i> start_tids;
 			for (int i = 0; i < split_mm_right.exons_spos->seg_list.size(); ++i) {
-				if (split_mm_right.spos - split_mm_right.sclen_left == split_mm_right.exons_spos->seg_list[i].start) {
+				diff = split_mm_right.spos - split_mm_right.sclen_left - split_mm_right.exons_spos->seg_list[i].start;
+				if (abs(diff) <= BPRES) {
 					for (int j = 0; j < split_mm_right.exons_spos->seg_list[i].trans_id.size(); ++j) {
-						start_tids.push_back(split_mm_right.exons_spos->seg_list[i].trans_id[j]);
+						start_tids.push_back(make_pair(split_mm_right.exons_spos->seg_list[i].trans_id[j], diff));
 					}
 				}
 			}
 
-			for (int i = 0; i < start_tids.size(); ++i)
-				for (int j = 0; j < end_tids.size(); ++j)
-					if (start_tids[i] == end_tids[j]) {
-						cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left, split_mm_left.epos + split_mm_left.sclen_right);
+			int sdiff, ediff;
+			for (int i = 0; i < start_tids.size(); ++i) {
+				for (int j = 0; j < end_tids.size(); ++j) {
+					sdiff = start_tids[i].second;
+					ediff = end_tids[j].second;
+					if (start_tids[i].first == end_tids[j].first and sdiff + ediff == 0) {
+						cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left - sdiff, split_mm_left.epos + split_mm_left.sclen_right - ediff);
 						return CR;
 					}
+				}
+			}
 
-
+			cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left, split_mm_left.epos + split_mm_left.sclen_right);
 			if (start_tids.size() > 0 and end_tids.size() > 0)
 				return NCR;
 
@@ -780,17 +825,32 @@ void ProcessCirc::report_events (void) {
 	sort(circ_res.begin(), circ_res.end());
 	int cnt = 1;
 	CircRes last = circ_res[0];
+	vector <string> rnames;
+	rnames.push_back(circ_res[0].rname);
 	for (int i = 1; i < circ_res.size(); ++i) {
 		if (circ_res[i] == last) {
 			cnt++;
+			rnames.push_back(circ_res[i].rname);
 		}
 		else {
-			fprintf(report_file, "%s\t%u\t%u\t%d\n", last.chr.c_str(), last.spos, last.epos, cnt);
+			if (last.type == CR or cnt > 1) {	// won't print novel events with single read support
+				fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t", last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str());
+				for (int j = 0; j < rnames.size() - 1; ++j)
+					fprintf(report_file, "%s,", rnames[j].c_str());
+				fprintf(report_file, "%s\n", rnames[rnames.size() - 1].c_str());
+			}
 			cnt = 1;
 			last = circ_res[i];
+			rnames.clear();
+			rnames.push_back(circ_res[i].rname);
 		}
 	}
-	fprintf(report_file, "%s\t%u\t%u\t%d\n", last.chr.c_str(), last.spos, last.epos, cnt);
+	if (last.type == CR or cnt > 1) {
+		fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t", last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str());
+		for (int j = 0; j < rnames.size() - 1; ++j)
+			fprintf(report_file, "%s,", rnames[j].c_str());
+		fprintf(report_file, "%s\n", rnames[rnames.size() - 1].c_str());
+	}
 }
 
 void ProcessCirc::open_report_file (void) {
