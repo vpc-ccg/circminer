@@ -413,6 +413,7 @@ bool CircRes::operator < (const CircRes& r) const {
 }
 
 bool CircRes::operator == (const CircRes& r) const {
+	// return (chr == r.chr) and (abs(int(spos - r.spos)) <= BPRES) and (abs(int(epos - r.epos)) <= BPRES);
 	return (chr == r.chr) and (spos == r.spos) and (epos == r.epos);
 	// return (chr == r.chr) and (spos == r.spos) and (epos == r.epos) and (type == r.type);
 }

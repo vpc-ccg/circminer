@@ -38,6 +38,8 @@ using namespace std;
 #define MINKMER 15
 #define MAXDISCRDTLEN 20000
 
+#define BPRES 5
+
 #define EDTH 4
 #define INDELTH 3
 #define SOFTCLIPTH 7

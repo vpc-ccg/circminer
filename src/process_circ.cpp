@@ -466,7 +466,11 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, RegionalHashTable* reg
 void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, 
 							uint32_t gene_len, uint32_t shift, chain_list& bc) {
 	int seq_len = qepos - qspos + 1;
-	int kmer_cnt = ((qepos - qspos + 1) - window_size) / step + 1;
+	if (seq_len < window_size) {
+		bc.best_chain_count = 0;
+		return;
+	}
+	int kmer_cnt = (seq_len - window_size) / step + 1;
 	GIMatchedKmer fl[kmer_cnt+1];
 
 	int l = 0;
@@ -490,7 +494,6 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 	}
 
 	kmer_cnt = l;
-	//printf("kmer cnt: %d\n", kmer_cnt);
 
 	chain_seeds_sorted_kbest2(qepos, fl, bc, window_size, kmer_cnt, shift);
 

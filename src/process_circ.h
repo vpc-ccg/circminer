@@ -18,8 +18,6 @@
 #define UD 30	// Undefined
 #define NF 40	// Not found
 
-#define BPRES 5
-
 using namespace std;
 
 class ProcessCirc {

@@ -310,6 +310,9 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 								int kmer, int kmer_cnt, int shift) {
 	best_chain.best_chain_count = 0;
 
+	if (kmer_cnt <= 0)
+		return;
+	
 	int max_frag_cnt = seedLim;
 	chain_cell dp[kmer_cnt][max_frag_cnt + 1];
 
