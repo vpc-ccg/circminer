@@ -70,7 +70,7 @@ struct AlignRes {
 struct AlignCandid{
 	int ed;
 	int sclen;
-	int indel;
+	int indel;	// > 0: (ins) -> extra consumption on read, < 0: (del) -> fewer consumption on read
 	int penalty;
 
 	AlignCandid (int e, int s, int i) : ed(e), sclen(s), indel(i), penalty(s + 2*e) {}

@@ -802,6 +802,8 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 					sdiff = start_tids[i].second;
 					ediff = end_tids[j].second;
 					if (start_tids[i].first == end_tids[j].first and sdiff + ediff == 0) {
+						// fprintf(stderr, "(spos, left_sc, sdiff): (%d, %d, %d) - (epos, right_sc, ediff): (%d, %d, %d)\n", 
+										// split_mm_right.spos, split_mm_right.sclen_left, sdiff, split_mm_left.epos, split_mm_left.sclen_right, ediff);
 						cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left - sdiff, split_mm_left.epos + split_mm_left.sclen_right - ediff);
 						return CR;
 					}

@@ -139,7 +139,7 @@ int extend_chain_both_sides(const chain_t& ch, char* seq, int seq_len, MatchedMa
 
 	err_left = best_alignment_left.ed;
 	sclen_left = best_alignment_left.sclen;
-	remain_beg -= best_alignment_left.rcovlen;
+	remain_beg -= best_alignment_left.qcovlen;
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
 	int remain_end = seq_len - (ch.frags[ch.chain_len-1].qpos + ch.frags[ch.chain_len-1].len);
@@ -154,7 +154,7 @@ int extend_chain_both_sides(const chain_t& ch, char* seq, int seq_len, MatchedMa
 
 	err_right = best_alignment.ed;
 	sclen_right = best_alignment.sclen;
-	remain_end -= best_alignment.rcovlen;
+	remain_end -= best_alignment.qcovlen;
 
 	mr.spos = lm_pos;
 	mr.epos = rm_pos;
@@ -200,7 +200,7 @@ bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, 
 
 	int sclen_right = best_alignment.sclen;
 	int err_right = best_alignment.ed;
-	remain_end -= best_alignment.rcovlen;
+	remain_end -= best_alignment.qcovlen;
 
 	mr.epos = rm_pos;
 	mr.matched_len -= (right_ok)? sclen_right : remain_end;
@@ -229,7 +229,7 @@ bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, c
 	
 	int sclen_left = best_alignment.sclen;
 	int err_left = best_alignment.ed;
-	remain_beg -= best_alignment.rcovlen;
+	remain_beg -= best_alignment.qcovlen;
 
 	mr.spos = lm_pos;
 	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
@@ -275,7 +275,7 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 	int min_ed = best_alignment.ed;
 	int sclen_best = best_alignment.sclen;
 
-	//vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\tCovered len: %d\n", min_ed, best_rmpos, best_alignment.rcovlen);
+	//vafprintf(2, stderr, "Min Edit Dist: %d\tNew RM POS: %u\tCovered len: %d\n", min_ed, best_rmpos, best_alignment.qcovlen);
 
 	if (min_ed <= ed_th) {
 		pos = best_rmpos - sclen_best;
@@ -345,7 +345,7 @@ bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, 
 	int min_ed = best_alignment.ed;
 	int sclen_best = best_alignment.sclen;
 
-	//vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\tCovered len: %d\n", min_ed, lmpos_best, best_alignment.rcovlen);
+	//vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\tCovered len: %d\n", min_ed, lmpos_best, best_alignment.qcovlen);
 
 	if (min_ed <= ed_th) {
 		pos = lmpos_best + sclen_best;
@@ -395,15 +395,16 @@ bool extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* q
 	int seq_remain = minM(exon_len + bandWidth, qseq_len);
 	int edit_dist = alignment.local_alignment_right(qseq, seq_remain, ref_seq, exon_len, indel);
 
-	uint32_t new_rmpos = pos + exon_len - indel;
-	exon_res.set(new_rmpos, edit_dist, 0, indel, exon_len - indel);
+	// uint32_t new_rmpos = pos + exon_len - indel;
+	uint32_t new_rmpos = pos + exon_len;
+	exon_res.set(new_rmpos, edit_dist, 0, -1 * indel, exon_len - indel);
 
 	vafprintf(2, stderr, "rmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\n", 
 							new_rmpos, exon_len, indel, edit_dist);
 	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\n", ref_seq, qseq);
 
 	if (curr.ed + edit_dist <= ed_th) {
-		curr.update(edit_dist, 0, new_rmpos, indel, exon_len - indel);
+		curr.update(edit_dist, 0, new_rmpos, -1 * indel, exon_len - indel);
 		best.update_right(curr);
 		return true;
 	}
@@ -508,7 +509,7 @@ void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 			//
 
 			remain_ref_len -= exon_len;
-			covered += exon_len - indel;
+			covered += exon_len + indel;
 			exon_len = 0;
 			curr_exon_start_ind = i + it_ind_start;
 			curr_exon_end_ind = i + it_ind_start;
@@ -593,15 +594,16 @@ bool extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qs
 	int seq_remain = minM(exon_len + bandWidth, qseq_len);
 	int edit_dist = alignment.local_alignment_left(qseq, seq_remain, ref_seq, exon_len, indel);
 
-	uint32_t new_lmpos = pos - exon_len + indel;
-	exon_res.set(new_lmpos, edit_dist, 0, indel, exon_len - indel);
+	// uint32_t new_lmpos = pos - exon_len + indel;
+	uint32_t new_lmpos = pos - exon_len;
+	exon_res.set(new_lmpos, edit_dist, 0, -1 * indel, exon_len - indel);
 
 	vafprintf(2, stderr, "lmpos: %lu\textend len: %d\tindel: %d\tedit dist: %d\n", 
 							new_lmpos, exon_len, indel, edit_dist);
 	vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\n", ref_seq, qseq);
 
 	if (curr.ed + edit_dist <= ed_th) {
-		curr.update(edit_dist, 0, new_lmpos, indel, exon_len - indel);
+		curr.update(edit_dist, 0, new_lmpos, -1 * indel, exon_len - indel);
 		best.update_left(curr);
 		return true;
 	}
@@ -725,7 +727,7 @@ void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 			//
 
 			remain_ref_len -= exon_len;
-			covered += exon_len - indel;
+			covered += exon_len + indel;
 			exon_len = 0;
 		}
 	}
