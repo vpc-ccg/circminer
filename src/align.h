@@ -37,26 +37,27 @@ struct AlignRes {
 
 	void update_right (AlignRes& r) {
 		if (r.qcovlen > qcovlen) {
-			if (r.ed <= maxEd and r.sclen <= maxSc) {
+			if (r.ed <= maxEd and r.sclen <= maxSc and 2 * (r.ed - ed) < (r.qcovlen - qcovlen)) {
 				this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen);
 			}
 		}
-		else if (r.qcovlen == qcovlen)
+		else if (r.qcovlen == qcovlen) {
 			if ((r.ed < ed) or (r.ed == ed and r.sclen < sclen) or (r.ed == ed and r.sclen == sclen and r.pos < pos)) {	
-				// less hamming distance, then less soft clip, then smaller junction distance
+				// less edit distance, then less soft clip, then smaller junction distance
 				this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen);
 			}
+		}
 	}
 
 	void update_left (AlignRes& r) {
 		if (r.qcovlen > qcovlen) {
-			if (r.ed <= maxEd and r.sclen <= maxSc) {
+			if (r.ed <= maxEd and r.sclen <= maxSc and 2 * (r.ed - ed) < (r.qcovlen - qcovlen)) {
 				this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen);
 			}
 		}
 		else if (r.qcovlen == qcovlen) {
 			if ((r.ed < ed) or (r.ed == ed and r.sclen < sclen) or (r.ed == ed and r.sclen == sclen and r.pos > pos)) {	
-				// less hamming distance, then less soft clip, then smaller junction distance
+				// less edit distance, then less soft clip, then smaller junction distance
 				this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen);
 			}
 		}
