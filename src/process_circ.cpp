@@ -770,30 +770,57 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 			overlap_to_spos(split_mm_left);
 			overlap_to_epos(split_mm_left);
 
-			if (split_mm_left.exons_epos == NULL or split_mm_right.exons_spos == NULL) {
-				cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left, split_mm_left.epos + split_mm_left.sclen_right);
-				return MCR;
-			}
+			// if (split_mm_left.exons_epos == NULL or split_mm_right.exons_spos == NULL) {
+			// 	cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left, split_mm_left.epos + split_mm_left.sclen_right);
+			// 	return MCR;
+			// }
 
 			vector <pu32i> end_tids;
 			int diff;
-			for (int i = 0; i < split_mm_left.exons_epos->seg_list.size(); ++i) {
-				diff = split_mm_left.epos + split_mm_left.sclen_right - split_mm_left.exons_epos->seg_list[i].end;
-				if (abs(diff) <= BPRES) {
-					for (int j = 0; j < split_mm_left.exons_epos->seg_list[i].trans_id.size(); ++j) {
-						end_tids.push_back(make_pair(split_mm_left.exons_epos->seg_list[i].trans_id[j], diff));
+			int ind_epos = split_mm_left.exon_ind_epos;
+			const IntervalInfo<UniqSeg>* curr_seg;
+			curr_seg = gtf_parser.get_interval(ind_epos);
+			while (split_mm_left.spos < curr_seg->epos) {
+				for (int i = 0; i < curr_seg->seg_list.size(); ++i) {
+					diff = split_mm_left.epos + split_mm_left.sclen_right - curr_seg->seg_list[i].end;
+					
+					// fprintf(stderr, "\nend transcripts: ");
+					// for (int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j)
+					// 	fprintf(stderr, "%s, ", gtf_parser.transcript_ids[contigNum][curr_seg->seg_list[i].trans_id[j]].c_str());
+					// fprintf(stderr, "\n\t(epos, right_sc, exon_end, ediff): (%d, %d, %d, %d)\n\n", 
+					// 				split_mm_left.epos, split_mm_left.sclen_right, curr_seg->seg_list[i].end, diff);
+					
+					if (abs(diff) <= BPRES) {
+						for (int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j) {
+							end_tids.push_back(make_pair(curr_seg->seg_list[i].trans_id[j], diff));
+						}
 					}
 				}
+				--ind_epos;
+				curr_seg = gtf_parser.get_interval(ind_epos);
 			}
 
 			vector <pu32i> start_tids;
-			for (int i = 0; i < split_mm_right.exons_spos->seg_list.size(); ++i) {
-				diff = split_mm_right.spos - split_mm_right.sclen_left - split_mm_right.exons_spos->seg_list[i].start;
-				if (abs(diff) <= BPRES) {
-					for (int j = 0; j < split_mm_right.exons_spos->seg_list[i].trans_id.size(); ++j) {
-						start_tids.push_back(make_pair(split_mm_right.exons_spos->seg_list[i].trans_id[j], diff));
+			int ind_spos = split_mm_right.exon_ind_spos;
+			curr_seg = gtf_parser.get_interval(ind_spos);
+			while (split_mm_right.epos > curr_seg->spos) {
+				for (int i = 0; i < curr_seg->seg_list.size(); ++i) {
+					diff = split_mm_right.spos - split_mm_right.sclen_left - curr_seg->seg_list[i].start;
+					
+					// fprintf(stderr, "\nstart transcripts: ");
+					// for (int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j)
+					// 	fprintf(stderr, "%s, ", gtf_parser.transcript_ids[contigNum][curr_seg->seg_list[i].trans_id[j]].c_str());
+					// fprintf(stderr, "\n\t(spos, left_sc, exon_beg, sdiff): (%d, %d, %d, %d)\n\n", 
+					// 				split_mm_right.spos, split_mm_right.sclen_left, curr_seg->seg_list[i].start, diff);
+					
+					if (abs(diff) <= BPRES) {
+						for (int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j) {
+							start_tids.push_back(make_pair(curr_seg->seg_list[i].trans_id[j], diff));
+						}
 					}
 				}
+				++ind_spos;
+				curr_seg = gtf_parser.get_interval(ind_spos);
 			}
 
 			int sdiff, ediff;
@@ -801,9 +828,11 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 				for (int j = 0; j < end_tids.size(); ++j) {
 					sdiff = start_tids[i].second;
 					ediff = end_tids[j].second;
-					if (start_tids[i].first == end_tids[j].first and sdiff + ediff == 0) {
-						// fprintf(stderr, "(spos, left_sc, sdiff): (%d, %d, %d) - (epos, right_sc, ediff): (%d, %d, %d)\n", 
-										// split_mm_right.spos, split_mm_right.sclen_left, sdiff, split_mm_left.epos, split_mm_left.sclen_right, ediff);
+					if (start_tids[i].first == end_tids[j].first)
+						// fprintf(stderr, "tid: %d -> %s - (spos, left_sc, sdiff): (%d, %d, %d) - (epos, right_sc, ediff): (%d, %d, %d)\n", 
+										// start_tids[i].first, gtf_parser.transcript_ids[contigNum][start_tids[i].first].c_str(), split_mm_right.spos, split_mm_right.sclen_left, sdiff, split_mm_left.epos, split_mm_left.sclen_right, ediff);
+					// if (start_tids[i].first == end_tids[j].first and sdiff + ediff == 0) {
+					if (start_tids[i].first == end_tids[j].first and sdiff == ediff) {
 						cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left - sdiff, split_mm_left.epos + split_mm_left.sclen_right - ediff);
 						return CR;
 					}

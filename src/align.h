@@ -36,8 +36,18 @@ struct AlignRes {
 	}
 
 	void update_right (AlignRes& r) {
+		// fprintf(stderr, "Right UPDATE--->\n");
+		// print();
+		// r.print();
 		if (r.qcovlen > qcovlen) {
-			if (r.ed <= maxEd and r.sclen <= maxSc and 2 * (r.ed - ed) < (r.qcovlen - qcovlen)) {
+			// int pre_ed = (qcovlen == 0) ? 0 : ed;
+			int pre_ed = ed;
+			if (r.ed <= maxEd and r.sclen <= maxSc and 2 * (r.ed - pre_ed) < (r.qcovlen - qcovlen)) {
+				this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen);
+			}
+		}
+		else if (r.qcovlen < qcovlen) {
+			if (r.ed <= maxEd and r.sclen <= maxSc and 2 * (ed - r.ed) >= (qcovlen - r.qcovlen)) {
 				this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen);
 			}
 		}
@@ -50,8 +60,18 @@ struct AlignRes {
 	}
 
 	void update_left (AlignRes& r) {
+		// fprintf(stderr, "Left UPDATE--->\n");
+		// print();
+		// r.print();
 		if (r.qcovlen > qcovlen) {
-			if (r.ed <= maxEd and r.sclen <= maxSc and 2 * (r.ed - ed) < (r.qcovlen - qcovlen)) {
+			// int pre_ed = (qcovlen == 0) ? 0 : ed;
+			int pre_ed = ed;
+			if (r.ed <= maxEd and r.sclen <= maxSc and 2 * (r.ed - pre_ed) < (r.qcovlen - qcovlen)) {
+				this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen);
+			}
+		}
+		else if (r.qcovlen < qcovlen) {
+			if (r.ed <= maxEd and r.sclen <= maxSc and 2 * (ed - r.ed) >= (qcovlen - r.qcovlen)) {
 				this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen);
 			}
 		}
