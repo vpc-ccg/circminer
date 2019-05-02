@@ -43,7 +43,6 @@ int parse_command( int argc, char *argv[] )
 {
 	int opt;
 	int opt_index;
-	int gtf_flag = 0;
 
 	static struct option long_opt[] = 
 	{

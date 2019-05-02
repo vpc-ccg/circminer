@@ -79,14 +79,12 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 	int max_best = BESTCHAINLIM;
 	int best_count = 0;
 	double best_score = -1;
-	chain_cell best_indices[max_best];
 
 	int distr, distt;
 	int genome_dist;
 	int trans_dist;
 	int read_dist;
 
-	double a_score, b_score;
 	double temp_score;
 
 	int i, j;
@@ -214,6 +212,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 
 	// Finding best score
 	
+	// chain_cell best_indices[max_best];
 	//for (ii = kmer_cnt - 1; ii >= 0; ii--) {
 	//	cur_mk = fragment_list + ii;
 	//	for (i = 0; i < cur_mk->frag_count; i++) {
@@ -319,14 +318,12 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 	int max_best = BESTCHAINLIM;
 	int best_count = 0;
 	double best_score = -1;
-	chain_cell best_indices[max_best];
 
 	int distr, distt;
 	int genome_dist;
 	int trans_dist;
 	int read_dist;
 
-	double a_score, b_score;
 	double temp_score;
 
 	int i, j;
@@ -451,6 +448,7 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 
 	// Finding best score
 	
+	// chain_cell best_indices[max_best];
 	//for (ii = kmer_cnt - 1; ii >= 0; ii--) {
 	//	cur_mk = fragment_list + ii;
 	//	for (i = 0; i < cur_mk->frag_count; i++) {

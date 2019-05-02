@@ -27,7 +27,7 @@ using namespace std;
 #define minM(A,B) (((A) < (B)) ? (A) : (B))
 
 #define MAXLINESIZE 400
-#define FILE_NAME_LENGTH 1000
+// #define FILE_NAME_LENGTH 1000
 #define LINELOG	100000
 #define ASCISIZE 128
 #define INF 1e9
@@ -158,10 +158,10 @@ inline ostream& operator<<(ostream& os, const GeneInfo& gi);
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 struct UniqSeg {
-	uint32_t gene_id;
 	uint32_t start;
 	uint32_t end;
 	uint32_t next_exon_beg;
+	uint32_t gene_id;
 	vector<uint32_t> trans_id;
 
 	friend ostream& operator<<(ostream& os, const UniqSeg& us);

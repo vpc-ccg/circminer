@@ -132,7 +132,6 @@ int extend_chain_both_sides(const chain_t& ch, char* seq, int seq_len, MatchedMa
 	AlignRes best_alignment_left(MINLB);
 	vector <uint32_t> empty;
 
-	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
 		left_ok = extend_left(empty, seq, lm_pos, remain_beg, maxEd - mr.middle_ed, MINLB, best_alignment_left);
 	}
@@ -147,7 +146,6 @@ int extend_chain_both_sides(const chain_t& ch, char* seq, int seq_len, MatchedMa
 	right_ok = (remain_end <= 0);
 	AlignRes best_alignment(MAXUB);
 
-	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
 		right_ok = extend_right(empty, seq + seq_len - remain_end, rm_pos, remain_end, maxEd - mr.middle_ed - err_left, MAXUB, best_alignment);
 	}
@@ -193,7 +191,6 @@ bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, 
 	right_ok = (remain_end <= 0);
 	AlignRes best_alignment(ub);
 
-	char remain_str_end[remain_end+5];
 	if (remain_end > 0) {
 		right_ok = extend_right(common_tid, seq + seq_len - remain_end, rm_pos, remain_end, maxEd - err, ub, best_alignment);
 	}
@@ -222,7 +219,6 @@ bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, c
 	left_ok = (remain_beg <= 0);
 	AlignRes best_alignment(lb);
 	
-	char remain_str_beg[remain_beg+5];
 	if (remain_beg > 0) {
 		left_ok = extend_left(common_tid, seq, lm_pos, remain_beg, maxEd - err, lb, best_alignment);
 	}

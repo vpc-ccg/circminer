@@ -11,11 +11,11 @@ struct AlignRes {
 	int ed;
 	int sclen;
 	int indel;
-	int rcovlen;	// on ref
 	int qcovlen;	// on read
+	int rcovlen;	// on ref
 
 	AlignRes (uint32_t p, int e, int s, int i, int qc) : pos(p), ed(e), sclen(s), indel(i), qcovlen(qc), rcovlen(qc - i) {}
-	AlignRes (uint32_t p) : pos(p), ed(0), sclen(0), indel(0), rcovlen(0), qcovlen(0) {}
+	AlignRes (uint32_t p) : pos(p), ed(0), sclen(0), indel(0), qcovlen(0), rcovlen(0) {}
 
 	void set (uint32_t p, int e, int s, int i, int qc) {
 		this->pos = p;

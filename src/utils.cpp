@@ -189,7 +189,6 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 		return false;
 
 	int32_t tlen;
-	int32_t intron_gap;
 	bool on_cdna;
 	on_cdna = (sm.exons_spos != NULL) and (sm.exons_epos != NULL) and (lm.exons_spos != NULL) and (lm.exons_epos != NULL);
 	if (sm.exons_spos == NULL or lm.exons_spos == NULL) {

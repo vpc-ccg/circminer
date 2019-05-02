@@ -55,7 +55,6 @@ int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk
 		return 0;
 
 	GeneralIndex *it = getCandidates(hv);
-	uint32_t i, j;
 
 	if (it == NULL) {
 		return 0;
@@ -170,8 +169,6 @@ bool reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int skip, int ll_step, GIMatchedKmer* mk_res, int& em_count) {
 	int i, j;
 	int occ;
-	int dir;
-	int sum = 0;
 	int invalid_kmer = 0;
 	int valid_kmer = 0;
 	int valid_kmer_ind = 0;

@@ -266,7 +266,6 @@ void Alignment::global_banded_alignment(char* s, int n, char* t, int m, int w) {
 	}
 
 	int i, j;
-	int penalty;
 	//memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
 	// for (i = 0; i <= n; i++)
 	// 	for (j = 0; j <= m; j++)
@@ -297,7 +296,6 @@ void Alignment::global_banded_alignment(char* s, int n, char* t, int m, int w) {
 		}
 	}
 
-	int mx = minM(n - w, m);
 	for (j = w + 1; j <= n - w; j++) {
 		for (i = j - w; i <= j + w; i++) {
 			dp[i][j] = dp[i-1][j-1] + diff_ch[s[i-1]][t[j-1]];
@@ -328,7 +326,6 @@ void Alignment::global_banded_alignment_reverse(char* s, int n, char* t, int m, 
 	}
 
 	int i, j;
-	int penalty;
 	//memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
 	// for (i = 0; i <= n; i++)
 	// 	for (j = 0; j <= m; j++)
@@ -359,7 +356,6 @@ void Alignment::global_banded_alignment_reverse(char* s, int n, char* t, int m, 
 		}
 	}
 
-	int mx = minM(n - w, m);
 	for (j = w + 1; j <= n - w; j++) {
 		for (i = j - w; i <= j + w; i++) {
 			dp[i][j] = dp[i-1][j-1] + diff_ch[s[n-i]][t[m-j]];

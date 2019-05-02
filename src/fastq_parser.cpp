@@ -101,7 +101,6 @@ void FASTQParser::set_reverse_comp (void) {
 	}
 
 	int len = current_record->seq_len;
-	char nt;
 	for (int i = len-1; i >= 0; --i) {
 		current_record->rcseq[len-i-1] = comp[current_record->seq[i]];
 	}
