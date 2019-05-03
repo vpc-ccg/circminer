@@ -484,12 +484,8 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 		fl[l].qpos = i;
 
 		// vafprintf(2, stderr, "Occ: %d\n", fl[l].frag_count);
-		
-		// for (int j = 0; j < fl[l].frag_count; j++) {
-		// 	// fl[l]->frags[j].info += shift;
-		// 	vafprintf(2, stderr, "%d\t", fl[l].frags[j].info + shift);
-		// }
-		// vafprintf(2, stderr, "\n");
+		if (fl[l].frag_count > seedLim)
+			fl[l].frag_count = 0;
 		l++;
 	}
 
@@ -564,7 +560,7 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 	}
 
 	return partial_mm.type == CONCRD;
-}
+} 
 
 void ProcessCirc::refresh_hash_table_list (void) {
 	for (auto it = ind2ht.begin(); it != ind2ht.end(); ++it) {
@@ -626,6 +622,7 @@ RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info, char*
 	return regional_ht;
 }
 
+// for non-overlapping split mates
 int ProcessCirc::check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, bool r1_partial, CircRes& cr) {
 	if (r1_partial) {
 		if (mm_r1.qspos < partial_mm.qspos)
@@ -642,6 +639,7 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, Matche
 	return UD;
 }
 
+// for overlapping split mates
 int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, MatchedMate& mm_r1_2, MatchedMate& mm_r2_2, CircRes& cr) {
 	MatchedMate mm_r1_l = (mm_r1_1.spos <= mm_r1_2.spos) ? mm_r1_1 : mm_r1_2;
 	MatchedMate mm_r1_r = (mm_r1_1.spos <= mm_r1_2.spos) ? mm_r1_2 : mm_r1_1;
@@ -695,23 +693,24 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 				return MCR;
 			}
 
-			vector <pu32i> start_tids;
-			int diff;
-			for (int i = 0; i < mm_r1_l.exons_spos->seg_list.size(); ++i) {
-				diff = mm_r1_l.spos - mm_r1_l.sclen_left - mm_r1_l.exons_spos->seg_list[i].start;
-				if (abs(diff) <= BPRES) {
-					for (int j = 0; j < mm_r1_l.exons_spos->seg_list[i].trans_id.size(); ++j) {
-						start_tids.push_back(make_pair(mm_r1_l.exons_spos->seg_list[i].trans_id[j], diff));
-					}
-				}
-			}
-
 			vector <pu32i> end_tids;
+			int diff;
+			//int ind_epos = split_mm_left.exon_ind_epos;
 			for (int i = 0; i < mm_r1_r.exons_epos->seg_list.size(); ++i) {
 				diff = mm_r1_r.epos + mm_r1_r.sclen_right - mm_r1_r.exons_epos->seg_list[i].end;
 				if (abs(diff) <= BPRES) {
 					for (int j = 0; j < mm_r1_r.exons_epos->seg_list[i].trans_id.size(); ++j) {
 						end_tids.push_back(make_pair(mm_r1_r.exons_epos->seg_list[i].trans_id[j], diff));
+					}
+				}
+			}
+
+			vector <pu32i> start_tids;
+			for (int i = 0; i < mm_r1_l.exons_spos->seg_list.size(); ++i) {
+				diff = mm_r1_l.spos - mm_r1_l.sclen_left - mm_r1_l.exons_spos->seg_list[i].start;
+				if (abs(diff) <= BPRES) {
+					for (int j = 0; j < mm_r1_l.exons_spos->seg_list[i].trans_id.size(); ++j) {
+						start_tids.push_back(make_pair(mm_r1_l.exons_spos->seg_list[i].trans_id[j], diff));
 					}
 				}
 			}
