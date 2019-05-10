@@ -8,6 +8,7 @@
 
 #include "common.h"
 
+#define BLOCKSIZE 1000
 #define FQCOMMENTCNT 22
 
 struct Record {
@@ -36,13 +37,21 @@ private:
 	FILE* input;
 	char comp[ASCISIZE];
 
-	Record* current_record;
+	Record* current_record[BLOCKSIZE];
 	size_t max_line_size;
-	int size;
+	int curr_read;
+	int filled_size;
 
 	char tokens[FQCOMMENTCNT][100];
 
 	bool has_next (void);
+	bool read_block (void);
+
+	void set_comp (void);
+	void set_reverse_comp (int r_ind);
+
+	int extract_map_info(char* str, int r_ind);
+	void fill_map_info(int cnt, int r_ind);
 
 public:
 	FASTQParser (void);
@@ -51,14 +60,6 @@ public:
 
 	void init (char* filename);
 	Record* get_next (void);
-	bool read_next (void);
-
-	void set_reverse_comp (void);
-
-	void set_comp (void);
-
-	int extract_map_info(char* str);
-	void fill_map_info(int cnt);
 };
 
 #endif	//__FASTQPARSER_H__

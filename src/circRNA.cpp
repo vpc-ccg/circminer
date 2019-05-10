@@ -11,6 +11,7 @@
 #include "align.h"
 #include "process_circ.h"
 #include "hash_table.h"
+#include "utils.h"
 
 extern "C" {
 #include "mrsfast/Common.h"

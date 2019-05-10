@@ -5,6 +5,19 @@
 #include "match_read.h"
 
 
+void get_mate_name(char* fq1, char* fq2) {
+	strcpy(fq2, fq1);
+	int i = strlen(fq1) - 1;
+	while (fq1[i--] != '.' and i >= 1);
+	if (fq1[i] == '1')
+		fq2[i] = '2';
+	else if (fq1[i] == '2')
+		fq2[i] = '1';
+	else {
+		fprintf(stderr, "Error: PE FASTQ names are not in the correct format\n");
+		exit(1);
+	}
+}
 
 void update_match_mate_info(bool lok, bool rok, int err, MatchedMate& mm) {
 	mm.left_ok = lok;

@@ -13,8 +13,6 @@
 
 using namespace std;
 
-void get_mate_name(char* fq1, char* fq2);
-
 int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* start);
 
 bool pac2char(uint32_t start, int len, char* str);

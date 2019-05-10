@@ -3,6 +3,8 @@
 
 #include "common.h"
 
+
+void get_mate_name(char* fq1, char* fq2);
 void update_match_mate_info(bool lok, bool rok, int err, MatchedMate& mm);
 
 int estimate_middle_error(const chain_t& ch);

@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cassert>
 
 #include "fastq_parser.h"
 #include "match_read.h"

@@ -1,5 +1,4 @@
 #include <cmath>
-#include <cassert>
 #include "match_read.h"
 #include "gene_annotation.h"
 
@@ -9,20 +8,6 @@ extern "C" {
 }
 
 void print_hits(GIMatchedKmer*, int);
-
-void get_mate_name(char* fq1, char* fq2) {
-	strcpy(fq2, fq1);
-	int i = strlen(fq1) - 1;
-	while (fq1[i--] != '.' and i >= 1);
-	if (fq1[i] == '1')
-		fq2[i] = '2';
-	else if (fq1[i] == '2')
-		fq2[i] = '1';
-	else {
-		fprintf(stderr, "PE FASTQ names are not in the correct format\n");
-		exit(1);
-	}
-}
 
 // assumption: target is not less than list[0]
 // input interval: [, )
