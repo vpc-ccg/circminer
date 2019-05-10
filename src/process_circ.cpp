@@ -300,6 +300,10 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 			CircRes cr;
 			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial, cr);
 			fprintf(stderr, "%d\n", type);
+			if (type < CR) {
+				best_cr.type = type;
+				break;
+			}
 			
 			if (type >= CR and type <= MCR and type < best_cr.type) {
 				best_cr.chr = con_shift.contig;
@@ -417,6 +421,10 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 			CircRes cr;
 			int type = check_split_map(mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, cr);
 			fprintf(stderr, "%d\n", type);
+			if (type < CR) {
+				best_cr.type = type;
+				break;
+			}
 
 			if (type >= CR and type <= MCR and type < best_cr.type) {
 				best_cr.chr = con_shift.contig;
