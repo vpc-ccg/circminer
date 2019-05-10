@@ -121,7 +121,7 @@ int parse_command( int argc, char *argv[] )
 			}
 			case 't': {
 				threads = atoi(optarg);
-				if (threads == 0 || threads > sysconf( _SC_NPROCESSORS_ONLN ))
+				if (threads < 1 || threads > sysconf( _SC_NPROCESSORS_ONLN ))
 					threads = sysconf( _SC_NPROCESSORS_ONLN );
 				break;
 			}

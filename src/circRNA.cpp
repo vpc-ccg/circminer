@@ -98,23 +98,29 @@ int mapping(int& last_round_num) {
 
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer)) - 1;	// considering both overlapping and non-overlapping kmers
 
-	GIMatchedKmer* fl = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
-	GIMatchedKmer* bl = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
+	GIMatchedKmer* fl[threads];
+	GIMatchedKmer* bl[threads];
 
-	chain_list fbc_r1;
-	chain_list bbc_r1;
-	chain_list fbc_r2;
-	chain_list bbc_r2;
-	fbc_r1.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-	bbc_r1.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-	fbc_r2.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-	bbc_r2.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+	chain_list fbc_r1[threads];
+	chain_list bbc_r1[threads];
+	chain_list fbc_r2[threads];
+	chain_list bbc_r2[threads];
 	
-	for (int i = 0; i < BESTCHAINLIM; i++) {
-		fbc_r1.chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
-		bbc_r1.chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
-		fbc_r2.chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
-		bbc_r2.chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+	for (int th = 0; th < threads; ++th) {
+		fl[th] = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
+		bl[th] = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
+
+		fbc_r1[th].chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+		bbc_r1[th].chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+		fbc_r2[th].chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+		bbc_r2[th].chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+		
+		for (int i = 0; i < BESTCHAINLIM; i++) {
+			fbc_r1[th].chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+			bbc_r1[th].chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+			fbc_r2[th].chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+			bbc_r2[th].chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+		}
 	}
 
 	/**********************/
@@ -224,7 +230,7 @@ int mapping(int& last_round_num) {
 
 			int state;
 			if (is_pe) {
-				state = filter_read.process_read(current_record1, current_record2, kmer, fl, bl, fbc_r1, bbc_r1, fbc_r2, bbc_r2);
+				state = filter_read.process_read(current_record1, current_record2, kmer, fl[0], bl[0], fbc_r1[0], bbc_r1[0], fbc_r2[0], bbc_r2[0]);
 				bool skip = (scanLevel == 0 and state == CONCRD) or 
 							(scanLevel == 1 and state == CONCRD and current_record1->mr->gm_compatible and
 								(current_record1->mr->ed_r1 + current_record1->mr->ed_r2 == 0) and 
@@ -236,7 +242,7 @@ int mapping(int& last_round_num) {
 					filter_read.write_read_category(current_record1, current_record2, *(current_record1->mr));
 			}
 			else {
-				state = filter_read.process_read(current_record1, kmer, fl, bl, fbc_r1, bbc_r1);
+				state = filter_read.process_read(current_record1, kmer, fl[0], bl[0], fbc_r1[0], bbc_r1[0]);
 				filter_read.write_read_category(current_record1, state);
 			}
 		}
@@ -258,19 +264,21 @@ int mapping(int& last_round_num) {
 
 	finalizeLoadingHashTable();
 
-	free(fl);
-	free(bl);
+	for (int th = 0; th < threads; ++th) {
+		free(fl[th]);
+		free(bl[th]);
 
-	for (int i = 0; i < BESTCHAINLIM; i++) {
-		free(fbc_r1.chains[i].frags);
-		free(bbc_r1.chains[i].frags);
-		free(fbc_r2.chains[i].frags);
-		free(bbc_r2.chains[i].frags);
+		for (int i = 0; i < BESTCHAINLIM; i++) {
+			free(fbc_r1[th].chains[i].frags);
+			free(bbc_r1[th].chains[i].frags);
+			free(fbc_r2[th].chains[i].frags);
+			free(bbc_r2[th].chains[i].frags);
+		}
+		free(fbc_r1[th].chains);
+		free(bbc_r1[th].chains);
+		free(fbc_r2[th].chains);
+		free(bbc_r2[th].chains);
 	}
-	free(fbc_r1.chains);
-	free(bbc_r1.chains);
-	free(fbc_r2.chains);
-	free(bbc_r2.chains);
 
 	return 0;
 }
