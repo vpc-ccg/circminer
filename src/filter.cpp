@@ -21,13 +21,27 @@ extern "C" {
 void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits);
 int process_mates(const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, MatchedRead& mr, bool r1_forward);
 
-FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, bool last_round, char* fq_file1, char* fq_file2) {
-	is_pe = pe;
+FilterRead::FilterRead (void) {	
+}
+
+FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, bool last_round, 
+						char* fq_file1, char* fq_file2) {
+
+	init(save_fname, pe, round, first_round, last_round, fq_file1, fq_file2);
+}
+
+FilterRead::~FilterRead (void) {
+	finalize();
+}
+
+void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, bool last_round, 
+						char* fq_file1, char* fq_file2) {
+
+	this->is_pe = pe;
 	this->first_round = first_round;
 	this->last_round = last_round;
 	
 	// temp fastq file(s) to be read in next round
-	//if (! last_round) {
 	char temp_fname [FILE_NAME_LENGTH];
 	if (is_pe) {
 		sprintf(temp_fname, "%s_%d_remain_R1.fastq", save_fname, round);
@@ -40,7 +54,6 @@ FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, 
 		sprintf(temp_fname, "%s_%d_remain.fastq", save_fname, round);
 		temp_fq_r1 = open_file(temp_fname, "w");
 	}
-	//}
 
 	// updating fq file to be read in next round
 	if (is_pe) {
@@ -71,19 +84,64 @@ FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, 
 
 }
 
-FilterRead::~FilterRead (void) {
+void FilterRead::finalize (void) {
 	close_file(cat_file_pam[0]);
 
-	//if (! last_round) {
 	close_file(temp_fq_r1);
 	close_file(temp_fq_r2);
-	//}
 	if (last_round) {
 		for (int i = 1; i < CATNUM; i++) {
 			close_file(cat_file_pam[i]);
 		}
 	}
 }
+
+
+
+// SE, PE mode
+void* process_block (void* args) {
+	FilterArgs* fa = (struct FilterArgs*) args;
+	printf("--- thread #%d\n", fa->id);
+
+	// threads [0, remainder) -> quota + 1
+	// threads [remainder, threadCount) -> quota
+	int quota = fa->block_size / threadCount;
+	int remainder = fa->block_size % threadCount;
+	int sind;
+	if (fa->id < remainder) {
+		sind = fa->id * quota + fa->id;
+		++quota;
+	}
+	else {
+		sind = fa->id * quota + remainder;
+	}
+
+	int state;
+	int is_last = filter_read.get_last_round();
+	for (int i = sind; i < sind + quota; ++i) {
+		if (pairedEnd) {
+			state = filter_read.process_read(fa->current_records1[i], fa->current_records2[i], 
+					fa->kmer_size, fa->fl, fa->bl, *(fa->fbc_r1), *(fa->bbc_r1), *(fa->fbc_r2), *(fa->bbc_r2));
+			// bool skip = (scanLevel == 0 and state == CONCRD) or 
+			// 			(scanLevel == 1 and state == CONCRD and fa->current_records1[i]->mr->gm_compatible and
+			// 			(fa->current_records1[i]->mr->ed_r1 + fa->current_records1[i]->mr->ed_r2 == 0) and 
+			// 			(fa->current_records1[i]->mr->mlen_r1 + fa->current_records1[i]->mr->mlen_r2 == fa->current_records1[i]->seq_len + fa->current_records2[i]->seq_len));
+
+			// if (skip or is_last)
+			// 	filter_read.print_mapping(fa->current_records1[i]->rname, *(fa->current_records1[i]->mr));
+			// if ((!is_last and !skip) or (is_last and (fa->current_records1[i]->mr->type == CHIBSJ or fa->current_records1[i]->mr->type == CHI2BSJ)))
+			// 	filter_read.write_read_category(fa->current_records1[i], fa->current_records2[i], *(fa->current_records1[i]->mr));
+		}
+		else {
+			state = filter_read.process_read(fa->current_records1[i], fa->kmer_size, fa->fl, fa->bl, 
+											 *(fa->fbc_r1), *(fa->bbc_r1));
+			// filter_read.write_read_category(fa->current_records1[i], state);
+		}
+	}
+
+}
+
+
 
 // SE mode
 int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
@@ -122,7 +180,7 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 }
 
 // PE mode
-int FilterRead::process_read (	Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
+int FilterRead::process_read (Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
 								chain_list& forward_best_chain_r1, chain_list& backward_best_chain_r1, 
 								chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2) {
 
@@ -208,7 +266,8 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 			return CONCRD;
 		}
 
-		return (attempt1 < attempt2) ? attempt1 : attempt2;
+		// return (attempt1 < attempt2) ? attempt1 : attempt2;
+		return current_record1->mr->type;
 	}
 	else {
 		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
@@ -223,7 +282,8 @@ int FilterRead::process_read (	Record* current_record1, Record* current_record2,
 			return CONCRD;
 		}
 
-		return (attempt1 < attempt2) ? attempt1 : attempt2;
+		// return (attempt1 < attempt2) ? attempt1 : attempt2;
+		return current_record1->mr->type;
 	}
 }
 
@@ -251,8 +311,19 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 		sprintf(comment, " %d * * * * * * * * * * * * * * * * * * * *", mr.type);
 	}
 
-	fprintf(temp_fq_r1, "@%s%s\n%s%s%s", current_record1->rname, comment, current_record1->seq, current_record1->comment, current_record1->qual);
-	fprintf(temp_fq_r2, "@%s%s\n%s%s%s", current_record2->rname, comment, current_record2->seq, current_record2->comment, current_record2->qual);
+	if (last_round) {
+		current_record1->seq[strlen(current_record1->seq)-1] = '\t';
+		current_record2->seq[strlen(current_record2->seq)-1] = '\t';
+
+		current_record1->comment[strlen(current_record1->comment)-1] = '\t';
+		current_record2->comment[strlen(current_record2->comment)-1] = '\t';
+	}
+
+	char sep = (last_round) ? '\t' : '\n';
+	fprintf(temp_fq_r1, "@%s%s%c%s%s%s", current_record1->rname, comment, sep,
+		current_record1->seq, current_record1->comment, current_record1->qual);
+	fprintf(temp_fq_r2, "@%s%s%c%s%s%s", current_record2->rname, comment, sep,
+		current_record2->seq, current_record2->comment, current_record2->qual);
 
 }
 

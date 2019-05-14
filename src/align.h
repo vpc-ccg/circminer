@@ -157,6 +157,6 @@ private:
 	int diff_ch[ASCISIZE][ASCISIZE];
 };
 
-extern Alignment alignment;
+// extern Alignment alignment;
 
 #endif	//__ALIGN_H__

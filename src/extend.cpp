@@ -282,6 +282,7 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 	
 	// intron retention
 	if (!consecutive and pac2char(orig_pos + 1, ref_len, ref_seq)) {
+		Alignment alignment;
 		min_ed = alignment.local_alignment_right_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
 		
 		vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", orig_pos, len);
@@ -352,6 +353,7 @@ bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, 
 
 	// intron retention
 	if (!consecutive and pac2char(orig_pos - ref_len, ref_len, ref_seq)) {
+		Alignment alignment;
 		min_ed = alignment.local_alignment_left_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
 		
 		vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", orig_pos, len);
@@ -389,6 +391,7 @@ bool extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* q
 
 	int indel;
 	int seq_remain = minM(exon_len + bandWidth, qseq_len);
+	Alignment alignment;
 	int edit_dist = alignment.local_alignment_right(qseq, seq_remain, ref_seq, exon_len, indel);
 
 	// uint32_t new_rmpos = pos + exon_len - indel;
@@ -415,6 +418,7 @@ void extend_right_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq,
 		return;
 
 	int sclen, indel;
+	Alignment alignment;
 	int edit_dist = alignment.local_alignment_right_sc(ref_seq, ref_len, qseq, qseq_len, sclen, indel);
 
 	uint32_t new_rmpos = pos + qseq_len - indel;
@@ -588,6 +592,7 @@ bool extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qs
 
 	int indel;
 	int seq_remain = minM(exon_len + bandWidth, qseq_len);
+	Alignment alignment;
 	int edit_dist = alignment.local_alignment_left(qseq, seq_remain, ref_seq, exon_len, indel);
 
 	// uint32_t new_lmpos = pos - exon_len + indel;
@@ -614,6 +619,7 @@ void extend_left_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, 
 		return;
 
 	int sclen, indel;
+	Alignment alignment;
 	int edit_dist = alignment.local_alignment_left_sc(ref_seq, ref_len, qseq, qseq_len, sclen, indel);
 
 	uint32_t new_lmpos = pos - qseq_len + indel;

@@ -17,7 +17,7 @@ int bandWidth = INDELTH;
 int seedLim = FRAGLIM;
 int maxTlen = MAXTLEN;
 int maxIntronLen = MAXINTRON;
-int threads = 1;
+int threadCount = 1;
 int stage = 0;
 int maxCheckSumLen = sizeof(uint16_t) * 8 / 2;	// 2bit per bp
 
@@ -120,9 +120,9 @@ int parse_command( int argc, char *argv[] )
 				break;
 			}
 			case 't': {
-				threads = atoi(optarg);
-				if (threads < 1 || threads > sysconf( _SC_NPROCESSORS_ONLN ))
-					threads = sysconf( _SC_NPROCESSORS_ONLN );
+				threadCount = atoi(optarg);
+				if (threadCount < 1 || threadCount > sysconf( _SC_NPROCESSORS_ONLN ))
+					threadCount = sysconf( _SC_NPROCESSORS_ONLN );
 				break;
 			}
 			case 'd': {
@@ -199,7 +199,7 @@ int parse_command( int argc, char *argv[] )
 
 	initCommon();
 	
-	THREAD_COUNT = threads;
+	THREAD_COUNT = threadCount;
 	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
 	for (int i = 0; i < 255; i++)
 		THREAD_ID[i] = i;

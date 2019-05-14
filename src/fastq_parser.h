@@ -11,27 +11,6 @@
 #define BLOCKSIZE 1000
 #define FQCOMMENTCNT 22
 
-struct Record {
-	char* rname;
-	char* seq;
-	char* rcseq;
-	char* comment;
-	char* qual;
-
-	int seq_len;
-
-	MatchedRead* mr;
-
-	Record(void) {
-		mr = new MatchedRead;
-	}
-
-	~Record(void) {
-		delete mr;
-	}
-};
-
-
 class FASTQParser {
 private:
 	FILE* input;
@@ -60,6 +39,8 @@ public:
 
 	void init (char* filename);
 	Record* get_next (void);
+	Record** get_next_block (void);
+	int get_block_size (void);
 };
 
 #endif	//__FASTQPARSER_H__

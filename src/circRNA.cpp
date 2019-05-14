@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
+#include <pthread.h>
 
 #include "common.h"
 #include "commandline_parser.h"
@@ -24,7 +25,8 @@ char versionNumberMinor[10] = "1";
 using namespace std;
 
 GTFParser gtf_parser;
-Alignment alignment;
+// Alignment alignment;
+FilterRead filter_read;
 
 int mapping(int& last_round_num);
 void circ_detect(int last_round_num);
@@ -90,7 +92,7 @@ int mapping(int& last_round_num) {
 		get_mate_name(fq_file1, fq_file2);
 	}
 	
-	alignment.init();
+	// alignment.init();
 
 	/*********************/
 	/**Memory Allocation**/
@@ -98,30 +100,46 @@ int mapping(int& last_round_num) {
 
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer)) - 1;	// considering both overlapping and non-overlapping kmers
 
-	GIMatchedKmer* fl[threads];
-	GIMatchedKmer* bl[threads];
+	vector <GIMatchedKmer*> fl(threadCount);
+	vector <GIMatchedKmer*> bl(threadCount);
 
-	chain_list fbc_r1[threads];
-	chain_list bbc_r1[threads];
-	chain_list fbc_r2[threads];
-	chain_list bbc_r2[threads];
+	// vector <chain_list> fbc_r1(threadCount);
+	// vector <chain_list> bbc_r1(threadCount);
+	// vector <chain_list> fbc_r2(threadCount);
+	// vector <chain_list> bbc_r2(threadCount);
 	
-	for (int th = 0; th < threads; ++th) {
+	vector <chain_list*> fbc_r1(threadCount);
+	vector <chain_list*> bbc_r1(threadCount);
+	vector <chain_list*> fbc_r2(threadCount);
+	vector <chain_list*> bbc_r2(threadCount);
+
+	for (int th = 0; th < threadCount; ++th) {
 		fl[th] = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
 		bl[th] = (GIMatchedKmer*) malloc(max_seg_cnt * sizeof(GIMatchedKmer));
 
-		fbc_r1[th].chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-		bbc_r1[th].chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-		fbc_r2[th].chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-		bbc_r2[th].chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+		fbc_r1[th] = (chain_list*) malloc(1 * sizeof(chain_list));
+		bbc_r1[th] = (chain_list*) malloc(1 * sizeof(chain_list));
+		fbc_r2[th] = (chain_list*) malloc(1 * sizeof(chain_list));
+		bbc_r2[th] = (chain_list*) malloc(1 * sizeof(chain_list));
+
+		fbc_r1[th]->chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+		bbc_r1[th]->chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+		fbc_r2[th]->chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+		bbc_r2[th]->chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
 		
 		for (int i = 0; i < BESTCHAINLIM; i++) {
-			fbc_r1[th].chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
-			bbc_r1[th].chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
-			fbc_r2[th].chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
-			bbc_r2[th].chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+			fbc_r1[th]->chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+			bbc_r1[th]->chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+			fbc_r2[th]->chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
+			bbc_r2[th]->chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
 		}
 	}
+
+	pthread_t *cm_threads = (pthread_t*) malloc(threadCount * sizeof(pthread_t));
+
+	FilterArgs* filter_args[threadCount];
+	for (int th = 0; th < threadCount; ++th)
+		filter_args[th] = new FilterArgs(kmer);
 
 	/**********************/
 	/**Loading Hash Table**/
@@ -168,8 +186,11 @@ int mapping(int& last_round_num) {
 	int cat_count;
 	bool is_first = true;
 	bool is_last = false;
-	Record* current_record1;
-	Record* current_record2;
+	// Record* current_record1;
+	// Record* current_record2;
+
+	Record** current_records1;
+	Record** current_records2;
 
 	do {
 		fprintf(stdout, "Started loading index...\n");
@@ -201,25 +222,34 @@ int mapping(int& last_round_num) {
 		}
 
 		is_last = !flag;
-		FilterRead filter_read(outputFilename, is_pe, contigNum + 1, is_first, is_last, fq_file1, fq_file2);
+
+		if (!is_first) {
+			filter_read.finalize();
+		}
+		filter_read.init(outputFilename, is_pe, contigNum + 1, is_first, is_last, fq_file1, fq_file2);
 		is_first = false;
 
+		for (int th = 0; th < threadCount; ++th)
+			filter_args[th]->set(fl[th], bl[th], fbc_r1[th], bbc_r1[th], fbc_r2[th], bbc_r2[th]);
+
 		int line = 0;
+		int block_size = 0;
 		lookup_cnt = 0;
 
-		while ( (current_record1 = fq_parser1.get_next()) != NULL ) { // go line by line on fastq file
+		while ( (current_records1 = fq_parser1.get_next_block()) != NULL ) { // go line by line on fastq file
 			if (is_pe)
-				current_record2 = fq_parser2.get_next();
+				current_records2 = fq_parser2.get_next_block();
 
-			if (current_record1 == NULL)	// no new line
+			if (current_records1 == NULL)	// no new line
 				break;
 
-			line++;
+			block_size = fq_parser1.get_block_size();
 			if (line % LINELOG == 0) {
 				cputime_curr = get_cpu_time();
 				realtime_curr = get_real_time();
 
-				fprintf(stdout, "[P] %d reads in %.2lf CPU sec (%.2lf real sec)\t Look ups: %u\n", line, cputime_curr - cputime_start, realtime_curr - realtime_start, lookup_cnt);
+				fprintf(stdout, "[P] %d reads in %.2lf CPU sec (%.2lf real sec)\t Look ups: %u\n", 
+								line, cputime_curr - cputime_start, realtime_curr - realtime_start, lookup_cnt);
 				fflush(stdout);
 				
 				cputime_start = cputime_curr;
@@ -228,23 +258,37 @@ int mapping(int& last_round_num) {
 				lookup_cnt = 0;
 			}
 
-			int state;
-			if (is_pe) {
-				state = filter_read.process_read(current_record1, current_record2, kmer, fl[0], bl[0], fbc_r1[0], bbc_r1[0], fbc_r2[0], bbc_r2[0]);
-				bool skip = (scanLevel == 0 and state == CONCRD) or 
-							(scanLevel == 1 and state == CONCRD and current_record1->mr->gm_compatible and
-								(current_record1->mr->ed_r1 + current_record1->mr->ed_r2 == 0) and 
-								(current_record1->mr->mlen_r1 + current_record1->mr->mlen_r2 == current_record1->seq_len + current_record2->seq_len));
+			for (int th = 0; th < threadCount; ++th) {
+				filter_args[th]->current_records1 = current_records1;
+				filter_args[th]->current_records2 = current_records2;
+				filter_args[th]->id = th;
+				filter_args[th]->block_size = block_size;
+				pthread_create(cm_threads + th, NULL, process_block, filter_args[th]);
+			}
+			for (int th = 0; th < threadCount; ++th)
+				pthread_join(cm_threads[th], NULL);
 
-				if (skip or is_last)
-					filter_read.print_mapping(current_record1->rname, *(current_record1->mr));
-				if ((!is_last and !skip) or (is_last and (current_record1->mr->type == CHIBSJ or current_record1->mr->type == CHI2BSJ)))
-					filter_read.write_read_category(current_record1, current_record2, *(current_record1->mr));
+			bool skip;
+			if (is_pe) {
+				for (int i = 0; i < block_size; ++i) {
+					skip = (scanLevel == 0 and current_records1[i]->mr->type == CONCRD) or 
+							(scanLevel == 1 and current_records1[i]->mr->type == CONCRD and current_records1[i]->mr->gm_compatible and
+							(current_records1[i]->mr->ed_r1 + current_records1[i]->mr->ed_r2 == 0) and 
+							(current_records1[i]->mr->mlen_r1 + current_records1[i]->mr->mlen_r2 == current_records1[i]->seq_len + current_records2[i]->seq_len));
+
+					if (skip or is_last)
+						filter_read.print_mapping(current_records1[i]->rname, *(current_records1[i]->mr));
+					if ((!is_last and !skip) or (is_last and (current_records1[i]->mr->type == CHIBSJ or current_records1[i]->mr->type == CHI2BSJ)))
+						filter_read.write_read_category(current_records1[i], current_records2[i], *(current_records1[i]->mr));
+				}
 			}
 			else {
-				state = filter_read.process_read(current_record1, kmer, fl[0], bl[0], fbc_r1[0], bbc_r1[0]);
-				filter_read.write_read_category(current_record1, state);
+				for (int i = 0; i < block_size; ++i) {
+					filter_read.write_read_category(current_records1[i], current_records1[i]->mr->type);
+				}
 			}
+
+			line += block_size;
 		}
 
 		cputime_curr = get_cpu_time();
@@ -264,21 +308,30 @@ int mapping(int& last_round_num) {
 
 	finalizeLoadingHashTable();
 
-	for (int th = 0; th < threads; ++th) {
+	for (int th = 0; th < threadCount; ++th) {
 		free(fl[th]);
 		free(bl[th]);
 
 		for (int i = 0; i < BESTCHAINLIM; i++) {
-			free(fbc_r1[th].chains[i].frags);
-			free(bbc_r1[th].chains[i].frags);
-			free(fbc_r2[th].chains[i].frags);
-			free(bbc_r2[th].chains[i].frags);
+			free(fbc_r1[th]->chains[i].frags);
+			free(bbc_r1[th]->chains[i].frags);
+			free(fbc_r2[th]->chains[i].frags);
+			free(bbc_r2[th]->chains[i].frags);
 		}
-		free(fbc_r1[th].chains);
-		free(bbc_r1[th].chains);
-		free(fbc_r2[th].chains);
-		free(bbc_r2[th].chains);
+		free(fbc_r1[th]->chains);
+		free(bbc_r1[th]->chains);
+		free(fbc_r2[th]->chains);
+		free(bbc_r2[th]->chains);
+
+		free(fbc_r1[th]);
+		free(bbc_r1[th]);
+		free(fbc_r2[th]);
+		free(bbc_r2[th]);		
+
+		delete filter_args[th];
 	}
+
+	free(cm_threads);
 
 	return 0;
 }

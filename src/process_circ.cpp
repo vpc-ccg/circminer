@@ -84,12 +84,12 @@ ProcessCirc::~ProcessCirc (void) {
 void ProcessCirc::sort_fq(char* fqname) {
 	fprintf(stdout, "Sorting remaining read mappings... ");
 	if (!system(NULL)) {
-		fprintf(stdout, "Failed using command line\n");
+		fprintf(stdout, "Error: Unable to run system call.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	char command [FILE_NAME_LENGTH];
-	sprintf(command, "paste - - - - < %s | sort -k22,22 -k3,3 -k4,4n | tr \"\t\" \"\n\" > %s.srt", fqname, fqname);
+	sprintf(command, "sort -k22,22 -k3,3 -k4,4n %s | tr \"\t\" \"\n\" > %s.srt", fqname, fqname);
 
 	int ret = system(command);
 	if (ret == 0)
@@ -114,7 +114,7 @@ void ProcessCirc::do_process (void) {
 
 	initCommon();
 	
-	THREAD_COUNT = threads;
+	THREAD_COUNT = threadCount;
 	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
 	for (int i = 0; i < 255; i++)
 		THREAD_ID[i] = i;

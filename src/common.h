@@ -84,7 +84,7 @@ extern int bandWidth;
 extern int seedLim;
 extern int maxTlen;
 extern int maxIntronLen;
-extern int threads;
+extern int threadCount;
 extern int stage;
 
 extern char gtfFilename[FILE_NAME_LENGTH];
@@ -339,6 +339,62 @@ struct CircRes {
 
 	bool operator < (const CircRes& r) const;
 	bool operator == (const CircRes& r) const;
+};
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
+struct Record {
+	char* rname;
+	char* seq;
+	char* rcseq;
+	char* comment;
+	char* qual;
+
+	int seq_len;
+
+	MatchedRead* mr;
+
+	Record(void) {
+		mr = new MatchedRead;
+	}
+
+	~Record(void) {
+		delete mr;
+	}
+};
+
+//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+
+struct FilterArgs {
+	int id;
+	int kmer_size;
+	int block_size;
+
+	Record** current_records1;
+	Record** current_records2;
+
+	GIMatchedKmer* fl;
+	GIMatchedKmer* bl;
+
+	chain_list* fbc_r1; 
+	chain_list* bbc_r1;
+	chain_list* fbc_r2; 
+	chain_list* bbc_r2;
+
+	FilterArgs (int k) : kmer_size(k), id(0), block_size(0) {}
+
+	void set(GIMatchedKmer* f, GIMatchedKmer* b, 
+			 chain_list* fc1, chain_list* bc1, 
+			 chain_list* fc2, chain_list* bc2) {
+
+		fl = f;
+		bl = b;
+
+		fbc_r1  = fc1;
+		bbc_r1 = bc1;
+		fbc_r2  = fc2;
+		bbc_r2 = bc2;
+	}
 };
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\

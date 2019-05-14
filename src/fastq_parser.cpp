@@ -46,13 +46,24 @@ void FASTQParser::init (char* filename) {
 }
 
 Record* FASTQParser::get_next (void) {
-	if (curr_read < filled_size) {
+	if (curr_read < filled_size)
 		return current_record[curr_read++];
-	}
-	else if (read_block()) {
+
+	else if (read_block())
 		return current_record[curr_read++];
-	}
+	
 	return NULL;
+}
+
+Record** FASTQParser::get_next_block (void) {
+	if (read_block())
+		return current_record;
+	else
+		return NULL;
+}
+
+int FASTQParser::get_block_size (void) {
+	return filled_size;
 }
 
 bool FASTQParser::has_next (void) {

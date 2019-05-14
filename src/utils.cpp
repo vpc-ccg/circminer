@@ -57,6 +57,7 @@ int calc_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len) {
 	uint32_t rspos;
 	int qlen;
 	int rlen;
+	Alignment alignment;
 	for (int i = 0; i < ch.chain_len - 1; i++) {
 		if (ch.frags[i+1].qpos > ch.frags[i].qpos + ch.frags[i].len) {
 			int diff = (ch.frags[i+1].rpos - ch.frags[i].rpos) - (ch.frags[i+1].qpos - ch.frags[i].qpos);
