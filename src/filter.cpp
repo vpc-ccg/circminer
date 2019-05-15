@@ -31,7 +31,7 @@ FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, 
 }
 
 FilterRead::~FilterRead (void) {
-	finalize();
+	// finalize();
 }
 
 void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, bool last_round, 
@@ -101,7 +101,7 @@ void FilterRead::finalize (void) {
 // SE, PE mode
 void* process_block (void* args) {
 	FilterArgs* fa = (struct FilterArgs*) args;
-	printf("--- thread #%d\n", fa->id);
+	// printf("--- thread #%d\n", fa->id);
 
 	// threads [0, remainder) -> quota + 1
 	// threads [remainder, threadCount) -> quota

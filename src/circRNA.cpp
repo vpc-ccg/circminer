@@ -302,6 +302,8 @@ int mapping(int& last_round_num) {
 	/**Free Allocated Memory**/
 	/*************************/
 
+	filter_read.finalize();
+
 	for (int i = 0; i < contig_cnt; i++) 
 		freeMem(orig_contig_len[i].name, strlen(orig_contig_len[i].name));
 	freeMem(orig_contig_len, contig_cnt * sizeof(ContigLen));
