@@ -18,21 +18,7 @@ Alignment::~Alignment(void) {
 }
 
 void Alignment::init(void) {
-	string nucs = "ACGTacgt";
-	int nlen = nucs.length();
-	int i;
-
-	for (i = 0; i < ASCISIZE; i++)
-		fill(diff_ch[i], diff_ch[i] + ASCISIZE, 1);
-
-	for (i = 0; i < nlen; i++)
-		diff_ch[nucs[i]][nucs[i]] = 0;
-
-	int half_nlen = nlen / 2;
-	for (i = 0; i < half_nlen; i++) {
-		diff_ch[nucs[i]][nucs[i+half_nlen]] = 0;
-		diff_ch[nucs[i+half_nlen]][nucs[i]] = 0;
-	}
+	diff_ch = score_mat.diff_ch;
 }
 
 // dir > 0
@@ -518,4 +504,36 @@ int Alignment::local_alignment_left(char* s, int n, char* t, int m, int& indel) 
 
 	indel = best.indel;
 	return best.ed;
+}
+
+ScoreMatrix::ScoreMatrix(void) {
+	diff_ch = (int**) malloc(ASCISIZE * sizeof(int*));
+	diff_ch[0] = (int*) malloc(ASCISIZE * ASCISIZE * sizeof(int));
+	for (int i = 1; i < ASCISIZE; ++i)
+		diff_ch[i] = diff_ch[0] + i * ASCISIZE;
+
+	init();
+}
+
+ScoreMatrix::~ScoreMatrix(void) {
+	free(diff_ch[0]);
+	free(diff_ch);
+}
+
+void ScoreMatrix::init(void) {
+	string nucs = "ACGTacgt";
+	int nlen = nucs.length();
+	int i;
+
+	for (i = 0; i < ASCISIZE; i++)
+		fill(diff_ch[i], diff_ch[i] + ASCISIZE, 1);
+
+	for (i = 0; i < nlen; i++)
+		diff_ch[nucs[i]][nucs[i]] = 0;
+
+	int half_nlen = nlen / 2;
+	for (i = 0; i < half_nlen; i++) {
+		diff_ch[nucs[i]][nucs[i+half_nlen]] = 0;
+		diff_ch[nucs[i+half_nlen]][nucs[i]] = 0;
+	}
 }

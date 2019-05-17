@@ -25,8 +25,9 @@ char versionNumberMinor[10] = "1";
 using namespace std;
 
 GTFParser gtf_parser;
-// Alignment alignment;
 FilterRead filter_read;
+ScoreMatrix score_mat;
+// Alignment alignment;
 
 int mapping(int& last_round_num);
 void circ_detect(int last_round_num);
@@ -55,6 +56,7 @@ int main(int argc, char **argv) {
 	 * SEARCHING
 	 ***************************************************/
 	else {
+		score_mat.init();
 		// 0 <= stage <= 2
 		int last_round_num = 1;
 		if (stage != 1) {

@@ -154,9 +154,19 @@ public:
 private:
 	uint32_t dp[MAXSTRSIZE][MAXSTRSIZE];
 	int hamm[MAXSTRSIZE][MAXSTRSIZE];
-	int diff_ch[ASCISIZE][ASCISIZE];
+	int** diff_ch;
 };
 
+class ScoreMatrix {
+public:
+	ScoreMatrix(void);
+	~ScoreMatrix(void);
+	void init(void);
+
+	int** diff_ch;
+};
+
+extern ScoreMatrix score_mat;
 // extern Alignment alignment;
 
 #endif	//__ALIGN_H__
