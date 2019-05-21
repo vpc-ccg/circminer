@@ -8,7 +8,7 @@
 
 #include "common.h"
 
-#define BLOCKSIZE 1000
+#define BLOCKSIZE 100000
 #define FQCOMMENTCNT 22
 
 class FASTQParser {
@@ -16,7 +16,8 @@ private:
 	FILE* input;
 	char comp[ASCISIZE];
 
-	Record* current_record[BLOCKSIZE];
+	// Record* current_record[BLOCKSIZE];
+	Record** current_record;
 	size_t max_line_size;
 	int curr_read;
 	int filled_size;

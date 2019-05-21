@@ -22,6 +22,7 @@ FASTQParser::~FASTQParser (void) {
 			free(current_record[i]->qual);
 			delete current_record[i];
 		}
+		free(current_record);
 	}
 }
 
@@ -31,6 +32,7 @@ void FASTQParser::init (char* filename) {
 	max_line_size = MAXLINESIZE;
 	set_comp();
 
+	current_record = (Record**) malloc(BLOCKSIZE * sizeof(Record*));
 	for (int i = 0; i < BLOCKSIZE; ++i) {
 		current_record[i] = new Record;
 
