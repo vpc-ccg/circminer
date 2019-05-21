@@ -400,11 +400,11 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 
 		bool success = false;
 		if (bc1.chains[0].frags[0].rpos <= bc2.chains[0].frags[0].rpos) {
-			success = extend_both_mates(bc1.chains[0], bc2.chains[0], common_tid, r1_remain_seq, r2_remain_seq, 
+			success = extension.extend_both_mates(bc1.chains[0], bc2.chains[0], common_tid, r1_remain_seq, r2_remain_seq, 
 						r1_qspos, r2_qspos, r1_qepos, r2_qepos, r1_partial_mm, r2_partial_mm);
 		}
 		else {
-			success = extend_both_mates(bc2.chains[0], bc1.chains[0], common_tid, r2_remain_seq, r1_remain_seq, 
+			success = extension.extend_both_mates(bc2.chains[0], bc1.chains[0], common_tid, r2_remain_seq, r1_remain_seq, 
 						r2_qspos, r1_qspos, r2_qepos, r1_qepos, r2_partial_mm, r1_partial_mm);
 		}
 
@@ -557,12 +557,12 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 	int err = partial_mm.middle_ed;
 	if (extend) {
 		partial_mm.matched_len = rlen;
-		lok = extend_chain_left (common_tid, bc, rseq + qspos, qspos, MINLB, partial_mm, err);
+		lok = extension.extend_chain_left (common_tid, bc, rseq + qspos, qspos, MINLB, partial_mm, err);
 		if (qspos == 0) {
-			rok = extend_chain_right(common_tid, bc, rseq, rlen, MAXUB, partial_mm, err);
+			rok = extension.extend_chain_right(common_tid, bc, rseq, rlen, MAXUB, partial_mm, err);
 		}
 		else {
-			rok = extend_chain_right(common_tid, bc, rseq, whole_len, MAXUB, partial_mm, err);
+			rok = extension.extend_chain_right(common_tid, bc, rseq, whole_len, MAXUB, partial_mm, err);
 		}
 		update_match_mate_info(lok, rok, err, partial_mm);
 	}

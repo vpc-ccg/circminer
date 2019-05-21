@@ -8,6 +8,7 @@
 #include "fastq_parser.h"
 #include "match_read.h"
 #include "chain.h"
+#include "extend.h"
 
 using namespace std;
 
@@ -25,6 +26,8 @@ private:
 
 	char comment[400];
 
+	TransExtension extension;
+
 public:
 	FilterRead (void);
 	FilterRead (char* save_fname, bool pe, int round, bool first_round, bool last_round, char* fq_file1, char* fq_file2);
@@ -40,12 +43,19 @@ public:
 						chain_list& forward_best_chain_r1, chain_list& backward_best_chain_r1, 
 						chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2);
 
+	int process_mates(const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, 
+						MatchedRead& mr, bool r1_forward);
+
+	void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits);
+	void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired);
+
 	void write_read_category (Record* current_record, int is_chimeric);
 	void write_read_category (Record* current_record1, Record* current_record2, const MatchedRead& mr);
 
 	void print_mapping (char* rname, const MatchedRead& mr);
 
 	int get_last_round (void) { return last_round; };
+
 };
 
 void* process_block (void* args);

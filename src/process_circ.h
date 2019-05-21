@@ -9,6 +9,7 @@
 #include "common.h"
 #include "hash_table.h"
 #include "fastq_parser.h"
+#include "extend.h"
 
 #define FR 0	// Forward Reverse
 #define RF 1	// Reverse Forward
@@ -43,6 +44,8 @@ private:
 
 	vector <CircRes> circ_res;
 	vector <string> circ_type;
+
+	TransExtension extension;
 
 public:
 	ProcessCirc (int last_round_num, int ws);

@@ -10,7 +10,7 @@
 #include "utils.h"
 
 // lseq_len, rseq_len: length of left and right mate sequences
-bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
+bool TransExtension::extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
 						int lqspos, int rqspos, int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
 	
 	// lmm.middle_ed = estimate_middle_error(lch);
@@ -103,7 +103,7 @@ bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint
 // CONCRD:0 if mapped to both sides
 // CANDID:1 if at least one side is mapped
 // ORPHAN:3 if not mappable (not reaching either side)
-int extend_chain_both_sides(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir) {
+int TransExtension::extend_chain_both_sides(const chain_t& ch, char* seq, int seq_len, MatchedMate& mr, int dir) {
 	mr.is_concord = false;
 	if (ch.chain_len <= 0) {
 		mr.type = ORPHAN;
@@ -182,7 +182,7 @@ int extend_chain_both_sides(const chain_t& ch, char* seq, int seq_len, MatchedMa
 	return mr.type;
 }
 
-bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int seq_len, int ub, MatchedMate& mr, int& err) {
+bool TransExtension::extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int seq_len, int ub, MatchedMate& mr, int& err) {
 	bool right_ok = true;
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
@@ -210,7 +210,7 @@ bool extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, 
 	return right_ok;
 }
 
-bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int32_t qspos, int lb, MatchedMate& mr, int& err) {
+bool TransExtension::extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int32_t qspos, int lb, MatchedMate& mr, int& err) {
 	bool left_ok = true;
 
 	uint32_t lm_pos = ch.frags[0].rpos;
@@ -241,7 +241,7 @@ bool extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, c
 
 // pos is exclusive
 // [ pos+1, pos+len ]
-bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, int len, int ed_th, uint32_t ub, 
+bool TransExtension::extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, int len, int ed_th, uint32_t ub, 
 					AlignRes& best_alignment) {
 	int seq_len = len;
 	int ref_len = len + bandWidth;
@@ -282,7 +282,7 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 	
 	// intron retention
 	if (!consecutive and pac2char(orig_pos + 1, ref_len, ref_seq)) {
-		Alignment alignment;
+		// Alignment alignment;
 		min_ed = alignment.local_alignment_right_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
 		
 		vafprintf(2, stderr, "Intron Retention:\nrmpos: %lu\textend len: %d\n", orig_pos, len);
@@ -313,7 +313,7 @@ bool extend_right(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos,
 
 // pos is exclusive
 // [ pos-len, pos-1 ]
-bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, int len, int ed_th, uint32_t lb, 
+bool TransExtension::extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, int len, int ed_th, uint32_t lb, 
 					AlignRes& best_alignment) {
 	int seq_len = len;
 	int ref_len = len + bandWidth;
@@ -353,7 +353,7 @@ bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, 
 
 	// intron retention
 	if (!consecutive and pac2char(orig_pos - ref_len, ref_len, ref_seq)) {
-		Alignment alignment;
+		// Alignment alignment;
 		min_ed = alignment.local_alignment_left_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
 		
 		vafprintf(2, stderr, "Intron Retention:\nlmpos: %lu\textend len: %d\n", orig_pos, len);
@@ -382,7 +382,7 @@ bool extend_left(const vector <uint32_t>& common_tid, char* seq, uint32_t& pos, 
 }
 
 // returns true iff extension was successful
-bool extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, int qseq_len, 
+bool TransExtension::extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, int qseq_len, 
 							int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res) {
 
 	vafprintf(2, stderr, "Middle Right Ext Going for %lu - %lu\n", pos + 1, pos + exon_len);
@@ -391,7 +391,7 @@ bool extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* q
 
 	int indel;
 	int seq_remain = minM(exon_len + bandWidth, qseq_len);
-	Alignment alignment;
+	// Alignment alignment;
 	int edit_dist = alignment.local_alignment_right(qseq, seq_remain, ref_seq, exon_len, indel);
 
 	// uint32_t new_rmpos = pos + exon_len - indel;
@@ -410,7 +410,7 @@ bool extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* q
 	return false;
 }
 
-void extend_right_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, int qseq_len, 
+void TransExtension::extend_right_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, int qseq_len, 
 						int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res) {
 
 	vafprintf(2, stderr, "Final Right Ext Going for %lu - %lu\n", pos + 1, pos + ref_len);
@@ -418,7 +418,7 @@ void extend_right_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq,
 		return;
 
 	int sclen, indel;
-	Alignment alignment;
+	// Alignment alignment;
 	int edit_dist = alignment.local_alignment_right_sc(ref_seq, ref_len, qseq, qseq_len, sclen, indel);
 
 	uint32_t new_rmpos = pos + qseq_len - indel;
@@ -435,7 +435,7 @@ void extend_right_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq,
 }
 
 // [pos + 1, pos + len]
-void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, 
+void TransExtension::extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, 
 						int ed_th, uint32_t ub, AlignRes& best, bool& consecutive, map <AllCoord, AlignRes>& align_res) {
 	consecutive = false;
 	AlignRes curr(ub);
@@ -583,7 +583,7 @@ void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, 
 }
 
 // returns true iff extension was successful
-bool extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, int qseq_len, 
+bool TransExtension::extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, int qseq_len, 
 							int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res) {
 
 	vafprintf(2, stderr, "Middle Left Ext Going for %lu - %lu\n", pos - exon_len, pos - 1);
@@ -592,7 +592,7 @@ bool extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qs
 
 	int indel;
 	int seq_remain = minM(exon_len + bandWidth, qseq_len);
-	Alignment alignment;
+	// Alignment alignment;
 	int edit_dist = alignment.local_alignment_left(qseq, seq_remain, ref_seq, exon_len, indel);
 
 	// uint32_t new_lmpos = pos - exon_len + indel;
@@ -611,7 +611,7 @@ bool extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qs
 	return false;
 }
 
-void extend_left_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, int qseq_len, 
+void TransExtension::extend_left_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, int qseq_len, 
 						int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res) {
 
 	vafprintf(2, stderr, "Final Left Ext Going for %lu - %lu\n", pos - ref_len, pos - 1);
@@ -619,7 +619,7 @@ void extend_left_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, 
 		return;
 
 	int sclen, indel;
-	Alignment alignment;
+	// Alignment alignment;
 	int edit_dist = alignment.local_alignment_left_sc(ref_seq, ref_len, qseq, qseq_len, sclen, indel);
 
 	uint32_t new_lmpos = pos - qseq_len + indel;
@@ -636,7 +636,7 @@ void extend_left_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, 
 }
 
 // [pos - len, pos - 1]
-void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, 
+void TransExtension::extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, 
 						int ed_th, uint32_t lb,  AlignRes& best, bool& consecutive, map <AllCoord, AlignRes>& align_res) {
 
 	consecutive = false;

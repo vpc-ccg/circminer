@@ -18,9 +18,6 @@ extern "C" {
 }
 
 
-void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits);
-int process_mates(const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, MatchedRead& mr, bool r1_forward);
-
 FilterRead::FilterRead (void) {	
 }
 
@@ -155,7 +152,7 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 
 	get_best_chains(current_record->seq, current_record->seq_len, kmer_size, forward_best_chain, fl, fhh);
 	for (int i = 0; i < forward_best_chain.best_chain_count; i++) {
-		ex_ret = extend_chain_both_sides(forward_best_chain.chains[i], current_record->seq, current_record->seq_len, mr, 1); 
+		ex_ret = extension.extend_chain_both_sides(forward_best_chain.chains[i], current_record->seq, current_record->seq_len, mr, 1); 
 		
 		if (ex_ret == CONCRD)
 			return CONCRD;
@@ -166,7 +163,7 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 
 	get_best_chains(current_record->rcseq, current_record->seq_len, kmer_size, backward_best_chain, bl, bhh);
 	for (int i = 0; i < backward_best_chain.best_chain_count; i++) {
-		ex_ret = extend_chain_both_sides(backward_best_chain.chains[i], current_record->rcseq, current_record->seq_len, mr, -1); 
+		ex_ret = extension.extend_chain_both_sides(backward_best_chain.chains[i], current_record->rcseq, current_record->seq_len, mr, -1); 
 		
 		if (ex_ret == CONCRD)
 			return CONCRD;
@@ -287,6 +284,151 @@ int FilterRead::process_read (Record* current_record1, Record* current_record2, 
 	}
 }
 
+// r1 is the forward mate and r2 is backward
+int FilterRead::process_mates(const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, MatchedRead& mr, bool r1_forward) {
+	vector <MatePair> mate_pairs;
+
+	bool forward_paired[BESTCHAINLIM];
+	bool backward_paired[BESTCHAINLIM];
+	pair_chains(forward_chain, backward_chain, mate_pairs, forward_paired, backward_paired);
+
+	int min_ret1 = ORPHAN;
+	int min_ret2 = ORPHAN;
+
+	bool r1_genic = false;
+	bool r2_genic = false;
+
+	// concordant?
+	vafprintf(1, stderr, "#pairs = %d\n", mate_pairs.size());
+	for (int i = 0; i < mate_pairs.size(); i++) {
+		vafprintf(2, stderr, "Mate[%d]: %d, %d\n", i, mate_pairs[i].forward.frags[0].rpos, mate_pairs[i].reverse.frags[0].rpos);
+		// fprintf(stderr, "# common_tid: %d\n", mate_pairs[i].common_tid.size());
+		// for (int k = 0; k < mate_pairs[i].common_tid.size(); k++)
+		// 	fprintf(stderr, "%d, ", mate_pairs[i].common_tid[k]);
+		// fprintf(stderr, "---\n");
+		MatchedMate r1_mm;
+		MatchedMate r2_mm;
+
+		r1_mm.dir = 1;
+		r2_mm.dir = -1;
+
+		bool success;
+		uint32_t forward_start = mate_pairs[i].forward.frags[0].rpos;
+		uint32_t reverse_start = mate_pairs[i].reverse.frags[0].rpos;
+		uint32_t reverse_end   = mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].rpos + mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].len - 1;
+		
+		if (forward_start <= reverse_end) {
+			//extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, forward_rec->seq, backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
+			success = extension.extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, mate_pairs[i].common_tid, forward_rec->seq, 
+								backward_rec->rcseq, 1, 1, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
+			
+			if (success) {
+				ConShift con_shift = gtf_parser.get_shift(contigNum, r1_mm.spos);
+					
+				overlap_to_epos(r1_mm);
+				overlap_to_spos(r1_mm);
+
+				overlap_to_epos(r2_mm);
+				overlap_to_spos(r2_mm);
+
+				if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
+					if (concordant_explanation(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward) and scanLevel == 0) {
+						return CONCRD;
+					}
+				}
+				
+				// potentially back splice junction?
+				else if ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID)) {
+					check_bsj(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward);
+				}
+
+				else if (r1_mm.type == CANDID and r2_mm.type == CANDID) {
+					check_2bsj(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward);
+				}
+			}
+		}
+
+		if (forward_start > reverse_start) {
+			//extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
+			success = extension.extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, 
+								forward_rec->seq, 1, 1, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
+			
+			if (success) {
+				ConShift con_shift = gtf_parser.get_shift(contigNum, r2_mm.spos);
+					
+				overlap_to_epos(r1_mm);
+				overlap_to_spos(r1_mm);
+
+				overlap_to_epos(r2_mm);
+				overlap_to_spos(r2_mm);
+
+				if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
+					check_chimeric(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
+				}
+				
+				// potentially back splice junction?
+				else if ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID)) {
+					check_bsj(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
+				}
+
+				else if (r1_mm.type == CANDID and r2_mm.type == CANDID) {
+					check_2bsj(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
+				}
+			}
+		}
+
+		min_ret1 = minM(r1_mm.type, min_ret1);
+		min_ret2 = minM(r2_mm.type, min_ret2);
+
+		r1_genic = (r1_mm.exons_spos != NULL) or (r1_mm.exons_epos != NULL);
+		r2_genic = (r2_mm.exons_spos != NULL) or (r2_mm.exons_epos != NULL);
+
+	}
+
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
+		return mr.type;
+	}
+
+	MatchedMate mm1;
+	int ex_ret;
+	if (min_ret1 != CONCRD)
+		for (int i = 0; i < forward_chain.best_chain_count; i++) {
+			if (!forward_paired[i]) {
+				ex_ret = extension.extend_chain_both_sides(forward_chain.chains[i], forward_rec->seq, forward_rec->seq_len, mm1, 1);
+				min_ret1 = minM(ex_ret, min_ret1);
+
+				overlap_to_spos(mm1);
+				overlap_to_epos(mm1);
+
+				r1_genic = (mm1.exons_spos != NULL) or (mm1.exons_epos != NULL);
+			}
+		}
+	
+	MatchedMate mm2;
+	if (min_ret2 != CONCRD)
+		for (int i = 0; i < backward_chain.best_chain_count; i++) {
+			if (!backward_paired[i]) {
+				ex_ret = extension.extend_chain_both_sides(backward_chain.chains[i], backward_rec->rcseq, backward_rec->seq_len, mm2, -1);
+				min_ret2 = minM(ex_ret, min_ret2);
+				
+				overlap_to_spos(mm2);
+				overlap_to_epos(mm2);
+
+				r2_genic = (mm2.exons_spos != NULL) or (mm2.exons_epos != NULL);
+			}
+		}
+
+	int new_type = (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
+				: ((min_ret1 == ORPHAN) or (min_ret2 == ORPHAN)) ? ORPHAN 
+				: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD) and (r1_genic and r2_genic)) ? CHIFUS
+				: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD)) ? OEA2
+				: CANDID;
+
+	mr.update_type(new_type);
+	return mr.type;
+}
+
+
 // write reads SE mode
 void FilterRead::write_read_category (Record* current_record, int state) {
 	//state = minM(state, current_record->state);
@@ -343,7 +485,7 @@ void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 	}
 }
 
-void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits) {
+void FilterRead::get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits) {
 	int kmer_count = ceil(seq_len / kmer_size);
 	int forward_fragment_count, backward_fragment_count;
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
@@ -357,7 +499,7 @@ void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& bes
 			high_hits++;
 }
 
-void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired) {
+void FilterRead::pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired) {
 	vector <const IntervalInfo<UniqSeg>*> forward_exon_list(forward_chain.best_chain_count);
 	vector <const IntervalInfo<UniqSeg>*> reverse_exon_list(reverse_chain.best_chain_count);
 
@@ -414,146 +556,3 @@ void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chai
 	
 }
 
-// r1 is the forward mate and r2 is backward
-int process_mates(const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, MatchedRead& mr, bool r1_forward) {
-	vector <MatePair> mate_pairs;
-
-	bool forward_paired[BESTCHAINLIM];
-	bool backward_paired[BESTCHAINLIM];
-	pair_chains(forward_chain, backward_chain, mate_pairs, forward_paired, backward_paired);
-
-	int min_ret1 = ORPHAN;
-	int min_ret2 = ORPHAN;
-
-	bool r1_genic = false;
-	bool r2_genic = false;
-
-	// concordant?
-	vafprintf(1, stderr, "#pairs = %d\n", mate_pairs.size());
-	for (int i = 0; i < mate_pairs.size(); i++) {
-		vafprintf(2, stderr, "Mate[%d]: %d, %d\n", i, mate_pairs[i].forward.frags[0].rpos, mate_pairs[i].reverse.frags[0].rpos);
-		// fprintf(stderr, "# common_tid: %d\n", mate_pairs[i].common_tid.size());
-		// for (int k = 0; k < mate_pairs[i].common_tid.size(); k++)
-		// 	fprintf(stderr, "%d, ", mate_pairs[i].common_tid[k]);
-		// fprintf(stderr, "---\n");
-		MatchedMate r1_mm;
-		MatchedMate r2_mm;
-
-		r1_mm.dir = 1;
-		r2_mm.dir = -1;
-
-		bool success;
-		uint32_t forward_start = mate_pairs[i].forward.frags[0].rpos;
-		uint32_t reverse_start = mate_pairs[i].reverse.frags[0].rpos;
-		uint32_t reverse_end   = mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].rpos + mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].len - 1;
-		
-		if (forward_start <= reverse_end) {
-			//extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, forward_rec->seq, backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
-			success = extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, mate_pairs[i].common_tid, forward_rec->seq, 
-								backward_rec->rcseq, 1, 1, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
-			
-			if (success) {
-				ConShift con_shift = gtf_parser.get_shift(contigNum, r1_mm.spos);
-					
-				overlap_to_epos(r1_mm);
-				overlap_to_spos(r1_mm);
-
-				overlap_to_epos(r2_mm);
-				overlap_to_spos(r2_mm);
-
-				if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
-					if (concordant_explanation(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward) and scanLevel == 0) {
-						return CONCRD;
-					}
-				}
-				
-				// potentially back splice junction?
-				else if ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID)) {
-					check_bsj(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward);
-				}
-
-				else if (r1_mm.type == CANDID and r2_mm.type == CANDID) {
-					check_2bsj(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward);
-				}
-			}
-		}
-
-		if (forward_start > reverse_start) {
-			//extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
-			success = extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, 
-								forward_rec->seq, 1, 1, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
-			
-			if (success) {
-				ConShift con_shift = gtf_parser.get_shift(contigNum, r2_mm.spos);
-					
-				overlap_to_epos(r1_mm);
-				overlap_to_spos(r1_mm);
-
-				overlap_to_epos(r2_mm);
-				overlap_to_spos(r2_mm);
-
-				if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
-					check_chimeric(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
-				}
-				
-				// potentially back splice junction?
-				else if ((r1_mm.type == CANDID and r2_mm.type == CONCRD) or (r1_mm.type == CONCRD and r2_mm.type == CANDID)) {
-					check_bsj(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
-				}
-
-				else if (r1_mm.type == CANDID and r2_mm.type == CANDID) {
-					check_2bsj(r2_mm, r1_mm, mr, con_shift.contig, con_shift.shift, !r1_forward);
-				}
-			}
-		}
-
-		min_ret1 = minM(r1_mm.type, min_ret1);
-		min_ret2 = minM(r2_mm.type, min_ret2);
-
-		r1_genic = (r1_mm.exons_spos != NULL) or (r1_mm.exons_epos != NULL);
-		r2_genic = (r2_mm.exons_spos != NULL) or (r2_mm.exons_epos != NULL);
-
-	}
-
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
-		return mr.type;
-	}
-
-	MatchedMate mm1;
-	int ex_ret;
-	if (min_ret1 != CONCRD)
-		for (int i = 0; i < forward_chain.best_chain_count; i++) {
-			if (!forward_paired[i]) {
-				ex_ret = extend_chain_both_sides(forward_chain.chains[i], forward_rec->seq, forward_rec->seq_len, mm1, 1);
-				min_ret1 = minM(ex_ret, min_ret1);
-
-				overlap_to_spos(mm1);
-				overlap_to_epos(mm1);
-
-				r1_genic = (mm1.exons_spos != NULL) or (mm1.exons_epos != NULL);
-			}
-		}
-	
-	MatchedMate mm2;
-	if (min_ret2 != CONCRD)
-		for (int i = 0; i < backward_chain.best_chain_count; i++) {
-			if (!backward_paired[i]) {
-				ex_ret = extend_chain_both_sides(backward_chain.chains[i], backward_rec->rcseq, backward_rec->seq_len, mm2, -1);
-				min_ret2 = minM(ex_ret, min_ret2);
-				
-				overlap_to_spos(mm2);
-				overlap_to_epos(mm2);
-
-				r2_genic = (mm2.exons_spos != NULL) or (mm2.exons_epos != NULL);
-			}
-		}
-
-	int new_type = (((min_ret1 == ORPHAN) and (min_ret2 == CONCRD)) or ((min_ret1 == CONCRD) and (min_ret2 == ORPHAN))) ? OEANCH 
-				: ((min_ret1 == ORPHAN) or (min_ret2 == ORPHAN)) ? ORPHAN 
-				: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD) and (r1_genic and r2_genic)) ? CHIFUS
-				: ((min_ret1 == CONCRD) and (min_ret2 == CONCRD)) ? OEA2
-				: CANDID;
-
-	mr.update_type(new_type);
-	return mr.type;
-}
