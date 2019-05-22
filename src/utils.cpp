@@ -50,46 +50,6 @@ int estimate_middle_error(const chain_t& ch) {
 	return mid_err;
 }
 
-int calc_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len) {
-	char rseq[qseq_len + 4*bandWidth];
-	int mid_err = 0;
-	int32_t qspos;
-	uint32_t rspos;
-	int qlen;
-	int rlen;
-	// Alignment alignment;
-	for (int i = 0; i < ch.chain_len - 1; i++) {
-		if (ch.frags[i+1].qpos > ch.frags[i].qpos + ch.frags[i].len) {
-			int diff = (ch.frags[i+1].rpos - ch.frags[i].rpos) - (ch.frags[i+1].qpos - ch.frags[i].qpos);
-
-			qspos = ch.frags[i].qpos + ch.frags[i].len;
-			qlen = ch.frags[i+1].qpos - qspos;
-			rspos = ch.frags[i].rpos + ch.frags[i].len;
-			rlen = qlen + diff;
-
-			// fprintf(stderr, "Diff: %d\n", diff);
-			if (diff >= 0 and diff <= bandWidth) {
-				pac2char(rspos, rlen, rseq);
-				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
-				mid_err += alignment.global_one_side_banded_alignment(qseq + qspos, qlen, rseq, rlen, diff);
-			}
-			else if (diff < 0 and diff >= (-1 * bandWidth)) {
-				pac2char(rspos, rlen, rseq);
-				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
-				mid_err += alignment.global_one_side_banded_alignment(rseq, rlen, qseq + qspos, qlen, -1*diff);
-			}
-			if (mid_err > edth)
-				return edth+1;
-		}
-	}
-	return mid_err;
-}
-
-bool check_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len) {
-	int mid_err = calc_middle_ed(ch, edth, qseq, qseq_len);
-	return (mid_err <= edth);
-}
-
 
 // calculate tlen including sm.epos and lm.spos
 int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num) {

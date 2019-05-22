@@ -8,8 +8,6 @@ void get_mate_name(char* fq1, char* fq2);
 void update_match_mate_info(bool lok, bool rok, int err, MatchedMate& mm);
 
 int estimate_middle_error(const chain_t& ch);
-int calc_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len);
-bool check_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len);
 
 int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num);
 

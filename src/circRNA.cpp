@@ -27,7 +27,6 @@ using namespace std;
 GTFParser gtf_parser;
 FilterRead filter_read;
 ScoreMatrix score_mat;
-Alignment alignment;
 
 int mapping(int& last_round_num);
 void circ_detect(int last_round_num);

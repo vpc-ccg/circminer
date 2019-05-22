@@ -34,6 +34,11 @@ FilterRead::~FilterRead (void) {
 void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, bool last_round, 
 						char* fq_file1, char* fq_file2) {
 
+	extension = new TransExtension[threadCount];
+
+	for (int i = 0; i < threadCount; ++i)
+		extension[i].init(i);
+
 	this->is_pe = pe;
 	this->first_round = first_round;
 	this->last_round = last_round;
@@ -82,6 +87,8 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 }
 
 void FilterRead::finalize (void) {
+	delete[] extension;
+	
 	close_file(cat_file_pam[0]);
 
 	close_file(temp_fq_r1);
@@ -117,7 +124,7 @@ void* process_block (void* args) {
 	int is_last = filter_read.get_last_round();
 	for (int i = sind; i < sind + quota; ++i) {
 		if (pairedEnd) {
-			state = filter_read.process_read(fa->current_records1[i], fa->current_records2[i], 
+			state = filter_read.process_read(fa->id, fa->current_records1[i], fa->current_records2[i], 
 					fa->kmer_size, fa->fl, fa->bl, *(fa->fbc_r1), *(fa->bbc_r1), *(fa->fbc_r2), *(fa->bbc_r2));
 			// bool skip = (scanLevel == 0 and state == CONCRD) or 
 			// 			(scanLevel == 1 and state == CONCRD and fa->current_records1[i]->mr->gm_compatible and
@@ -130,7 +137,7 @@ void* process_block (void* args) {
 			// 	filter_read.write_read_category(fa->current_records1[i], fa->current_records2[i], *(fa->current_records1[i]->mr));
 		}
 		else {
-			state = filter_read.process_read(fa->current_records1[i], fa->kmer_size, fa->fl, fa->bl, 
+			state = filter_read.process_read(fa->id, fa->current_records1[i], fa->kmer_size, fa->fl, fa->bl, 
 											 *(fa->fbc_r1), *(fa->bbc_r1));
 			// filter_read.write_read_category(fa->current_records1[i], state);
 		}
@@ -141,7 +148,7 @@ void* process_block (void* args) {
 
 
 // SE mode
-int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
+int FilterRead::process_read ( int thid, Record* current_record, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
 								chain_list& forward_best_chain, chain_list& backward_best_chain) {
 	
 	vafprintf(1, stderr, "%s\n", current_record->rname);
@@ -152,7 +159,7 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 
 	get_best_chains(current_record->seq, current_record->seq_len, kmer_size, forward_best_chain, fl, fhh);
 	for (int i = 0; i < forward_best_chain.best_chain_count; i++) {
-		ex_ret = extension.extend_chain_both_sides(forward_best_chain.chains[i], current_record->seq, current_record->seq_len, mr, 1); 
+		ex_ret = extension[thid].extend_chain_both_sides(forward_best_chain.chains[i], current_record->seq, current_record->seq_len, mr, 1); 
 		
 		if (ex_ret == CONCRD)
 			return CONCRD;
@@ -163,7 +170,7 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 
 	get_best_chains(current_record->rcseq, current_record->seq_len, kmer_size, backward_best_chain, bl, bhh);
 	for (int i = 0; i < backward_best_chain.best_chain_count; i++) {
-		ex_ret = extension.extend_chain_both_sides(backward_best_chain.chains[i], current_record->rcseq, current_record->seq_len, mr, -1); 
+		ex_ret = extension[thid].extend_chain_both_sides(backward_best_chain.chains[i], current_record->rcseq, current_record->seq_len, mr, -1); 
 		
 		if (ex_ret == CONCRD)
 			return CONCRD;
@@ -177,7 +184,7 @@ int FilterRead::process_read (	Record* current_record, int kmer_size, GIMatchedK
 }
 
 // PE mode
-int FilterRead::process_read (Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
+int FilterRead::process_read (int thid, Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
 								chain_list& forward_best_chain_r1, chain_list& backward_best_chain_r1, 
 								chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2) {
 
@@ -252,13 +259,13 @@ int FilterRead::process_read (Record* current_record1, Record* current_record2, 
 	int attempt1, attempt2;
 	if (fc_score_r1 + bc_score_r2 >= fc_score_r2 + bc_score_r1) {
 		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
-		attempt1 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, *(current_record1->mr), true);
+		attempt1 = process_mates(thid, forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, *(current_record1->mr), true);
 		if (scanLevel == 0 and attempt1 == CONCRD) {
 			return CONCRD;
 		}
 
 		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
-		attempt2 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, *(current_record1->mr), false);
+		attempt2 = process_mates(thid, forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, *(current_record1->mr), false);
 		if (scanLevel == 0 and attempt2 == CONCRD) {
 			return CONCRD;
 		}
@@ -268,13 +275,13 @@ int FilterRead::process_read (Record* current_record1, Record* current_record2, 
 	}
 	else {
 		vafprintf(1, stderr, "Backward R1 / Forward R2\n");
-		attempt1 = process_mates(forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, *(current_record1->mr), false);
+		attempt1 = process_mates(thid, forward_best_chain_r2, current_record2, backward_best_chain_r1, current_record1, *(current_record1->mr), false);
 		if (scanLevel == 0 and attempt1 == CONCRD) {
 			return CONCRD;
 		}
 
 		vafprintf(1, stderr, "Forward R1 / Backward R2\n");
-		attempt2 = process_mates(forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, *(current_record1->mr), true);
+		attempt2 = process_mates(thid, forward_best_chain_r1, current_record1, backward_best_chain_r2, current_record2, *(current_record1->mr), true);
 		if (scanLevel == 0 and attempt2 == CONCRD) {
 			return CONCRD;
 		}
@@ -285,7 +292,7 @@ int FilterRead::process_read (Record* current_record1, Record* current_record2, 
 }
 
 // r1 is the forward mate and r2 is backward
-int FilterRead::process_mates(const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, MatchedRead& mr, bool r1_forward) {
+int FilterRead::process_mates(int thid, const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, MatchedRead& mr, bool r1_forward) {
 	vector <MatePair> mate_pairs;
 
 	bool forward_paired[BESTCHAINLIM];
@@ -319,7 +326,7 @@ int FilterRead::process_mates(const chain_list& forward_chain, const Record* for
 		
 		if (forward_start <= reverse_end) {
 			//extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, forward_rec->seq, backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
-			success = extension.extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, mate_pairs[i].common_tid, forward_rec->seq, 
+			success = extension[thid].extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, mate_pairs[i].common_tid, forward_rec->seq, 
 								backward_rec->rcseq, 1, 1, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
 			
 			if (success) {
@@ -350,7 +357,7 @@ int FilterRead::process_mates(const chain_list& forward_chain, const Record* for
 
 		if (forward_start > reverse_start) {
 			//extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
-			success = extension.extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, 
+			success = extension[thid].extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, 
 								forward_rec->seq, 1, 1, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
 			
 			if (success) {
@@ -394,7 +401,7 @@ int FilterRead::process_mates(const chain_list& forward_chain, const Record* for
 	if (min_ret1 != CONCRD)
 		for (int i = 0; i < forward_chain.best_chain_count; i++) {
 			if (!forward_paired[i]) {
-				ex_ret = extension.extend_chain_both_sides(forward_chain.chains[i], forward_rec->seq, forward_rec->seq_len, mm1, 1);
+				ex_ret = extension[thid].extend_chain_both_sides(forward_chain.chains[i], forward_rec->seq, forward_rec->seq_len, mm1, 1);
 				min_ret1 = minM(ex_ret, min_ret1);
 
 				overlap_to_spos(mm1);
@@ -408,7 +415,7 @@ int FilterRead::process_mates(const chain_list& forward_chain, const Record* for
 	if (min_ret2 != CONCRD)
 		for (int i = 0; i < backward_chain.best_chain_count; i++) {
 			if (!backward_paired[i]) {
-				ex_ret = extension.extend_chain_both_sides(backward_chain.chains[i], backward_rec->rcseq, backward_rec->seq_len, mm2, -1);
+				ex_ret = extension[thid].extend_chain_both_sides(backward_chain.chains[i], backward_rec->rcseq, backward_rec->seq_len, mm2, -1);
 				min_ret2 = minM(ex_ret, min_ret2);
 				
 				overlap_to_spos(mm2);

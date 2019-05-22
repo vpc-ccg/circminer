@@ -167,6 +167,5 @@ public:
 };
 
 extern ScoreMatrix score_mat;
-extern Alignment alignment;
 
 #endif	//__ALIGN_H__

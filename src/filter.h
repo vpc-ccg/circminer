@@ -26,7 +26,7 @@ private:
 
 	char comment[400];
 
-	TransExtension extension;
+	TransExtension* extension;
 
 public:
 	FilterRead (void);
@@ -36,14 +36,14 @@ public:
 	void init (char* save_fname, bool pe, int round, bool first_round, bool last_round, char* fq_file1, char* fq_file2);
 	void finalize (void);
 
-	int process_read (Record* current_record, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
+	int process_read (int thid, Record* current_record, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
 						chain_list& forward_best_chain, chain_list& backward_best_chain);
 
-	int process_read (Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
+	int process_read (int thid, Record* current_record1, Record* current_record2, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
 						chain_list& forward_best_chain_r1, chain_list& backward_best_chain_r1, 
 						chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2);
 
-	int process_mates(const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, 
+	int process_mates(int thid, const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, 
 						MatchedRead& mr, bool r1_forward);
 
 	void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits);

@@ -539,7 +539,7 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 		return false;
 	}
 
-	partial_mm.middle_ed = calc_middle_ed(bc, maxEd, rseq, rlen);
+	partial_mm.middle_ed = extension.calc_middle_ed(bc, maxEd, rseq, rlen);
 	// fprintf(stderr, "Middle ed: %d\n", partial_mm.middle_ed);
 	if (partial_mm.middle_ed > maxEd)
 		return false;

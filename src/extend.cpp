@@ -9,6 +9,22 @@
 #include "gene_annotation.h"
 #include "utils.h"
 
+TransExtension::TransExtension(void) {
+
+}
+
+TransExtension::TransExtension(int id) {
+	thid = id;
+}
+
+TransExtension::~TransExtension(void) {
+
+}
+
+void TransExtension::init(int id) {
+	thid = id;
+}
+
 // lseq_len, rseq_len: length of left and right mate sequences
 bool TransExtension::extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
 						int lqspos, int rqspos, int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm) {
@@ -790,4 +806,40 @@ void TransExtension::extend_left_trans (uint32_t tid, uint32_t pos, char* ref_se
 		extend_left_end(lepos, ref_seq, remain_ref_len, qseq, qseq_len - covered, ed_th, best, curr, exon_res);
 		align_res.insert(pair <AllCoord, AlignRes>(tmp_coord, exon_res));
 	}
+}
+
+
+int TransExtension::calc_middle_ed(const chain_t& ch, int edth, char* qseq, int qseq_len) {
+	char rseq[qseq_len + 4*bandWidth];
+	int mid_err = 0;
+	int32_t qspos;
+	uint32_t rspos;
+	int qlen;
+	int rlen;
+	// Alignment alignment;
+	for (int i = 0; i < ch.chain_len - 1; i++) {
+		if (ch.frags[i+1].qpos > ch.frags[i].qpos + ch.frags[i].len) {
+			int diff = (ch.frags[i+1].rpos - ch.frags[i].rpos) - (ch.frags[i+1].qpos - ch.frags[i].qpos);
+
+			qspos = ch.frags[i].qpos + ch.frags[i].len;
+			qlen = ch.frags[i+1].qpos - qspos;
+			rspos = ch.frags[i].rpos + ch.frags[i].len;
+			rlen = qlen + diff;
+
+			// fprintf(stderr, "Diff: %d\n", diff);
+			if (diff >= 0 and diff <= bandWidth) {
+				pac2char(rspos, rlen, rseq);
+				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
+				mid_err += alignment.global_one_side_banded_alignment(qseq + qspos, qlen, rseq, rlen, diff);
+			}
+			else if (diff < 0 and diff >= (-1 * bandWidth)) {
+				pac2char(rspos, rlen, rseq);
+				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
+				mid_err += alignment.global_one_side_banded_alignment(rseq, rlen, qseq + qspos, qlen, -1*diff);
+			}
+			if (mid_err > edth)
+				return edth+1;
+		}
+	}
+	return mid_err;
 }
