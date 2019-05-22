@@ -81,31 +81,33 @@ bool FASTQParser::read_block (void) {
 	curr_read = 0;
 	filled_size = 0;
 	for (int i = 0; i < BLOCKSIZE; ++i) {
-		if (!has_next())
+		if (has_next()) {
+			int rname_len = getline(&current_record[i]->rname, &max_line_size, input);
+			rname_len = extract_map_info(current_record[i]->rname, i);
+
+			getline(&current_record[i]->seq, &max_line_size, input);
+			current_record[i]->seq_len = strlen(current_record[i]->seq) - 1;	// skipping newline at the end
+
+			getline(&current_record[i]->comment, &max_line_size, input);
+			assert(current_record[i]->comment[0] == '+');
+
+			getline(&current_record[i]->qual, &max_line_size, input);
+			
+
+
+			if (current_record[i]->rname[rname_len - 3] == '/')
+				current_record[i]->rname[rname_len - 3] = '\0';
+			else
+				current_record[i]->rname[rname_len - 1] = '\0';
+
+			//current_record[i]->seq[current_record[i]->seq_len] = '\0';
+
+			set_reverse_comp(i);
+			++filled_size;
+		}
+		else {
 			return filled_size > 0;
-
-		int rname_len = getline(&current_record[i]->rname, &max_line_size, input);
-		rname_len = extract_map_info(current_record[i]->rname, i);
-
-		getline(&current_record[i]->seq, &max_line_size, input);
-		current_record[i]->seq_len = strlen(current_record[i]->seq) - 1;	// skipping newline at the end
-
-		getline(&current_record[i]->comment, &max_line_size, input);
-		assert(current_record[i]->comment[0] == '+');
-
-		getline(&current_record[i]->qual, &max_line_size, input);
-		
-
-
-		if (current_record[i]->rname[rname_len - 3] == '/')
-			current_record[i]->rname[rname_len - 3] = '\0';
-		else
-			current_record[i]->rname[rname_len - 1] = '\0';
-
-		//current_record[i]->seq[current_record[i]->seq_len] = '\0';
-
-		set_reverse_comp(i);
-		++filled_size;
+		}
 	}
 
 	return true;
@@ -176,52 +178,52 @@ void FASTQParser::fill_map_info(int cnt, int r_ind) {
 
 		if (current_record[r_ind]->mr->type == CONCRD or current_record[r_ind]->mr->type == DISCRD or current_record[r_ind]->mr->type == CHIORF or 
 			current_record[r_ind]->mr->type == CHIBSJ or current_record[r_ind]->mr->type == CHI2BSJ) {
-			current_record[r_ind]->mr->chr_r1 		= tokens[2];	
-			current_record[r_ind]->mr->spos_r1 	= strtoul(tokens[3], &stop_string, base);
-			current_record[r_ind]->mr->epos_r1 	= strtoul(tokens[4], &stop_string, base);
-			current_record[r_ind]->mr->mlen_r1 	= atoi(tokens[5]);
-			current_record[r_ind]->mr->qspos_r1 	= strtoul(tokens[6], &stop_string, base);
-			current_record[r_ind]->mr->qepos_r1 	= strtoul(tokens[7], &stop_string, base);
-			current_record[r_ind]->mr->r1_forward 	= (tokens[8][0] == '+');
-			current_record[r_ind]->mr->ed_r1 		= atoi(tokens[9]);
+			current_record[r_ind]->mr->chr_r1 	= tokens[2];	
+			current_record[r_ind]->mr->spos_r1	= strtoul(tokens[3], &stop_string, base);
+			current_record[r_ind]->mr->epos_r1	= strtoul(tokens[4], &stop_string, base);
+			current_record[r_ind]->mr->mlen_r1	= atoi(tokens[5]);
+			current_record[r_ind]->mr->qspos_r1	= strtoul(tokens[6], &stop_string, base);
+			current_record[r_ind]->mr->qepos_r1	= strtoul(tokens[7], &stop_string, base);
+			current_record[r_ind]->mr->r1_forward	= (tokens[8][0] == '+');
+			current_record[r_ind]->mr->ed_r1		= atoi(tokens[9]);
 
-			current_record[r_ind]->mr->chr_r2 		= tokens[10];
-			current_record[r_ind]->mr->spos_r2 	= strtoul(tokens[11], &stop_string, base);
-			current_record[r_ind]->mr->epos_r2 	= strtoul(tokens[12], &stop_string, base);
-			current_record[r_ind]->mr->mlen_r2 	= atoi(tokens[13]);
-			current_record[r_ind]->mr->qspos_r2 	= strtoul(tokens[14], &stop_string, base);
-			current_record[r_ind]->mr->qepos_r2 	= strtoul(tokens[15], &stop_string, base);
-			current_record[r_ind]->mr->r2_forward 	= (tokens[16][0] == '+');
-			current_record[r_ind]->mr->ed_r2 		= atoi(tokens[17]);
+			current_record[r_ind]->mr->chr_r2	= tokens[10];
+			current_record[r_ind]->mr->spos_r2	= strtoul(tokens[11], &stop_string, base);
+			current_record[r_ind]->mr->epos_r2	= strtoul(tokens[12], &stop_string, base);
+			current_record[r_ind]->mr->mlen_r2	= atoi(tokens[13]);
+			current_record[r_ind]->mr->qspos_r2	= strtoul(tokens[14], &stop_string, base);
+			current_record[r_ind]->mr->qepos_r2	= strtoul(tokens[15], &stop_string, base);
+			current_record[r_ind]->mr->r2_forward	= (tokens[16][0] == '+');
+			current_record[r_ind]->mr->ed_r2	= atoi(tokens[17]);
 			
-			current_record[r_ind]->mr->tlen 		= atoi(tokens[18]);
-			current_record[r_ind]->mr->junc_num 	= strtoul(tokens[19], &stop_string, base);
-			current_record[r_ind]->mr->gm_compatible = (tokens[20][0] == '1');
-			current_record[r_ind]->mr->contig_num	= atoi(tokens[21]);
+			current_record[r_ind]->mr->tlen		= atoi(tokens[18]);
+			current_record[r_ind]->mr->junc_num	= strtoul(tokens[19], &stop_string, base);
+			current_record[r_ind]->mr->gm_compatible	= (tokens[20][0] == '1');
+			current_record[r_ind]->mr->contig_num		= atoi(tokens[21]);
 		}
 		else {
-			current_record[r_ind]->mr->chr_r1 		= "-";	
-			current_record[r_ind]->mr->spos_r1 	= 0;
-			current_record[r_ind]->mr->epos_r1 	= 0;
-			current_record[r_ind]->mr->mlen_r1 	= 0;
-			current_record[r_ind]->mr->qspos_r1 	= 0;
-			current_record[r_ind]->mr->qepos_r1 	= 0;
-			current_record[r_ind]->mr->r1_forward 	= true;
+			current_record[r_ind]->mr->chr_r1	= "-";	
+			current_record[r_ind]->mr->spos_r1	= 0;
+			current_record[r_ind]->mr->epos_r1	= 0;
+			current_record[r_ind]->mr->mlen_r1	= 0;
+			current_record[r_ind]->mr->qspos_r1	= 0;
+			current_record[r_ind]->mr->qepos_r1	= 0;
+			current_record[r_ind]->mr->r1_forward	= true;
 			current_record[r_ind]->mr->ed_r1 		= maxEd+1;
 
-			current_record[r_ind]->mr->chr_r2 		= "-";
-			current_record[r_ind]->mr->spos_r2 	= 0;
-			current_record[r_ind]->mr->epos_r2 	= 0;
-			current_record[r_ind]->mr->mlen_r2 	= 0;
-			current_record[r_ind]->mr->qspos_r2 	= 0;
-			current_record[r_ind]->mr->qepos_r2 	= 0;
-			current_record[r_ind]->mr->r2_forward 	= true;
-			current_record[r_ind]->mr->ed_r2 		= maxEd+1;
+			current_record[r_ind]->mr->chr_r2	= "-";
+			current_record[r_ind]->mr->spos_r2	= 0;
+			current_record[r_ind]->mr->epos_r2	= 0;
+			current_record[r_ind]->mr->mlen_r2	= 0;
+			current_record[r_ind]->mr->qspos_r2	= 0;
+			current_record[r_ind]->mr->qepos_r2	= 0;
+			current_record[r_ind]->mr->r2_forward	= true;
+			current_record[r_ind]->mr->ed_r2	= maxEd+1;
 			
-			current_record[r_ind]->mr->tlen 		= INF;
-			current_record[r_ind]->mr->junc_num 	= 0;
-			current_record[r_ind]->mr->gm_compatible = false;
-			current_record[r_ind]->mr->contig_num	= 0;
+			current_record[r_ind]->mr->tlen		= INF;
+			current_record[r_ind]->mr->junc_num	= 0;
+			current_record[r_ind]->mr->gm_compatible	= false;
+			current_record[r_ind]->mr->contig_num		= 0;
 		}
 	}
 }
