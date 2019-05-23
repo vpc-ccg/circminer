@@ -31,6 +31,16 @@ double get_real_time() {
 	return t.tv_sec + t.tv_usec / 1000000.0;
 }
 
+void mutex_lock(pthread_mutex_t* m) {
+	if (threadCount > 1)
+		pthread_mutex_lock(m);
+}
+
+void mutex_unlock(pthread_mutex_t* m) {
+	if (threadCount > 1)
+		pthread_mutex_unlock(m);
+}
+
 //---------- Structures ----------\\
 
 bool GeneInfo::operator < (const GeneInfo& gi) const {

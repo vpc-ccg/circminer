@@ -19,17 +19,24 @@ extern "C" {
 #include "mrsfast/HashTable.h"
 }
 
+using namespace std;
+
 char versionNumberMajor[10] = "0";
 char versionNumberMinor[10] = "1";
 
-using namespace std;
+pthread_mutex_t write_lock;
+pthread_mutex_t pmap_lock;
+pthread_mutex_t read_lock;
 
 GTFParser gtf_parser;
 FilterRead filter_read;
 ScoreMatrix score_mat;
+FASTQParser fq_parser1;
+FASTQParser fq_parser2;
 
 int mapping(int& last_round_num);
 void circ_detect(int last_round_num);
+void* map_reads (void* args);
 
 int main(int argc, char **argv) {
 	int exit_c = parse_command( argc, argv );
@@ -56,6 +63,8 @@ int main(int argc, char **argv) {
 	 ***************************************************/
 	else {
 		score_mat.init();
+		fq_parser1.set_mate(&fq_parser2);
+
 		// 0 <= stage <= 2
 		int last_round_num = 1;
 		if (stage != 1) {
@@ -93,8 +102,6 @@ int mapping(int& last_round_num) {
 		get_mate_name(fq_file1, fq_file2);
 	}
 	
-	// alignment.init();
-
 	/*********************/
 	/**Memory Allocation**/
 	/*********************/
@@ -103,11 +110,6 @@ int mapping(int& last_round_num) {
 
 	vector <GIMatchedKmer*> fl(threadCount);
 	vector <GIMatchedKmer*> bl(threadCount);
-
-	// vector <chain_list> fbc_r1(threadCount);
-	// vector <chain_list> bbc_r1(threadCount);
-	// vector <chain_list> fbc_r2(threadCount);
-	// vector <chain_list> bbc_r2(threadCount);
 	
 	vector <chain_list*> fbc_r1(threadCount);
 	vector <chain_list*> bbc_r1(threadCount);
@@ -183,12 +185,9 @@ int mapping(int& last_round_num) {
 	/**Mapping Reads**/
 	/*****************/
 
-	//char* contig_name;
 	int cat_count;
 	bool is_first = true;
 	bool is_last = false;
-	// Record* current_record1;
-	// Record* current_record2;
 
 	Record** current_records1;
 	Record** current_records2;
@@ -215,11 +214,9 @@ int mapping(int& last_round_num) {
 		contigNum = atoi(contigName) - 1;
 		last_round_num = contigNum + 1;
 
-		FASTQParser fq_parser1(fq_file1);
-
-		FASTQParser fq_parser2;
+		fq_parser1.reset(fq_file1);
 		if (is_pe) {
-			fq_parser2.init(fq_file2);
+			fq_parser2.reset(fq_file2);
 		}
 
 		is_last = !flag;
@@ -237,66 +234,22 @@ int mapping(int& last_round_num) {
 		int block_size = 0;
 		lookup_cnt = 0;
 
-		while ( (current_records1 = fq_parser1.get_next_block()) != NULL ) { // go line by line on fastq file
-			if (is_pe)
-				current_records2 = fq_parser2.get_next_block();
+		for (int th = 0; th < threadCount; ++th) {
+			filter_args[th]->id = th;
+			pthread_create(cm_threads + th, NULL, map_reads, filter_args[th]);
+		}
 
-			if (current_records1 == NULL)	// no new line
-				break;
-
-			block_size = fq_parser1.get_block_size();
-			if (line % LINELOG == 0) {
-				cputime_curr = get_cpu_time();
-				realtime_curr = get_real_time();
-
-				fprintf(stdout, "[P] %d reads in %.2lf CPU sec (%.2lf real sec)\t Look ups: %u\n", 
-								line, cputime_curr - cputime_start, realtime_curr - realtime_start, lookup_cnt);
-				fflush(stdout);
-				
-				cputime_start = cputime_curr;
-				realtime_start = realtime_curr;
-
-				lookup_cnt = 0;
-			}
-
-			for (int th = 0; th < threadCount; ++th) {
-				filter_args[th]->current_records1 = current_records1;
-				filter_args[th]->current_records2 = current_records2;
-				filter_args[th]->id = th;
-				filter_args[th]->block_size = block_size;
-				// pthread_create(cm_threads + th, NULL, process_block, filter_args[th]);
-				process_block(filter_args[th]);
-			}
-			// for (int th = 0; th < threadCount; ++th)
-			// 	pthread_join(cm_threads[th], NULL);
-
-			bool skip;
-			if (is_pe) {
-				for (int i = 0; i < block_size; ++i) {
-					skip = (scanLevel == 0 and current_records1[i]->mr->type == CONCRD) or 
-							(scanLevel == 1 and current_records1[i]->mr->type == CONCRD and current_records1[i]->mr->gm_compatible and
-							(current_records1[i]->mr->ed_r1 + current_records1[i]->mr->ed_r2 == 0) and 
-							(current_records1[i]->mr->mlen_r1 + current_records1[i]->mr->mlen_r2 == current_records1[i]->seq_len + current_records2[i]->seq_len));
-
-					if (skip or is_last)
-						filter_read.print_mapping(current_records1[i]->rname, *(current_records1[i]->mr));
-					if ((!is_last and !skip) or (is_last and (current_records1[i]->mr->type == CHIBSJ or current_records1[i]->mr->type == CHI2BSJ)))
-						filter_read.write_read_category(current_records1[i], current_records2[i], *(current_records1[i]->mr));
-				}
-			}
-			else {
-				for (int i = 0; i < block_size; ++i) {
-					filter_read.write_read_category(current_records1[i], current_records1[i]->mr->type);
-				}
-			}
-
-			line += block_size;
+		for (int th = 0; th < threadCount; ++th) {
+			pthread_join(cm_threads[th], NULL);
 		}
 
 		cputime_curr = get_cpu_time();
 		realtime_curr = get_real_time();
 
 		fprintf(stdout, "[P] Mapping in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
+
+		cputime_start = cputime_curr;
+		realtime_start = realtime_curr;
 
 	} while (flag);
 
@@ -344,4 +297,41 @@ void circ_detect(int last_round_num) {
 	int ws = 8;
 	ProcessCirc process_circ(last_round_num, ws);
 	process_circ.do_process();
+}
+
+void* map_reads (void* args) {
+	FilterArgs* fa = (struct FilterArgs*) args;
+	printf("--- thread #%d\n", fa->id);
+
+	int rid;
+	Record* current_record1;
+	Record* current_record2;
+	int state;
+	int is_last = filter_read.get_last_round();
+	while ( (rid = fq_parser1.get_next_rec_id()) >= 0 ) { // go line by line on fastq file
+		current_record1 = fq_parser1.get_next(rid);
+		if (pairedEnd) {
+			current_record2 = fq_parser2.get_next(rid);
+			if (current_record1 == NULL or current_record2 == NULL)	// no new line
+				break;
+		
+			state = filter_read.process_read(fa->id, current_record1, current_record2, 
+					fa->kmer_size, fa->fl, fa->bl, *(fa->fbc_r1), *(fa->bbc_r1), *(fa->fbc_r2), *(fa->bbc_r2));
+			bool skip = (scanLevel == 0 and state == CONCRD) or 
+						(scanLevel == 1 and state == CONCRD and current_record1->mr->gm_compatible and
+						(current_record1->mr->ed_r1 + current_record1->mr->ed_r2 == 0) and 
+						(current_record1->mr->mlen_r1 + current_record1->mr->mlen_r2 == current_record1->seq_len + current_record2->seq_len));
+
+			if (skip or is_last)
+				filter_read.print_mapping(current_record1->rname, *(current_record1->mr));
+			if ((!is_last and !skip) or (is_last and (current_record1->mr->type == CHIBSJ or current_record1->mr->type == CHI2BSJ)))
+				filter_read.write_read_category(current_record1, current_record2, *(current_record1->mr));
+		}
+		else {
+			state = filter_read.process_read(fa->id, current_record1, fa->kmer_size, fa->fl, fa->bl, 
+											 *(fa->fbc_r1), *(fa->bbc_r1));
+			filter_read.write_read_category(current_record1, state);
+		}
+	}
+
 }

@@ -2,32 +2,32 @@
 #include <cstring>
 #include "fastq_parser.h"
 
-FASTQParser::FASTQParser () { 
-	input = NULL; 
+FASTQParser::FASTQParser (void) { 
+	init();
 }
 
 FASTQParser::FASTQParser (char* filename) {
-	init(filename);
+	init();
+	reset(filename);
 }
 
 FASTQParser::~FASTQParser (void) {
-	if (input != NULL) {
-		close_file(input);
-		
-		for (int i = 0; i < BLOCKSIZE; ++i) {
-			free(current_record[i]->rname);
-			free(current_record[i]->seq);
-			free(current_record[i]->rcseq);
-			free(current_record[i]->comment);
-			free(current_record[i]->qual);
-			delete current_record[i];
-		}
-		free(current_record);
+	for (int i = 0; i < BLOCKSIZE; ++i) {
+		free(current_record[i]->rname);
+		free(current_record[i]->seq);
+		free(current_record[i]->rcseq);
+		free(current_record[i]->comment);
+		free(current_record[i]->qual);
+		delete current_record[i];
 	}
+	free(current_record);
+	
+	finalize();
 }
 
-void FASTQParser::init (char* filename) {
-	input = open_file(filename, "r");
+void FASTQParser::init (void) {
+	input = NULL;
+	mate_q = NULL;
 
 	max_line_size = MAXLINESIZE;
 	set_comp();
@@ -42,19 +42,68 @@ void FASTQParser::init (char* filename) {
 		current_record[i]->comment = (char*) malloc(max_line_size);
 		current_record[i]->qual = (char*) malloc(max_line_size);
 	}
+}
+
+void FASTQParser::reset (char* filename) {
+	finalize();
+
+	input = open_file(filename, "r");
 
 	curr_read = 0;
 	filled_size = 0;
 }
 
-Record* FASTQParser::get_next (void) {
-	if (curr_read < filled_size)
-		return current_record[curr_read++];
+void FASTQParser::finalize (void) {
+	if (input != NULL) {
+		close_file(input);
+		input = NULL;
+	}
+}
 
-	else if (read_block())
-		return current_record[curr_read++];
+void FASTQParser::set_mate(FASTQParser* mq) {
+	mate_q = mq;
+}
+
+int FASTQParser::get_next_rec_id (void) {
+	int rid = -1;
 	
-	return NULL;
+	mutex_lock(&read_lock);
+
+	if (curr_read < filled_size) {
+		rid = curr_read;
+	}
+
+	else if (read_block()) {
+		rid = curr_read;
+		if (mate_q != NULL)
+			mate_q->read_block();
+	}
+	++curr_read;
+	mutex_unlock(&read_lock);
+
+	return rid;
+}
+
+Record* FASTQParser::get_next (int rid) {
+	return current_record[rid];
+}
+
+Record* FASTQParser::get_next (void) {
+	Record* r = NULL;
+
+	mutex_lock(&read_lock);
+
+	if (curr_read < filled_size) {
+		r = current_record[curr_read++];
+	}
+
+	else if (read_block()) {
+		r = current_record[curr_read++];
+	}
+	
+	mutex_unlock(&read_lock);
+	
+	return r;
 }
 
 Record** FASTQParser::get_next_block (void) {

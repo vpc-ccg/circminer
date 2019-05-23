@@ -168,7 +168,7 @@ void ProcessCirc::do_process (void) {
 	FASTQParser fq_parser2;
 	Record* current_record2;
 	if (is_pe) {
-		fq_parser2.init(fq_file2);
+		fq_parser2.reset(fq_file2);
 	}
 	
 	int line = 0;

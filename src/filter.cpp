@@ -100,53 +100,6 @@ void FilterRead::finalize (void) {
 	}
 }
 
-
-
-// SE, PE mode
-void* process_block (void* args) {
-	FilterArgs* fa = (struct FilterArgs*) args;
-	// printf("--- thread #%d\n", fa->id);
-
-	// threads [0, remainder) -> quota + 1
-	// threads [remainder, threadCount) -> quota
-	int quota = fa->block_size / threadCount;
-	int remainder = fa->block_size % threadCount;
-	int sind;
-	if (fa->id < remainder) {
-		sind = fa->id * quota + fa->id;
-		++quota;
-	}
-	else {
-		sind = fa->id * quota + remainder;
-	}
-
-	int state;
-	int is_last = filter_read.get_last_round();
-	for (int i = sind; i < sind + quota; ++i) {
-		if (pairedEnd) {
-			state = filter_read.process_read(fa->id, fa->current_records1[i], fa->current_records2[i], 
-					fa->kmer_size, fa->fl, fa->bl, *(fa->fbc_r1), *(fa->bbc_r1), *(fa->fbc_r2), *(fa->bbc_r2));
-			// bool skip = (scanLevel == 0 and state == CONCRD) or 
-			// 			(scanLevel == 1 and state == CONCRD and fa->current_records1[i]->mr->gm_compatible and
-			// 			(fa->current_records1[i]->mr->ed_r1 + fa->current_records1[i]->mr->ed_r2 == 0) and 
-			// 			(fa->current_records1[i]->mr->mlen_r1 + fa->current_records1[i]->mr->mlen_r2 == fa->current_records1[i]->seq_len + fa->current_records2[i]->seq_len));
-
-			// if (skip or is_last)
-			// 	filter_read.print_mapping(fa->current_records1[i]->rname, *(fa->current_records1[i]->mr));
-			// if ((!is_last and !skip) or (is_last and (fa->current_records1[i]->mr->type == CHIBSJ or fa->current_records1[i]->mr->type == CHI2BSJ)))
-			// 	filter_read.write_read_category(fa->current_records1[i], fa->current_records2[i], *(fa->current_records1[i]->mr));
-		}
-		else {
-			state = filter_read.process_read(fa->id, fa->current_records1[i], fa->kmer_size, fa->fl, fa->bl, 
-											 *(fa->fbc_r1), *(fa->bbc_r1));
-			// filter_read.write_read_category(fa->current_records1[i], state);
-		}
-	}
-
-}
-
-
-
 // SE mode
 int FilterRead::process_read ( int thid, Record* current_record, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 
 								chain_list& forward_best_chain, chain_list& backward_best_chain) {
@@ -441,7 +394,11 @@ void FilterRead::write_read_category (Record* current_record, int state) {
 	//state = minM(state, current_record->state);
 	//int cat = (state >= cat_count) ? DISCRD : state;
 	if (!last_round and state != CONCRD) {
+		mutex_lock(&write_lock);
+		
 		fprintf(temp_fq_r1, "%s\n%s%s%d\n%s", current_record->rname, current_record->seq, current_record->comment, state, current_record->qual);
+		
+		mutex_unlock(&write_lock);
 	}
 }
 
@@ -449,6 +406,9 @@ void FilterRead::write_read_category (Record* current_record, int state) {
 void FilterRead::write_read_category (Record* current_record1, Record* current_record2, const MatchedRead& mr) {
 	char r1_dir = (mr.r1_forward) ? '+' : '-';
 	char r2_dir = (mr.r2_forward) ? '+' : '-';
+
+	mutex_lock(&write_lock);
+
 	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
 		sprintf(comment, " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d", 
 						mr.type, 
@@ -474,11 +434,16 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 	fprintf(temp_fq_r2, "@%s%s%c%s%s%s", current_record2->rname, comment, sep,
 		current_record2->seq, current_record2->comment, current_record2->qual);
 
+	mutex_unlock(&write_lock);
+
 }
 
 void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 	char r1_dir = (mr.r1_forward) ? '+' : '-';
 	char r2_dir = (mr.r2_forward) ? '+' : '-';
+
+	mutex_lock(&pmap_lock);
+
 	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
 		fprintf(cat_file_pam[mr.type], "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%d\t%d\t%d\t%d\n", 
 										rname, 
@@ -490,6 +455,8 @@ void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 	else {
 		fprintf(cat_file_pam[mr.type], "%s\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\n", rname);
 	}
+
+	mutex_unlock(&pmap_lock);
 }
 
 void FilterRead::get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits) {

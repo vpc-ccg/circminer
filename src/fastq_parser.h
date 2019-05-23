@@ -22,6 +22,8 @@ private:
 	int curr_read;
 	int filled_size;
 
+	FASTQParser* mate_q;
+
 	char tokens[FQCOMMENTCNT][100];
 
 	bool has_next (void);
@@ -38,10 +40,20 @@ public:
 	FASTQParser (char* filename);
 	~FASTQParser (void);
 
-	void init (char* filename);
+	void init (void);
+	void reset (char* filename);
+	void finalize (void);
+
+	void set_mate(FASTQParser* mq);
+
 	Record* get_next (void);
+	Record* get_next (int rid);
+	int get_next_rec_id (void);
 	Record** get_next_block (void);
 	int get_block_size (void);
 };
+
+extern FASTQParser fq_parser1;
+extern FASTQParser fq_parser2;
 
 #endif	//__FASTQPARSER_H__

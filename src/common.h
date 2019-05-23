@@ -103,6 +103,11 @@ extern vector <bitset <DEF_CONTIG_MAX_SIZE> > intronic_bs;
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];
 
+extern pthread_mutex_t write_lock;
+extern pthread_mutex_t pmap_lock;
+extern pthread_mutex_t read_lock;
+
+
 //---------- Structures ----------\\
 
 struct fragment_t{
@@ -368,10 +373,6 @@ struct Record {
 struct FilterArgs {
 	int id;
 	int kmer_size;
-	int block_size;
-
-	Record** current_records1;
-	Record** current_records2;
 
 	GIMatchedKmer* fl;
 	GIMatchedKmer* bl;
@@ -381,7 +382,7 @@ struct FilterArgs {
 	chain_list* fbc_r2; 
 	chain_list* bbc_r2;
 
-	FilterArgs (int k) : kmer_size(k), id(0), block_size(0) {}
+	FilterArgs (int k) : kmer_size(k), id(0) {}
 
 	void set(GIMatchedKmer* f, GIMatchedKmer* b, 
 			 chain_list* fc1, chain_list* bc1, 
@@ -409,6 +410,9 @@ void vafprintf(int verbosity, FILE *stream, const char *format, ...);
 
 double get_cpu_time();
 double get_real_time();
+
+void mutex_lock(pthread_mutex_t* m);
+void mutex_unlock(pthread_mutex_t* m);
 
 //------- Implementations --------\\
 
