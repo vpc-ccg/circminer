@@ -16,8 +16,7 @@ private:
 	FILE* input;
 	char comp[ASCISIZE];
 
-	// Record* current_record[BLOCKSIZE];
-	Record** current_record;
+	Record* current_record;
 	size_t max_line_size;
 	int curr_read;
 	int filled_size;
@@ -49,7 +48,7 @@ public:
 	Record* get_next (void);
 	Record* get_next (int rid);
 	int get_next_rec_id (void);
-	Record** get_next_block (void);
+	Record* get_next_block (void);
 	int get_block_size (void);
 };
 
