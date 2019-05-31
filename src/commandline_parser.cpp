@@ -201,7 +201,7 @@ int parse_command( int argc, char *argv[] )
 	
 	THREAD_COUNT = threadCount;
 	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
-	for (int i = 0; i < 255; i++)
+	for (int i = 0; i < threadCount; i++)
 		THREAD_ID[i] = i;
 
 	return 0;

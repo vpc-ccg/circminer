@@ -45,7 +45,8 @@ using namespace std;
 #define SOFTCLIPTH 7
 
 #define MAXTLEN 500
-#define FRAGLIM 5000
+// #define FRAGLIM 5000
+ #define FRAGLIM 100
 #define MAXINTRON	2000000
 #define BESTCHAINLIM 30
 
@@ -359,13 +360,13 @@ struct Record {
 
 	MatchedRead* mr;
 
-	Record(void) {
-		mr = new MatchedRead;
-	}
+	// Record(void) {
+	// 	mr = new MatchedRead;
+	// }
 
-	~Record(void) {
-		delete mr;
-	}
+	// ~Record(void) {
+	// 	delete mr;
+	// }
 };
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\

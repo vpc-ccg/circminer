@@ -66,6 +66,9 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	circ_type.push_back("STC");
 	circ_type.push_back("MTC");
 	circ_type.push_back("NC");
+
+	int kmer_cnt = ceil(1.0 * maxReadLength / step);
+	chain_obj.init(kmer_cnt, seedLim);
 }
 
 ProcessCirc::~ProcessCirc (void) {
@@ -499,7 +502,7 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 
 	kmer_cnt = l;
 
-	chain_seeds_sorted_kbest2(qepos, fl, bc, window_size, kmer_cnt, shift);
+	chain_obj.chain_seeds_sorted_kbest2(qepos, fl, bc, window_size, kmer_cnt, shift);
 
 	vafprintf(1, stderr, "Chaining score:%.4f,\t len: %lu\n", bc.chains[0].score, (unsigned long)bc.best_chain_count);
 

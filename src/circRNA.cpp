@@ -63,7 +63,8 @@ int main(int argc, char **argv) {
 	 ***************************************************/
 	else {
 		score_mat.init();
-		fq_parser1.set_mate(&fq_parser2);
+		if (pairedEnd)
+			fq_parser1.set_mate(&fq_parser2);
 
 		// 0 <= stage <= 2
 		int last_round_num = 1;

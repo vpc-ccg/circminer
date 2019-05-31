@@ -27,6 +27,7 @@ private:
 	char comment[400];
 
 	TransExtension* extension;
+	Chaining* chain_obj;
 
 public:
 	FilterRead (void);
@@ -46,7 +47,7 @@ public:
 	int process_mates(int thid, const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, 
 						MatchedRead& mr, bool r1_forward);
 
-	void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits);
+	void get_best_chains(int thid, char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits);
 	void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired);
 
 	void write_read_category (Record* current_record, int is_chimeric);

@@ -12,15 +12,10 @@ FASTQParser::FASTQParser (char* filename) {
 }
 
 FASTQParser::~FASTQParser (void) {
+	free(current_record);
 	for (int i = 0; i < BLOCKSIZE; ++i) {
-		free(current_record[i].rname);
-		free(current_record[i].seq);
-		free(current_record[i].rcseq);
-		free(current_record[i].comment);
-		free(current_record[i].qual);
+		// free(current_record[i].rname);
 	}
-	// free(current_record);
-	delete[] current_record;
 	
 	finalize();
 }
@@ -32,14 +27,24 @@ void FASTQParser::init (void) {
 	max_line_size = MAXLINESIZE;
 	set_comp();
 
-	// current_record = (Record*) malloc(BLOCKSIZE * sizeof(Record));
-	current_record = new Record[BLOCKSIZE];
+	char* big_mem = (char*) malloc(	BLOCKSIZE * sizeof(Record) +  
+									BLOCKSIZE * (5 * max_line_size + sizeof(MatchedRead)));
+	
+	// array of Records followed by all the data in the Records
+	current_record = (Record*) big_mem;
+	big_mem += BLOCKSIZE * sizeof(Record);
 	for (int i = 0; i < BLOCKSIZE; ++i) {
-		current_record[i].rname = (char*) malloc(max_line_size);
-		current_record[i].seq = (char*) malloc(max_line_size);
-		current_record[i].rcseq = (char*) malloc(max_line_size);
-		current_record[i].comment = (char*) malloc(max_line_size);
-		current_record[i].qual = (char*) malloc(max_line_size);
+		current_record[i].rname = (char*) (big_mem + (i * 5 * max_line_size));
+		current_record[i].seq = current_record[i].rname + max_line_size;
+		current_record[i].rcseq = current_record[i].rname + 2 * max_line_size;
+		current_record[i].comment = current_record[i].rname + 3 * max_line_size;
+		current_record[i].qual = current_record[i].rname + 4 * max_line_size;
+	}
+
+	big_mem += BLOCKSIZE * 5 * max_line_size;
+	MatchedRead* mr_start = new(big_mem) MatchedRead[BLOCKSIZE];
+	for (int i = 0; i < BLOCKSIZE; ++i) {
+		current_record[i].mr = (MatchedRead*) (mr_start + i);
 	}
 }
 

@@ -35,9 +35,14 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 						char* fq_file1, char* fq_file2) {
 
 	extension = new TransExtension[threadCount];
+	chain_obj = new Chaining[threadCount];
 
-	for (int i = 0; i < threadCount; ++i)
+	int kmer_cnt = 2 * ceil(1.0 * maxReadLength / kmer) - 1;
+
+	for (int i = 0; i < threadCount; ++i) {
 		extension[i].init(i);
+		chain_obj[i].init(kmer_cnt, seedLim);
+	}
 
 	this->is_pe = pe;
 	this->first_round = first_round;
@@ -88,6 +93,7 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 
 void FilterRead::finalize (void) {
 	delete[] extension;
+	delete[] chain_obj;
 	
 	close_file(cat_file_pam[0]);
 
@@ -110,7 +116,7 @@ int FilterRead::process_read ( int thid, Record* current_record, int kmer_size, 
 	int ex_ret, min_ret = ORPHAN;
 	int fhh, bhh;
 
-	get_best_chains(current_record->seq, current_record->seq_len, kmer_size, forward_best_chain, fl, fhh);
+	get_best_chains(thid, current_record->seq, current_record->seq_len, kmer_size, forward_best_chain, fl, fhh);
 	for (int i = 0; i < forward_best_chain.best_chain_count; i++) {
 		ex_ret = extension[thid].extend_chain_both_sides(forward_best_chain.chains[i], current_record->seq, current_record->seq_len, mr, 1); 
 		
@@ -121,7 +127,7 @@ int FilterRead::process_read ( int thid, Record* current_record, int kmer_size, 
 			min_ret = ex_ret;
 	}
 
-	get_best_chains(current_record->rcseq, current_record->seq_len, kmer_size, backward_best_chain, bl, bhh);
+	get_best_chains(thid, current_record->rcseq, current_record->seq_len, kmer_size, backward_best_chain, bl, bhh);
 	for (int i = 0; i < backward_best_chain.best_chain_count; i++) {
 		ex_ret = extension[thid].extend_chain_both_sides(backward_best_chain.chains[i], current_record->rcseq, current_record->seq_len, mr, -1); 
 		
@@ -149,8 +155,8 @@ int FilterRead::process_read (int thid, Record* current_record1, Record* current
 	// R1
 	vafprintf(1, stderr, "R1/%s\n", current_record1->rname);
 
-	get_best_chains(current_record1->seq, current_record1->seq_len, kmer_size, forward_best_chain_r1, fl, fhh_r1);
-	get_best_chains(current_record1->rcseq, current_record1->seq_len, kmer_size, backward_best_chain_r1, bl, bhh_r1);
+	get_best_chains(thid, current_record1->seq, current_record1->seq_len, kmer_size, forward_best_chain_r1, fl, fhh_r1);
+	get_best_chains(thid, current_record1->rcseq, current_record1->seq_len, kmer_size, backward_best_chain_r1, bl, bhh_r1);
 
 	vafprintf(1, stderr, "R1/%s\n", current_record1->rname);
 	vafprintf(1, stderr, "R1 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r1.chains[0].score, (unsigned long)forward_best_chain_r1.best_chain_count);
@@ -168,8 +174,8 @@ int FilterRead::process_read (int thid, Record* current_record1, Record* current
 	// R2
 	vafprintf(1, stderr, "R2/%s\n", current_record2->rname);
 
-	get_best_chains(current_record2->seq, current_record2->seq_len, kmer_size, forward_best_chain_r2, fl, fhh_r2);
-	get_best_chains(current_record2->rcseq, current_record2->seq_len, kmer_size, backward_best_chain_r2, bl, bhh_r2);
+	get_best_chains(thid, current_record2->seq, current_record2->seq_len, kmer_size, forward_best_chain_r2, fl, fhh_r2);
+	get_best_chains(thid, current_record2->rcseq, current_record2->seq_len, kmer_size, backward_best_chain_r2, bl, bhh_r2);
 
 	vafprintf(1, stderr, "R2/%s\n", current_record2->rname);
 	vafprintf(1, stderr, "R2 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r2.chains[0].score, (unsigned long)forward_best_chain_r2.best_chain_count);
@@ -459,13 +465,13 @@ void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 	mutex_unlock(&pmap_lock);
 }
 
-void FilterRead::get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits) {
+void FilterRead::get_best_chains(int thid, char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits) {
 	int kmer_count = ceil(seq_len / kmer_size);
 	int forward_fragment_count, backward_fragment_count;
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
 
 	split_match_hash(read_seq, seq_len, kmer_size, frag_l);
-	chain_seeds_sorted_kbest(seq_len, frag_l, best_chain);
+	chain_obj[thid].chain_seeds_sorted_kbest(seq_len, frag_l, best_chain);
 
 	high_hits = 0;
 	for (int i = 0; i < max_seg_cnt; i+=2)

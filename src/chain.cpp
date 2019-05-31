@@ -21,11 +21,37 @@ inline double score_alpha(int distr, int distl, int frag_len) {
 	return REWARD_COEF * frag_len;
 }
 
-bool compare_frag(fragment_t a, fragment_t b) {
+Chaining::Chaining(void) {
+	
+}
+
+Chaining::Chaining(int kmer_cnt, int max_frag_cnt) {
+	init(kmer_cnt, max_frag_cnt);
+}
+
+Chaining::~Chaining(void) {
+	free(dp);
+}
+
+void Chaining::init(int kmer_cnt, int max_frag_cnt) {
+	++kmer_cnt;
+	++max_frag_cnt;
+	int mem_size = kmer_cnt * sizeof(chain_cell*) + kmer_cnt * max_frag_cnt * sizeof(chain_cell);
+	dp = (chain_cell**) malloc(mem_size);
+
+	// ptr is pointing to first element in 2d-array
+	chain_cell* ptr = (chain_cell*) (dp + kmer_cnt);
+
+	// set 2d-array pointers
+	for (int i = 0; i < kmer_cnt; ++i)
+		dp[i] = (ptr + i * max_frag_cnt);
+}
+
+bool Chaining::compare_frag(fragment_t a, fragment_t b) {
 	return a.qpos < b.qpos;
 }
 
-bool check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_exons, int kmer, int read_dist, int& trans_dist) {
+bool Chaining::check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_exons, int kmer, int read_dist, int& trans_dist) {
 	trans_dist = INF;
 	if (ol_exons == NULL)
 		return false;
@@ -69,12 +95,12 @@ bool check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_ex
 // b(i, j) = inf     y_j >= y_i || max{y_i - y_j, x_i - x_j} > maxDist
 // b(i, j) = gap_cost
 // w_i = kmer size
-void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_list& best_chain) {
+void Chaining::chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_list& best_chain) {
 	best_chain.best_chain_count = 0;
 
 	int kmer_cnt = 2 * ceil(1.0 * seq_len / kmer) - 1;
 	int max_frag_cnt = seedLim;
-	chain_cell dp[kmer_cnt][max_frag_cnt + 1];
+	// chain_cell dp[kmer_cnt][max_frag_cnt + 1];
 
 	int max_best = BESTCHAINLIM;
 	int best_count = 0;
@@ -305,7 +331,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 // b(i, j) = inf     y_j >= y_i || max{y_i - y_j, x_i - x_j} > maxDist
 // b(i, j) = gap_cost
 // w_i = kmer size
-void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_list& best_chain, 
+void Chaining::chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_list& best_chain, 
 								int kmer, int kmer_cnt, int shift) {
 	best_chain.best_chain_count = 0;
 
@@ -313,7 +339,7 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 		return;
 	
 	int max_frag_cnt = seedLim;
-	chain_cell dp[kmer_cnt][max_frag_cnt + 1];
+	// chain_cell dp[kmer_cnt][max_frag_cnt + 1];
 
 	int max_best = BESTCHAINLIM;
 	int best_count = 0;
