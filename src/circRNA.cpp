@@ -186,7 +186,6 @@ int mapping(int& last_round_num) {
 	/**Mapping Reads**/
 	/*****************/
 
-	int cat_count;
 	bool is_first = true;
 	bool is_last = false;
 
@@ -307,6 +306,7 @@ void* map_reads (void* args) {
 	int rid;
 	Record* current_record1;
 	Record* current_record2;
+	bool skip;
 	int state;
 	int is_last = filter_read.get_last_round();
 	while ( (rid = fq_parser1.get_next_rec_id()) >= 0 ) { // go line by line on fastq file
@@ -318,10 +318,10 @@ void* map_reads (void* args) {
 		
 			state = filter_read.process_read(fa->id, current_record1, current_record2, 
 					fa->kmer_size, fa->fl, fa->bl, *(fa->fbc_r1), *(fa->bbc_r1), *(fa->fbc_r2), *(fa->bbc_r2));
-			bool skip = (scanLevel == 0 and state == CONCRD) or 
-						(scanLevel == 1 and state == CONCRD and current_record1->mr->gm_compatible and
-						(current_record1->mr->ed_r1 + current_record1->mr->ed_r2 == 0) and 
-						(current_record1->mr->mlen_r1 + current_record1->mr->mlen_r2 == current_record1->seq_len + current_record2->seq_len));
+			skip = (scanLevel == 0 and state == CONCRD) or 
+					(scanLevel == 1 and state == CONCRD and current_record1->mr->gm_compatible and
+					(current_record1->mr->ed_r1 + current_record1->mr->ed_r2 == 0) and 
+					(current_record1->mr->mlen_r1 + current_record1->mr->mlen_r2 == current_record1->seq_len + current_record2->seq_len));
 
 			if (skip or is_last)
 				filter_read.print_mapping(current_record1->rname, *(current_record1->mr));
@@ -331,7 +331,15 @@ void* map_reads (void* args) {
 		else {
 			state = filter_read.process_read(fa->id, current_record1, fa->kmer_size, fa->fl, fa->bl, 
 											 *(fa->fbc_r1), *(fa->bbc_r1));
-			filter_read.write_read_category(current_record1, state);
+			skip = (scanLevel == 0 and state == CONCRD) or 
+					(scanLevel == 1 and state == CONCRD and current_record1->mr->gm_compatible and
+					(current_record1->mr->ed_r1 == 0) and 
+					(current_record1->mr->mlen_r1 == current_record1->seq_len));
+
+			if (skip or is_last)
+				filter_read.print_mapping_se(current_record1->rname, *(current_record1->mr));
+			if ((!is_last and !skip) or (is_last and (current_record1->mr->type == CANDID)))
+			filter_read.write_read_category(current_record1, *(current_record1->mr));
 		}
 	}
 

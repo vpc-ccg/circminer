@@ -276,11 +276,15 @@ struct MatchedRead {
 	MatchedRead();
 	
 	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, 
-							int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first);
+				int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first);
+
+	bool update(const MatchedMate& r1, const string& chr, uint32_t shift, bool gm_compatible, int type);
+
 
 	bool update_type(int type);
 
 	inline bool go_for_update(const MatchedMate& r1, const MatchedMate& r2, int32_t tlen, bool gm_compatible, int type);
+	inline bool go_for_update(const MatchedMate& r1, bool gm_compatible, int type);
 };
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\

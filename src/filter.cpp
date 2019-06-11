@@ -73,6 +73,8 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 
 	// openning pam files
 	char* output_names[CATNUM] = { "concordant", "discordant", "circ_RF", "circ_bsj", "circ_2bsj", "fusion", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
+	cat_count = CATNUM;
+
 	char cat_fname [FILE_NAME_LENGTH];
 
 	char mode[2];
@@ -84,9 +86,15 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 	if (! last_round)
 		return;
 
-	for (int i = 1; i < CATNUM; i++) {
-		sprintf(cat_fname, "%s.%s.pam", save_fname, output_names[i]);
-		cat_file_pam[i] = open_file(cat_fname, "w");
+	for (int i = 1; i < cat_count; i++) {
+		// in single end mode open selected files
+		if (!pe and (i == 3 or i == 5 or i == 9 or i == 10 or i == 11)) {
+			sprintf(cat_fname, "%s.%s.pam", save_fname, output_names[i]);
+			cat_file_pam[i] = open_file(cat_fname, "w");
+		}
+		else {
+			cat_file_pam[i] = NULL;
+		}
 	}
 
 }
@@ -100,7 +108,7 @@ void FilterRead::finalize (void) {
 	close_file(temp_fq_r1);
 	close_file(temp_fq_r2);
 	if (last_round) {
-		for (int i = 1; i < CATNUM; i++) {
+		for (int i = 1; i < cat_count; i++) {
 			close_file(cat_file_pam[i]);
 		}
 	}
@@ -112,27 +120,76 @@ int FilterRead::process_read ( int thid, Record* current_record, int kmer_size, 
 	
 	vafprintf(1, stderr, "%s\n", current_record->rname);
 
-	MatchedMate mr;
 	int ex_ret, min_ret = ORPHAN;
 	int fhh, bhh;
 
+	// Forward
 	get_best_chains(thid, current_record->seq, current_record->seq_len, kmer_size, forward_best_chain, fl, fhh);
+
+	vafprintf(1, stderr, "Forward score:%.4f,\t len: %lu\n", forward_best_chain.chains[0].score, (unsigned long)forward_best_chain.best_chain_count);
+	for (int j = 0; j < forward_best_chain.best_chain_count; j++)
+		for (int i = 0; i < forward_best_chain.chains[j].chain_len; i++) {
+			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, forward_best_chain.chains[j].frags[i].rpos, forward_best_chain.chains[j].frags[i].qpos, forward_best_chain.chains[j].frags[i].len);
+		}
+
+	// Reverse
+	get_best_chains(thid, current_record->rcseq, current_record->seq_len, kmer_size, backward_best_chain, bl, bhh);
+
+	vafprintf(1, stderr, "R1 Reverse score:%.4f,\t len: %lu\n", backward_best_chain.chains[0].score, (unsigned long)backward_best_chain.best_chain_count);
+	for (int j = 0; j < backward_best_chain.best_chain_count; j++)
+		for (int i = 0; i < backward_best_chain.chains[j].chain_len; i++) {
+			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, backward_best_chain.chains[j].frags[i].rpos, backward_best_chain.chains[j].frags[i].qpos, backward_best_chain.chains[j].frags[i].len);
+		}
+
+	// Orphan: too many hit / no hit
+	if (forward_best_chain.best_chain_count + backward_best_chain.best_chain_count <= 0) {
+		if (fhh + bhh > 0) {
+			current_record->mr->update_type(NOPROC_MANYHIT);
+			return NOPROC_MANYHIT;
+		}
+		else {
+			current_record->mr->update_type(NOPROC_NOMATCH);
+			return NOPROC_NOMATCH;
+		}
+	}
+
+	int type;
+	bool on_cdna;
 	for (int i = 0; i < forward_best_chain.best_chain_count; i++) {
-		ex_ret = extension[thid].extend_chain_both_sides(forward_best_chain.chains[i], current_record->seq, current_record->seq_len, mr, 1); 
-		
-		if (ex_ret == CONCRD)
+		MatchedMate mm;
+		ex_ret = extension[thid].extend_chain_both_sides(forward_best_chain.chains[i], current_record->seq, current_record->seq_len, mm, 1);
+
+		overlap_to_epos(mm);
+		overlap_to_spos(mm);
+		on_cdna = (mm.exons_spos != NULL) and (mm.exons_epos != NULL);
+		type = (mm.type == CANDID) ? (CHIBSJ) : (mm.type);
+		ConShift con_shift = gtf_parser.get_shift(contigNum, mm.spos);
+
+		current_record->mr->update(mm, con_shift.contig, con_shift.shift, on_cdna, type);
+
+		if (scanLevel == 0 and ex_ret == CONCRD) {
 			return CONCRD;
+		}
 
 		if (ex_ret < min_ret)
 			min_ret = ex_ret;
 	}
 
-	get_best_chains(thid, current_record->rcseq, current_record->seq_len, kmer_size, backward_best_chain, bl, bhh);
 	for (int i = 0; i < backward_best_chain.best_chain_count; i++) {
-		ex_ret = extension[thid].extend_chain_both_sides(backward_best_chain.chains[i], current_record->rcseq, current_record->seq_len, mr, -1); 
+		MatchedMate mm;
+		ex_ret = extension[thid].extend_chain_both_sides(backward_best_chain.chains[i], current_record->rcseq, current_record->seq_len, mm, -1); 
 		
-		if (ex_ret == CONCRD)
+		overlap_to_epos(mm);
+		overlap_to_spos(mm);
+		on_cdna = (mm.exons_spos != NULL) and (mm.exons_epos != NULL);
+		type = (mm.type == CANDID) ? (CHIBSJ) : (mm.type);
+		ConShift con_shift = gtf_parser.get_shift(contigNum, mm.spos);
+
+		current_record->mr->update(mm, con_shift.contig, con_shift.shift, on_cdna, type);
+
+		if (scanLevel == 0 and ex_ret == CONCRD) {
 			return CONCRD;
+		}
 
 		if (ex_ret < min_ret)
 			min_ret = ex_ret;
@@ -396,16 +453,31 @@ int FilterRead::process_mates(int thid, const chain_list& forward_chain, const R
 
 
 // write reads SE mode
-void FilterRead::write_read_category (Record* current_record, int state) {
-	//state = minM(state, current_record->state);
-	//int cat = (state >= cat_count) ? DISCRD : state;
-	if (!last_round and state != CONCRD) {
-		mutex_lock(&write_lock);
-		
-		fprintf(temp_fq_r1, "%s\n%s%s%d\n%s", current_record->rname, current_record->seq, current_record->comment, state, current_record->qual);
-		
-		mutex_unlock(&write_lock);
+void FilterRead::write_read_category (Record* current_record, const MatchedRead& mr) {
+	char dir = (mr.r1_forward) ? '+' : '-';
+
+	mutex_lock(&write_lock);
+	
+	if (mr.type <= CANDID) {
+		sprintf(comment, " %d %s %u %u %d %u %u %c %d %d %d %d", 
+						mr.type, 
+						mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, dir, mr.ed_r1,
+						mr.junc_num, mr.gm_compatible, mr.contig_num);
 	}
+	else {
+		sprintf(comment, " %d * * * * * * * * * * *", mr.type);
+	}
+
+	if (last_round) {
+		current_record->seq[strlen(current_record->seq)-1] = '\t';
+		current_record->comment[strlen(current_record->comment)-1] = '\t';
+	}
+
+	char sep = (last_round) ? '\t' : '\n';
+	fprintf(temp_fq_r1, "@%s%s%c%s%s%s", current_record->rname, comment, sep,
+		current_record->seq, current_record->comment, current_record->qual);
+	
+	mutex_unlock(&write_lock);
 }
 
 // write reads PE mode
@@ -415,7 +487,8 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 
 	mutex_lock(&write_lock);
 
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
+	// if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
+	if (mr.type <= CHI2BSJ) {	
 		sprintf(comment, " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d", 
 						mr.type, 
 						mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1,
@@ -444,13 +517,33 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 
 }
 
+void FilterRead::print_mapping_se (char* rname, const MatchedRead& mr) {
+	char dir = (mr.r1_forward) ? '+' : '-';
+
+	mutex_lock(&pmap_lock);
+
+	if (mr.type <= CANDID) {
+		fprintf(cat_file_pam[mr.type], "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%d\t%d\t%d\n", 
+										rname, 
+										mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, dir, mr.ed_r1, 
+										mr.junc_num, mr.gm_compatible, mr.type);
+	}
+
+	else {
+		fprintf(cat_file_pam[mr.type], "%s\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\n", rname);
+	}
+
+	mutex_unlock(&pmap_lock);
+}
+
 void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 	char r1_dir = (mr.r1_forward) ? '+' : '-';
 	char r2_dir = (mr.r2_forward) ? '+' : '-';
 
 	mutex_lock(&pmap_lock);
 
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
+	// if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
+	if (mr.type <= CHI2BSJ) {
 		fprintf(cat_file_pam[mr.type], "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%d\t%d\t%d\t%d\n", 
 										rname, 
 										mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1, 
@@ -459,7 +552,7 @@ void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 	}
 
 	else {
-		fprintf(cat_file_pam[mr.type], "%s\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\n", rname);
+		fprintf(cat_file_pam[mr.type], "%s\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\n", rname);
 	}
 
 	mutex_unlock(&pmap_lock);

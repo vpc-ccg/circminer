@@ -306,11 +306,78 @@ bool MatchedRead::update(const MatchedMate& r1, const MatchedMate& r2, const str
 	return true;
 }
 
+bool MatchedRead::update(const MatchedMate& r1, const string& chr, uint32_t shift, bool gm_compatible, int type) {
+	if (!go_for_update(r1, gm_compatible, type))
+		return false;
+
+	int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed;
+
+	this->type = type;
+	this->chr_r1 = chr;
+	
+	spos_r1 = r1.spos - shift;
+	epos_r1 = r1.epos - shift;
+
+	qspos_r1 = r1.qspos;
+	qepos_r1 = r1.qepos;
+
+	mlen_r1 = r1.matched_len;
+	ed_r1 = r1.left_ed + r1.middle_ed + r1.right_ed;
+
+	r1_forward = r1.dir > 0;
+
+	this->junc_num = r1.junc_num;
+	this->gm_compatible = gm_compatible;
+
+	this->contig_num = contigNum;
+
+	return true;
+}
+
 bool MatchedRead::update_type(int type) {
 	if (type < this->type)
 		this->type = type;
 }
 
+
+inline bool MatchedRead::go_for_update(const MatchedMate& r1, bool gm_compatible, int type) {
+	if (type < this->type)
+		return true;
+	if (type > this->type)
+		return false;
+
+	if (gm_compatible and !this->gm_compatible)
+		return true;
+	if (!gm_compatible and this->gm_compatible)
+		return false;
+
+	if (type < CHIBSJ) {
+		int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed;
+		if (this->ed_r1 > edit_dist)
+			return true;
+		if (this->ed_r1 < edit_dist)
+			return false;
+
+		if (this->mlen_r1 < r1.matched_len)
+			return true;
+		if (this->mlen_r1 > r1.matched_len)
+			return false;
+	}
+
+	else {
+		if (this->mlen_r1 < r1.matched_len)
+			return true;
+		if (this->mlen_r1 > r1.matched_len)
+			return false;
+
+		int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed;
+		if (this->ed_r1 > edit_dist)
+			return true;
+		if (this->ed_r1 < edit_dist)
+			return false;
+	}
+	return false;
+}
 
 inline bool MatchedRead::go_for_update(const MatchedMate& r1, const MatchedMate& r2, int32_t tlen, bool gm_compatible, int type) {
 	if (type < this->type)
