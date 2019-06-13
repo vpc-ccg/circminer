@@ -21,14 +21,21 @@ typedef pair<uint32_t, int> pu32i;
 void set_mm(const chain_t& ch, uint32_t qspos, int rlen, int dir, MatchedMate& mm);
 
 ProcessCirc::ProcessCirc (int last_round_num, int ws) {
-	sprintf(fq_file1, "%s_%d_remain_R1.fastq", outputFilename, last_round_num);
-	sprintf(fq_file2, "%s_%d_remain_R2.fastq", outputFilename, last_round_num);
+	if (pairedEnd) {
+		sprintf(fq_file1, "%s_%d_remain_R1.fastq", outputFilename, last_round_num);
+		sprintf(fq_file2, "%s_%d_remain_R2.fastq", outputFilename, last_round_num);
 
-	sort_fq(fq_file1);
-	sort_fq(fq_file2);
+		sort_fq(fq_file1);
+		sort_fq(fq_file2);
 
-	sprintf(fq_file1, "%s_%d_remain_R1.fastq.srt", outputFilename, last_round_num);
-	sprintf(fq_file2, "%s_%d_remain_R2.fastq.srt", outputFilename, last_round_num);
+		sprintf(fq_file1, "%s_%d_remain_R1.fastq.srt", outputFilename, last_round_num);
+		sprintf(fq_file2, "%s_%d_remain_R2.fastq.srt", outputFilename, last_round_num);
+	}
+	else {
+		sprintf(fq_file1, "%s_%d_remain.fastq", outputFilename, last_round_num);
+		sort_fq(fq_file1);
+		sprintf(fq_file1, "%s_%d_remain.fastq.srt", outputFilename, last_round_num);
+	}
 
 	fprintf(stdout, "%s\n",fq_file1 );
 
@@ -92,7 +99,8 @@ void ProcessCirc::sort_fq(char* fqname) {
 	}
 
 	char command [FILE_NAME_LENGTH];
-	sprintf(command, "sort -k22,22 -k3,3 -k4,4n %s | tr \"\t\" \"\n\" > %s.srt", fqname, fqname);
+	int contig_num = (pairedEnd) ? 22 : 13;
+	sprintf(command, "sort -k%d,%d -k3,3 -k4,4n %s | tr \"\t\" \"\n\" > %s.srt", contig_num, contig_num, fqname, fqname);
 
 	int ret = system(command);
 	if (ret == 0)
@@ -709,7 +717,7 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 			int ind_epos = mm_r1_r.exon_ind_epos;
 			const IntervalInfo<UniqSeg>* curr_seg;
 			curr_seg = gtf_parser.get_interval(ind_epos);
-			while (mm_r1_r.spos < curr_seg->epos) {
+			while (curr_seg != NULL and mm_r1_r.spos < curr_seg->epos) {
 				for (int i = 0; i < curr_seg->seg_list.size(); ++i) {
 					diff = mm_r1_r.epos + mm_r1_r.sclen_right - curr_seg->seg_list[i].end;
 					if (abs(diff) <= BPRES) {
@@ -725,7 +733,7 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 			vector <pu32i> start_tids;
 			int ind_spos = mm_r1_l.exon_ind_spos;
 			curr_seg = gtf_parser.get_interval(ind_spos);
-			while (mm_r1_l.epos > curr_seg->spos) {
+			while (curr_seg != NULL and mm_r1_l.epos > curr_seg->spos) {
 				for (int i = 0; i < curr_seg->seg_list.size(); ++i) {
 					diff = mm_r1_l.spos - mm_r1_l.sclen_left - curr_seg->seg_list[i].start;
 					if (abs(diff) <= BPRES) {
@@ -802,7 +810,7 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 			int ind_epos = split_mm_left.exon_ind_epos;
 			const IntervalInfo<UniqSeg>* curr_seg;
 			curr_seg = gtf_parser.get_interval(ind_epos);
-			while (split_mm_left.spos < curr_seg->epos) {
+			while (curr_seg != NULL and split_mm_left.spos < curr_seg->epos) {
 				for (int i = 0; i < curr_seg->seg_list.size(); ++i) {
 					diff = split_mm_left.epos + split_mm_left.sclen_right - curr_seg->seg_list[i].end;
 					
@@ -825,7 +833,7 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 			vector <pu32i> start_tids;
 			int ind_spos = split_mm_right.exon_ind_spos;
 			curr_seg = gtf_parser.get_interval(ind_spos);
-			while (split_mm_right.epos > curr_seg->spos) {
+			while (curr_seg != NULL and split_mm_right.epos > curr_seg->spos) {
 				for (int i = 0; i < curr_seg->seg_list.size(); ++i) {
 					diff = split_mm_right.spos - split_mm_right.sclen_left - curr_seg->seg_list[i].start;
 					
