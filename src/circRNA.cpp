@@ -338,7 +338,7 @@ void* map_reads (void* args) {
 
 			if (skip or is_last)
 				filter_read.print_mapping_se(current_record1->rname, *(current_record1->mr));
-			if ((!is_last and !skip) or (is_last and (current_record1->mr->type == CANDID)))
+			if ((!is_last and !skip) or (is_last and (current_record1->mr->type == CHIBSJ)))
 			filter_read.write_read_category(current_record1, *(current_record1->mr));
 		}
 	}
