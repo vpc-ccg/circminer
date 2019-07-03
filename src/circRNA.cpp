@@ -264,11 +264,11 @@ int mapping(int& last_round_num) {
 				filter_args[th]->current_records2 = current_records2;
 				filter_args[th]->id = th;
 				filter_args[th]->block_size = block_size;
-				// pthread_create(cm_threads + th, NULL, process_block, filter_args[th]);
-				process_block(filter_args[th]);
+				pthread_create(cm_threads + th, NULL, process_block, filter_args[th]);
+				//process_block(filter_args[th]);
 			}
-			// for (int th = 0; th < threadCount; ++th)
-			// 	pthread_join(cm_threads[th], NULL);
+			for (int th = 0; th < threadCount; ++th)
+				pthread_join(cm_threads[th], NULL);
 
 			bool skip;
 			if (is_pe) {

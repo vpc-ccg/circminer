@@ -105,24 +105,26 @@ void FilterRead::finalize (void) {
 // SE, PE mode
 void* process_block (void* args) {
 	FilterArgs* fa = (struct FilterArgs*) args;
-	// printf("--- thread #%d\n", fa->id);
+	printf("--- thread #%d\n", fa->id);
+	printf("--- total block size: %d", fa->block_size);
 
 	// threads [0, remainder) -> quota + 1
 	// threads [remainder, threadCount) -> quota
-	int quota = fa->block_size / threadCount;
-	int remainder = fa->block_size % threadCount;
-	int sind;
-	if (fa->id < remainder) {
-		sind = fa->id * quota + fa->id;
-		++quota;
-	}
-	else {
-		sind = fa->id * quota + remainder;
-	}
+	//int quota = fa->block_size / threadCount;
+	//int remainder = fa->block_size % threadCount;
+	//int sind;
+	//if (fa->id < remainder) {
+	//	sind = fa->id * quota + fa->id;
+	//	++quota;
+	//}
+	//else {
+	//	sind = fa->id * quota + remainder;
+	//}
 
 	int state;
 	int is_last = filter_read.get_last_round();
-	for (int i = sind; i < sind + quota; ++i) {
+	//for (int i = sind; i < sind + quota; ++i) {
+	for (int i = fa->id; i < fa->block_size; i += threadCount) {
 		if (pairedEnd) {
 			state = filter_read.process_read(fa->id, fa->current_records1[i], fa->current_records2[i], 
 					fa->kmer_size, fa->fl, fa->bl, *(fa->fbc_r1), *(fa->bbc_r1), *(fa->fbc_r2), *(fa->bbc_r2));

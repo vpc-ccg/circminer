@@ -14,7 +14,7 @@ FASTQParser::~FASTQParser (void) {
 	if (input != NULL) {
 		close_file(input);
 		
-		for (int i = 0; i < BLOCKSIZE; ++i) {
+		for (int i = 0; i < block_size; ++i) {
 			free(current_record[i]->rname);
 			free(current_record[i]->seq);
 			free(current_record[i]->rcseq);
@@ -27,13 +27,15 @@ FASTQParser::~FASTQParser (void) {
 }
 
 void FASTQParser::init (char* filename) {
+	block_size = threadCount * BLOCKSIZE;
+
 	input = open_file(filename, "r");
 
 	max_line_size = MAXLINESIZE;
 	set_comp();
 
-	current_record = (Record**) malloc(BLOCKSIZE * sizeof(Record*));
-	for (int i = 0; i < BLOCKSIZE; ++i) {
+	current_record = (Record**) malloc(block_size * sizeof(Record*));
+	for (int i = 0; i < block_size; ++i) {
 		current_record[i] = new Record;
 
 		current_record[i]->rname = (char*) malloc(max_line_size);
@@ -80,7 +82,7 @@ bool FASTQParser::has_next (void) {
 bool FASTQParser::read_block (void) {
 	curr_read = 0;
 	filled_size = 0;
-	for (int i = 0; i < BLOCKSIZE; ++i) {
+	for (int i = 0; i < block_size; ++i) {
 		if (has_next()) {
 			int rname_len = getline(&current_record[i]->rname, &max_line_size, input);
 			rname_len = extract_map_info(current_record[i]->rname, i);
