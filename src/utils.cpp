@@ -168,9 +168,9 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 	if (sm.exons_spos == NULL or lm.exons_spos == NULL) {
 		tlen = lm.spos - sm.epos - 1 + lm.matched_len + sm.matched_len;
 		if (tlen <= maxTlen)
-			mr.update(sm, lm, chr, shift, tlen, 0, false, CONCRD, r1_sm);
+			mr.update(sm, lm, chr, shift, tlen, 0, false, CONGNM, r1_sm);
 		else if (tlen <= MAXDISCRDTLEN)
-			mr.update(sm, lm, chr, shift, tlen, 0, false, DISCRD, r1_sm);
+			mr.update(sm, lm, chr, shift, tlen, 0, false, CONGNM, r1_sm);
 	}
 	else {
 		//fprintf(stderr, "Left Mate [%u-%u] dir=%d, type=%d, Right Mate[%u-%u] dir=%d, type=%d\n", sm.spos, sm.epos, sm.dir, sm.type, lm.spos, lm.epos, lm.dir, lm.type);
@@ -190,9 +190,9 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 	if (sm.exons_epos == NULL or lm.exons_spos == NULL) {
 		tlen = lm.spos - sm.epos - 1 + sm.matched_len + lm.matched_len;
 		if (tlen <= maxTlen)
-			mr.update(sm, lm, chr, shift, tlen, 0, false, CONCRD, r1_sm);
+			mr.update(sm, lm, chr, shift, tlen, 0, false, CONGNM, r1_sm);
 		else if (tlen <= MAXDISCRDTLEN)
-			mr.update(sm, lm, chr, shift, tlen, 0, false, DISCRD, r1_sm);
+			mr.update(sm, lm, chr, shift, tlen, 0, false, CONGNM, r1_sm);
 	}
 	else {
 		int intron_num;

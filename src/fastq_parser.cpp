@@ -222,7 +222,7 @@ void FASTQParser::fill_map_info(int cnt, int r_ind) {
 		current_record[r_ind].mr->type 	= atoi(tokens[1]);
 
 		if (current_record[r_ind].mr->type == CONCRD or current_record[r_ind].mr->type == DISCRD or current_record[r_ind].mr->type == CHIORF or 
-			current_record[r_ind].mr->type == CHIBSJ or current_record[r_ind].mr->type == CHI2BSJ) {
+			current_record[r_ind].mr->type == CHIBSJ or current_record[r_ind].mr->type == CHI2BSJ or current_record[r_ind].mr->type == CONGNM) {
 			current_record[r_ind].mr->chr_r1 	= tokens[2];	
 			current_record[r_ind].mr->spos_r1	= strtoul(tokens[3], &stop_string, base);
 			current_record[r_ind].mr->epos_r1	= strtoul(tokens[4], &stop_string, base);

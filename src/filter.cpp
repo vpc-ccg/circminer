@@ -67,7 +67,7 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 	}
 
 	// openning pam files
-	char* output_names[CATNUM] = { "concordant", "discordant", "circ_RF", "circ_bsj", "circ_2bsj", "fusion", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
+	char* output_names[CATNUM] = { "concordant", "discordant", "circ_RF", "circ_bsj", "circ_2bsj", "fusion", "genomic", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
 	char cat_fname [FILE_NAME_LENGTH];
 
 	char mode[2];
@@ -250,7 +250,7 @@ int FilterRead::process_mates(int thid, const chain_list& forward_chain, const R
 
 	bool forward_paired[BESTCHAINLIM];
 	bool backward_paired[BESTCHAINLIM];
-	pair_chains(forward_chain, backward_chain, mate_pairs, forward_paired, backward_paired);
+	pair_chains(forward_chain, backward_chain, mate_pairs, forward_paired, backward_paired, mr.type);
 
 	int min_ret1 = ORPHAN;
 	int min_ret2 = ORPHAN;
@@ -409,7 +409,7 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 
 	mutex_lock(&write_lock);
 
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ or mr.type == CONGNM) {
 		sprintf(comment, " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d", 
 						mr.type, 
 						mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1,
@@ -444,7 +444,7 @@ void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 
 	mutex_lock(&pmap_lock);
 
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ) {
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ or mr.type == CONGNM) {
 		fprintf(cat_file_pam[mr.type], "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%d\t%d\t%d\t%d\n", 
 										rname, 
 										mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1, 
@@ -473,7 +473,7 @@ void FilterRead::get_best_chains(char* read_seq, int seq_len, int kmer_size, cha
 			high_hits++;
 }
 
-void FilterRead::pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired) {
+void FilterRead::pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired, int saved_type) {
 	vector <const IntervalInfo<UniqSeg>*> forward_exon_list(forward_chain.best_chain_count);
 	vector <const IntervalInfo<UniqSeg>*> reverse_exon_list(reverse_chain.best_chain_count);
 
@@ -513,7 +513,7 @@ void FilterRead::pair_chains(const chain_list& forward_chain, const chain_list& 
 			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_transcript(forward_exon_list[i], reverse_exon_list[j], temp.common_tid))
 				or (forward_exon_list[i] != NULL and same_gene(forward_exon_list[i], rs, re))
 				or (reverse_exon_list[j] != NULL and same_gene(reverse_exon_list[j], fs, fe))
-				or (tlen <= MAXDISCRDTLEN)) {
+				or (tlen <= MAXDISCRDTLEN) and (saved_type >= CONGNM)) {
 				//or (forward_exon_list[i] == NULL and reverse_exon_list[j] == NULL and tlen <= maxTlen)) {
 				temp.forward = forward_chain.chains[i];
 				temp.reverse = reverse_chain.chains[j];

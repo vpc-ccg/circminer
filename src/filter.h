@@ -47,7 +47,7 @@ public:
 						MatchedRead& mr, bool r1_forward);
 
 	void get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits);
-	void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired);
+	void pair_chains(const chain_list& forward_chain, const chain_list& reverse_chain, vector <MatePair>& mate_pairs, bool* forward_paired, bool* reverse_paired, int saved_type);
 
 	void write_read_category (Record* current_record, int is_chimeric);
 	void write_read_category (Record* current_record1, Record* current_record2, const MatchedRead& mr);
