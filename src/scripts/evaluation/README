@@ -1,0 +1,11 @@
+Evaluation script
+----------------
+
+build with make (requires c++14)
+
+argv[1] for art output in sam format
+argv[2] for star output in sam format
+argv[3] for circminer output in pam format
+
+results are printed to standard io
+
