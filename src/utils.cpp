@@ -158,7 +158,7 @@ bool is_concord2(const chain_t& a, int seq_len, MatchedMate& mr) {
 
 
 // sm should start before lm
-bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm) {
+bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm, int pair_type) {
 	if (sm.spos > lm.spos)
 		return false;
 
@@ -181,7 +181,7 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 					// => assume genomic locations
 					tlen = lm.spos + lm.matched_len - sm.spos;
 					if (tlen <= maxTlen)
-						mr.update(sm, lm, chr, shift, tlen, 0, on_cdna, CONCRD, r1_sm);
+						mr.update(sm, lm, chr, shift, tlen, 0, on_cdna, ((pair_type == 0) ? CONCRD : CONGEN), r1_sm);
 					else
 						mr.update(sm, lm, chr, shift, tlen, 0, on_cdna, DISCRD, r1_sm);
 				}
@@ -199,7 +199,7 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 		tlen = calc_tlen(sm, lm, intron_num);
 		//fprintf(stdout, "tlen: %d\n", tlen);
 		if (tlen >= 0 and tlen <= maxTlen) {
-			mr.update(sm, lm, chr, shift, tlen, intron_num, on_cdna, CONCRD, r1_sm);
+			mr.update(sm, lm, chr, shift, tlen, intron_num, on_cdna, ((pair_type == 0) ? CONCRD : CONGEN), r1_sm);
 		}
 		else {
 			if (tlen < 0) {

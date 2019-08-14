@@ -13,7 +13,7 @@ int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num);
 
 bool is_concord(const chain_t& a, int seq_len, MatchedMate& mr);
 bool is_concord2(const chain_t& a, int seq_len, MatchedMate& mr);
-bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm);
+bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm, int pair_type);
 bool check_chimeric(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm);
 
 bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& chr, uint32_t shift, bool r1_sm);

@@ -8,7 +8,7 @@
 
 #include "common.h"
 
-#define BLOCKSIZE 100000
+#define BLOCKSIZE 100
 #define FQCOMMENTCNT 22
 
 class FASTQParser {
@@ -45,12 +45,78 @@ public:
 
 	void set_mate(FASTQParser* mq);
 
-	Record* get_next (void);
-	Record* get_next (int rid);
-	int get_next_rec_id (void);
+	inline Record* get_next (void);
+	inline Record* get_next (int rid);
+	inline int get_next_rec_id (void);
 	Record* get_next_block (void);
 	int get_block_size (void);
 };
+
+
+inline int FASTQParser::get_next_rec_id (void) {
+	int rid = -1;
+	
+	//mutex_lock(&read_lock);
+
+	if (curr_read < filled_size) {
+		rid = curr_read;
+	}
+
+	else if (read_block()) {
+		rid = curr_read;
+		if (mate_q != NULL)
+			mate_q->read_block();
+	}
+	++curr_read;
+	//mutex_unlock(&read_lock);
+
+	return rid;
+}
+
+inline Record* FASTQParser::get_next (int rid) {
+	return current_record + rid;
+}
+
+inline Record* FASTQParser::get_next (void) {
+	Record* r = NULL;
+
+	//mutex_lock(&read_lock);
+
+	if (curr_read < filled_size) {
+		r = current_record + curr_read;
+		++curr_read;
+	}
+
+	else if (read_block()) {
+		r = current_record + curr_read;
+		++curr_read;
+	}
+	
+	//mutex_unlock(&read_lock);
+	
+	return r;
+}
+
+inline Record* FASTQParser::get_next_block (void) {
+	if (read_block())
+		return current_record;
+	else
+		return NULL;
+}
+
+inline int FASTQParser::get_block_size (void) {
+	return filled_size;
+}
+
+inline bool FASTQParser::has_next (void) {
+	char c = fgetc(input);
+	if (c == EOF)
+		return false;
+	
+	assert(c == '@');	// ensure FASTQ format 
+	return true;
+}
+
 
 extern FASTQParser fq_parser1;
 extern FASTQParser fq_parser2;

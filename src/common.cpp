@@ -358,13 +358,14 @@ inline bool MatchedRead::go_for_update(const MatchedMate& r1, const MatchedMate&
 
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
-MatePair::MatePair(const MatePair& other) : score(other.score), forward(other.forward), reverse(other.reverse) {
+MatePair::MatePair(const MatePair& other) : type(other.type), score(other.score), forward(other.forward), reverse(other.reverse) {
 	common_tid.clear();
 	for (int i = 0; i < other.common_tid.size(); i++)
 		common_tid.push_back(other.common_tid[i]);
 }
 
 MatePair& MatePair::operator = (const MatePair& other) {
+	type = other.type;
 	score = other.score;
 	forward = other.forward;
 	reverse = other.reverse;
@@ -377,6 +378,8 @@ MatePair& MatePair::operator = (const MatePair& other) {
 }
 
 bool MatePair::operator < (const MatePair& r) const {
+	if (type != r.type)
+		return type < r.type;
 	return score > r.score;
 }
 

@@ -52,7 +52,7 @@ using namespace std;
 #define LARIAT2BEGTH 1000
 
 // ouput categories
-#define CATNUM 13	// number of output categories
+#define CATNUM 14	// number of output categories
 
 // the order matters:
 #define CONCRD	0
@@ -60,14 +60,15 @@ using namespace std;
 #define CHIORF	2
 #define CHIBSJ	3
 #define CHI2BSJ	4
-#define CHIFUS	5
-#define CONGNM	6
-#define OEA2	7
-#define CANDID	8
-#define OEANCH	9
-#define ORPHAN	10
-#define NOPROC_MANYHIT 11
-#define NOPROC_NOMATCH 12
+#define CONGEN	5
+#define CHIFUS	6
+#define CONGNM	7
+#define OEA2	8
+#define CANDID	9
+#define OEANCH	10
+#define ORPHAN	11
+#define NOPROC_MANYHIT 12
+#define NOPROC_NOMATCH 13
 
 //---------- Global Variables ----------\\
 
@@ -286,6 +287,7 @@ struct MatchedRead {
 //\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
 
 struct MatePair {
+	int type;
 	float score;
 	chain_t forward;
 	chain_t reverse;

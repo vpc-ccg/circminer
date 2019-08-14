@@ -63,70 +63,6 @@ void FASTQParser::set_mate(FASTQParser* mq) {
 	mate_q = mq;
 }
 
-int FASTQParser::get_next_rec_id (void) {
-	int rid = -1;
-	
-	mutex_lock(&read_lock);
-
-	if (curr_read < filled_size) {
-		rid = curr_read;
-	}
-
-	else if (read_block()) {
-		rid = curr_read;
-		if (mate_q != NULL)
-			mate_q->read_block();
-	}
-	++curr_read;
-	mutex_unlock(&read_lock);
-
-	return rid;
-}
-
-Record* FASTQParser::get_next (int rid) {
-	return current_record + rid;
-}
-
-Record* FASTQParser::get_next (void) {
-	Record* r = NULL;
-
-	mutex_lock(&read_lock);
-
-	if (curr_read < filled_size) {
-		r = current_record + curr_read;
-		++curr_read;
-	}
-
-	else if (read_block()) {
-		r = current_record + curr_read;
-		++curr_read;
-	}
-	
-	mutex_unlock(&read_lock);
-	
-	return r;
-}
-
-Record* FASTQParser::get_next_block (void) {
-	if (read_block())
-		return current_record;
-	else
-		return NULL;
-}
-
-int FASTQParser::get_block_size (void) {
-	return filled_size;
-}
-
-bool FASTQParser::has_next (void) {
-	char c = fgetc(input);
-	if (c == EOF)
-		return false;
-	
-	assert(c == '@');	// ensure FASTQ format 
-	return true;
-}
-
 bool FASTQParser::read_block (void) {
 	curr_read = 0;
 	filled_size = 0;
@@ -222,7 +158,8 @@ void FASTQParser::fill_map_info(int cnt, int r_ind) {
 		current_record[r_ind].mr->type 	= atoi(tokens[1]);
 
 		if (current_record[r_ind].mr->type == CONCRD or current_record[r_ind].mr->type == DISCRD or current_record[r_ind].mr->type == CHIORF or 
-			current_record[r_ind].mr->type == CHIBSJ or current_record[r_ind].mr->type == CHI2BSJ or current_record[r_ind].mr->type == CONGNM) {
+			current_record[r_ind].mr->type == CHIBSJ or current_record[r_ind].mr->type == CHI2BSJ or current_record[r_ind].mr->type == CONGNM  or 
+			current_record[r_ind].mr->type == CONGEN) {
 			current_record[r_ind].mr->chr_r1 	= tokens[2];	
 			current_record[r_ind].mr->spos_r1	= strtoul(tokens[3], &stop_string, base);
 			current_record[r_ind].mr->epos_r1	= strtoul(tokens[4], &stop_string, base);

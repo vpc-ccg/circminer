@@ -67,7 +67,7 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 	}
 
 	// openning pam files
-	char* output_names[CATNUM] = { "concordant", "discordant", "circ_RF", "circ_bsj", "circ_2bsj", "fusion", "genomic", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
+	char* output_names[CATNUM] = { "concordant", "discordant", "circ_RF", "circ_bsj", "circ_2bsj", "genic", "fusion", "genomic", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
 	char cat_fname [FILE_NAME_LENGTH];
 
 	char mode[2];
@@ -292,7 +292,7 @@ int FilterRead::process_mates(int thid, const chain_list& forward_chain, const R
 				overlap_to_spos(r2_mm);
 
 				if (r1_mm.type == CONCRD and r2_mm.type == CONCRD) {
-					if (concordant_explanation(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward) and scanLevel == 0) {
+					if (concordant_explanation(r1_mm, r2_mm, mr, con_shift.contig, con_shift.shift, r1_forward, mate_pairs[i].type) and scanLevel == 0) {
 						return CONCRD;
 					}
 				}
@@ -394,11 +394,11 @@ void FilterRead::write_read_category (Record* current_record, int state) {
 	//state = minM(state, current_record->state);
 	//int cat = (state >= cat_count) ? DISCRD : state;
 	if (!last_round and state != CONCRD) {
-		mutex_lock(&write_lock);
+		//mutex_lock(&write_lock);
 		
 		fprintf(temp_fq_r1, "%s\n%s%s%d\n%s", current_record->rname, current_record->seq, current_record->comment, state, current_record->qual);
 		
-		mutex_unlock(&write_lock);
+		//mutex_unlock(&write_lock);
 	}
 }
 
@@ -407,9 +407,9 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 	char r1_dir = (mr.r1_forward) ? '+' : '-';
 	char r2_dir = (mr.r2_forward) ? '+' : '-';
 
-	mutex_lock(&write_lock);
+	//mutex_lock(&write_lock);
 
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ or mr.type == CONGNM) {
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ or mr.type == CONGNM or mr.type == CONGEN) {
 		sprintf(comment, " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d", 
 						mr.type, 
 						mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1,
@@ -434,7 +434,7 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 	fprintf(temp_fq_r2, "@%s%s%c%s%s%s", current_record2->rname, comment, sep,
 		current_record2->seq, current_record2->comment, current_record2->qual);
 
-	mutex_unlock(&write_lock);
+	//mutex_unlock(&write_lock);
 
 }
 
@@ -442,9 +442,9 @@ void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 	char r1_dir = (mr.r1_forward) ? '+' : '-';
 	char r2_dir = (mr.r2_forward) ? '+' : '-';
 
-	mutex_lock(&pmap_lock);
+	//mutex_lock(&pmap_lock);
 
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ or mr.type == CONGNM) {
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ or mr.type == CONGNM or mr.type == CONGEN) {
 		fprintf(cat_file_pam[mr.type], "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%d\t%d\t%d\t%d\n", 
 										rname, 
 										mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1, 
@@ -456,7 +456,7 @@ void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
 		fprintf(cat_file_pam[mr.type], "%s\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\n", rname);
 	}
 
-	mutex_unlock(&pmap_lock);
+	//mutex_unlock(&pmap_lock);
 }
 
 void FilterRead::get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits) {
@@ -510,14 +510,21 @@ void FilterRead::pair_chains(const chain_list& forward_chain, const chain_list& 
 			tlen = (fs < rs) ? (re - fs) : (fe - rs);
 
 			MatePair temp;
-			if ((forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL and same_transcript(forward_exon_list[i], reverse_exon_list[j], temp.common_tid))
-				or (forward_exon_list[i] != NULL and same_gene(forward_exon_list[i], rs, re))
-				or (reverse_exon_list[j] != NULL and same_gene(reverse_exon_list[j], fs, fe))
+			bool same_tr = false, same_gen = false;
+			if (forward_exon_list[i] != NULL and reverse_exon_list[j] != NULL)
+				same_tr = same_transcript(forward_exon_list[i], reverse_exon_list[j], temp.common_tid);
+			if (! same_tr and forward_exon_list[i] != NULL and ((scanLevel == 0 and saved_type > CONGEN) or (scanLevel > 0 and saved_type >= CONGEN)))
+				same_gen = same_gene(forward_exon_list[i], rs, re);
+			if (! same_gen and reverse_exon_list[j] != NULL and (saved_type >= CONGEN))
+				same_gen = same_gene(reverse_exon_list[j], fs, fe);
+
+			if (same_tr	or same_gen 
 				or (tlen <= MAXDISCRDTLEN) and (saved_type >= CONGNM)) {
 				//or (forward_exon_list[i] == NULL and reverse_exon_list[j] == NULL and tlen <= maxTlen)) {
 				temp.forward = forward_chain.chains[i];
 				temp.reverse = reverse_chain.chains[j];
 				temp.score = forward_chain.chains[i].score + reverse_chain.chains[j].score;
+				temp.type = (same_tr) ? 0 : ((same_gen) ? 1 : 2);
 				mate_pairs.push_back(temp);
 
 				forward_paired[i] = true;
