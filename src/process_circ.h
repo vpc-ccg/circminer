@@ -36,6 +36,7 @@ private:
 	chain_list bc2;
 
 	int pre_contig;
+	string pre_chr;
 
 	unordered_map <uint32_t, RegionalHashTable*> ind2ht;
 	unordered_set <uint32_t> removables;

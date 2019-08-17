@@ -14,7 +14,7 @@
 #include "utils.h"
 
 #define BINSIZE 5000
-#define MAXHTLISTSIZE 5
+#define MAXHTLISTSIZE 0
 
 typedef pair<uint32_t, int> pu32i;
 
@@ -38,6 +38,7 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	step = 3;
 
 	pre_contig = -1;
+	pre_chr = "-";
 
 	RegionalHashTable* rht;
 	for (int i = 0; i < MAXHTLISTSIZE; ++i) {
@@ -198,6 +199,10 @@ void ProcessCirc::do_process (void) {
 			load_genome();
 			refresh_hash_table_list();
 		}
+
+		//if (pre_chr != current_record1->mr->chr_r1)
+		//	refresh_hash_table_list();
+		//pre_chr = current_record1->mr->chr_r1;
 
 		call_circ(current_record1, current_record2);
 	}
@@ -491,7 +496,13 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 		fl[l] = *gl;
 		fl[l].qpos = i;
 
-		// vafprintf(2, stderr, "Occ: %d\n", fl[l].frag_count);
+		//vafprintf(2, stderr, "Occ: %d\n", fl[l].frag_count);
+
+		//for (int j = 0; j < gl->frag_count; j++) {
+		//	vafprintf(2, stderr, "%d - %d\t", gl->frags[j].info, fl[l].frags[j].info);
+		//}
+		//vafprintf(2, stderr, "\n");
+
 		if (fl[l].frag_count > seedLim)
 			fl[l].frag_count = 0;
 		l++;
@@ -517,7 +528,7 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 		least_miss = missing;
 
 		for (int i = 0; i < bc.chains[j].chain_len; i++) {
-			vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, bc.chains[j].frags[i].rpos, bc.chains[j].frags[i].qpos, bc.chains[j].frags[i].len);
+			vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, bc.chains[j].frags[i].rpos - shift, bc.chains[j].frags[i].qpos, bc.chains[j].frags[i].len);
 		}
 	}
 }
@@ -571,9 +582,16 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 } 
 
 void ProcessCirc::refresh_hash_table_list (void) {
-	for (auto it = ind2ht.begin(); it != ind2ht.end(); ++it) {
-		removables.insert(it->first);
-	}
+	//for (auto it = ind2ht.begin(); it != ind2ht.end(); ++it) {
+		//removables.insert(it->first);
+
+	//}
+	
+	removables.clear();
+	gids.clear();
+	gid2ind.clear();
+	ind2ht.clear();
+
 }
 
 void ProcessCirc::check_removables (uint32_t rspos) {
@@ -592,12 +610,12 @@ RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info, char*
 
 	int gene_len = gene_info.end - gene_info.start + 1;
 	gid = gene_info.gene_id;
-	// fprintf(stderr, "Gene id: %d\n", gid);
+	//fprintf(stderr, "Gene id: %d\n", gid);
 	
 	if (gid2ind.find(gid) != gid2ind.end()) {
 		uint32_t ind = gid2ind[gid];
 		regional_ht = ind2ht[ind];
-		// fprintf(stderr, "Found gid: %d\n", gid);
+		//fprintf(stderr, "Found gid: %d\t---Skipping HT create\n", gid);
 	}
 	else {
 		if (removables.size() == 0) {
@@ -609,13 +627,16 @@ RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info, char*
 			gids.push_back(gid);
 			new_ht->create_table(gene_seq, 0, gene_len);
 			regional_ht = new_ht;
-			// fprintf(stderr, "Allocated new HT gid: %d, %s [%u-%u]\n", gid, mr.chr_r1.c_str(), mr.spos_r1, mr.spos_r2);
+			//fprintf(stderr, "Allocated new HT gid: %d, %s [%u-%u]\n", gid, mr.chr_r1.c_str(), mr.spos_r1, mr.spos_r2);
 		}
 		else {
 			removable_ind = *(removables.cbegin());
 			removables.erase(removables.cbegin());
 			gid2ind.erase(gids[removable_ind]);
 			gid2ind.insert(make_pair(gid, removable_ind));
+
+			//fprintf(stderr, "Removed gid: %d\tTotal: %d\n", gids[removable_ind], gid2ind.size());
+
 			gids[removable_ind] = gid;
 
 			regional_ht = ind2ht[removable_ind];
@@ -624,7 +645,14 @@ RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info, char*
 			regional_ht->create_table(gene_seq, 0, gene_len);
 
 		}
-		// fprintf(stderr, "Added gid: %d\n", gid);
+		//fprintf(stderr, "Added gid: %d\tTotal: %d\n", gid, gid2ind.size());
+		//fprintf(stderr, "----------------------------------------------------------\n");
+		//fprintf(stderr, "Map Info \n");
+
+		//for (auto it = ind2ht.begin(); it != ind2ht.end(); ++it) {
+		//	fprintf(stderr, "ind: %d,\tgid: %d\n", it->first, gids[it->first]);
+		//}
+		//fprintf(stderr, "----------------------------------------------------------\n");
 	}
 
 	return regional_ht;
@@ -874,6 +902,10 @@ void ProcessCirc::report_events (void) {
 	open_report_file();
 	if (circ_res.size() <= 0)
 		return;
+
+	//for (int i = 0; i < circ_res.size(); ++i) {
+	//	fprintf(stdout, "%s\t%u\t%u\t%s", circ_res[i].chr.c_str(), circ_res[i].spos, circ_res[i].epos, circ_res[i].rname.c_str());
+	//}
 
 	sort(circ_res.begin(), circ_res.end());
 	int cnt = 1;
