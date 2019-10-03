@@ -2,7 +2,7 @@ all: OPTIMIZE_FLAGS build
 debug: DEBUG_FLAGS OPTIMIZE_FLAGS build
 profile: PROFILE_FLAGS DEBUG_FLAGS OPTIMIZE_FLAGS build
 valgrind: OPTIMIZE_FLAGS DEBUG_FLAGS build
-build: mrsfast circRNA cleanobj
+build: mrsfast circminer cleanobj
 
 CC          ?= gcc
 CXX         ?= g++
@@ -17,7 +17,7 @@ CFLAGS      := -w
 CXXFLAGS    := -w $(INCS) -std=c++11
 LDFLAGS     := 
 
-MYOBJ        = $(SRCDIR)/circRNA.o \
+MYOBJ        = $(SRCDIR)/circminer.o \
                $(SRCDIR)/utils.o \
                $(SRCDIR)/filter.o \
                $(SRCDIR)/match_read.o \
@@ -31,10 +31,9 @@ MYOBJ        = $(SRCDIR)/circRNA.o \
 			   $(SRCDIR)/process_circ.o \
 			   $(SRCDIR)/extend.o
 
-#MRSOBJ       = $(MRSDIR)/*.o
 MRSOBJ       = $(MRSDIR)/[!base]*.o
 
-circRNA: $(MYOBJ)
+circminer: $(MYOBJ)
 	$(CXX) -w $(MYOBJ) $(BWAOBJ) $(MRSOBJ) -o $@ ${LDFLAGS} ${LIBS}
 
 mrsfast:
@@ -55,4 +54,7 @@ DEBUG_FLAGS:
 	$(eval CXXFLAGS = $(CXXFLAGS) -g -DDEBUG=1)
 
 PROFILE_FLAGS:
-	$(eval LIBS = $(LIBS) -lprofiler)
+	$(eval CFLAGS = $(CFLAGS) -pg)
+	$(eval CXXFLAGS = $(CXXFLAGS) -pg)
+	$(eval LIBS = $(LIBS) -pg)
+#	$(eval LIBS = $(LIBS) -lprofiler)

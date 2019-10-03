@@ -236,7 +236,7 @@ void printHELP()
 										"2: Report the best mapping.\n");
 	
 	fprintf(stdout, "\nExample Command:\n");
-	fprintf(stdout, "./circRNA -r hg19.fa -f reads_1.fastq -g gene_model.gtf -o output --pe\n");
+	fprintf(stdout, "./circminer -r hg19.fa -f reads_1.fastq -g gene_model.gtf -o output --pe\n");
 
 	fprintf(stdout, "\n");
 }
