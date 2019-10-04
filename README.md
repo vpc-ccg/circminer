@@ -58,7 +58,7 @@ The information regarding the detected circRNAs is reported in `output.circ_repo
 |5     |string|Type of circRNA                                                          |
 |6     |string|Read names of the supproting back-splice junction reads (comma-separated)|
 
-The mapping results are stored in .pam files. If the scan level parameter (`-s, --scan_lev`) is set to 2 while running the tool, the mapping with the smallest error and soft-clip values is reported.
+The mapping results are stored in .pam files. If the scan level parameter (`-s, --scan-lev`) is set to 2 while running the tool, the mapping with the smallest error and soft-clip values is reported.
 
 ## Contact & Support
 

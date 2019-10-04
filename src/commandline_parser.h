@@ -11,6 +11,7 @@
 #include "common.h"
 
 int parse_command( int argc, char *argv[] );
-void printHELP();
+void printHELP(void);
+void printHELPShort(void);
 
 #endif	//__COMMANDLINEPARSER_H__

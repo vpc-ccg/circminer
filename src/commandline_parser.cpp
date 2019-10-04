@@ -41,6 +41,12 @@ vector <bitset <DEF_CONTIG_MAX_SIZE> > intronic_bs;
 // 1: exit
 int parse_command( int argc, char *argv[] )
 {
+
+	if (argc < 2) {
+		printHELPShort();
+		return 1;
+	}
+
 	int opt;
 	int opt_index;
 
@@ -49,7 +55,7 @@ int parse_command( int argc, char *argv[] )
 		{"help", no_argument, 0, 'h'},
 		{"version", no_argument, 0, 'v'},
 		{"index", no_argument, 0, 'i'},
-		{"compact_index", no_argument, 0, 'm'},
+		{"compact-index", no_argument, 0, 'm'},
 		{"fastq", required_argument, 0, 'f'},
 		{"reference", required_argument, 0, 'r'},
 		{"gtf", required_argument, 0, 'g'},
@@ -59,13 +65,13 @@ int parse_command( int argc, char *argv[] )
 		{"output", required_argument, 0, 'o'},
 		{"verbose", required_argument, 0, 'd'},
 		{"thread", required_argument, 0, 't'},
-		{"scan_lev", required_argument, 0, 's'},
-		{"max_ed", required_argument, 0, 'e'},
-		{"max_sc", required_argument, 0, 'c'},
+		{"scan-lev", required_argument, 0, 's'},
+		{"max-ed", required_argument, 0, 'e'},
+		{"max-sc", required_argument, 0, 'c'},
 		{"band", required_argument, 0, 'w'},
-		{"seed_lim", required_argument, 0, 'S'},
-		{"max_tlen", required_argument, 0, 'T'},
-		{"max_intron", required_argument, 0, 'I'},
+		{"seed-lim", required_argument, 0, 'S'},
+		{"max-tlen", required_argument, 0, 'T'},
+		{"max-intron", required_argument, 0, 'I'},
 		{"stage", required_argument, 0, 'q'},
 		{0,0,0,0},
 	};
@@ -79,7 +85,7 @@ int parse_command( int argc, char *argv[] )
 				return 1;
 			}
 			case 'v': {
-				fprintf(stdout, "%s.%s\n", versionNumberMajor, versionNumberMinor);
+				fprintf(stdout, "CircMiner %s.%s\n", versionNumberMajor, versionNumberMinor);
 				return 1;
 			}
 			case 'i': {
@@ -170,8 +176,10 @@ int parse_command( int argc, char *argv[] )
 				exit(1);
 				break;
 			}
-			default:
-				printHELP();
+			default: {
+				printHELPShort();
+				return 1;
+				}
 		}
 	}
 
@@ -208,35 +216,51 @@ int parse_command( int argc, char *argv[] )
 }
 
 /**********************************************/
-void printHELP()
+void printHELPShort(void) 
 {
-	fprintf(stdout, "\nGeneral Options:\n");
-	fprintf(stdout, "-h|--help:\tShows help message.\n");
-	fprintf(stdout, "-v|--version:\tCurrent version.\n");
-	fprintf(stdout, "-f|--fastq:\tRead file (Only specify R1 in paired mode).\n");
-	fprintf(stdout, "-r|--refernce:\tReference file.\n");
-	fprintf(stdout, "-g|--gtf:\tGene model file.\n");
+	fprintf(stdout, "usage: circminer --index ref.fa [options]\n");
+	fprintf(stdout, "       circminer -r ref.fa -g gene_model.gtf -f reads.fastq [options]\n");
+	fprintf(stderr, "For more details and command line options run \"circminer --help\"\n");
+}
+/**********************************************/
+void printHELP(void)
+{
+	fprintf(stdout, "\nSYNOPSIS\n");
+	fprintf(stdout, "\tcircminer --index FILE [options]\n");
+	fprintf(stdout, "\tcircminer -r FILE -g FILE -f FILE [options]\n");
+	fprintf(stdout, "\nGeneral options:\n");
+	fprintf(stdout, "\t-r, --refernce:\tReference file.\n");
+	fprintf(stdout, "\t-g, --gtf:\tGene model file.\n");
+	fprintf(stdout, "\t-f, --fastq:\tRead file (Only specify R1 in paired mode).\n");
 	
-	fprintf(stdout, "\nAdvanced Options:\n");
-	fprintf(stdout, "-p|--pe:\t\tPaired end.\n");
-	fprintf(stdout, "-k|--kmer:\t\tKmer size [%d..%d] (default = 19).\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen);
-	fprintf(stdout, "-l|--rlen:\t\tMax read length (default = 120).\n");
-	fprintf(stdout, "-e|--max_ed:\t\tMax allowed edit distance on each mate (default = %d).\n", EDTH);
-	fprintf(stdout, "-c|--max_sc:\t\tMax allowed soft clipping on each mate (default = %d).\n", SOFTCLIPTH);
-	fprintf(stdout, "-w|--band:\t\tBand width for banded alignment (default = %d).\n", INDELTH);
-	fprintf(stdout, "-S|--seed_lim:\t\tSkip seeds that have more than INT occurrences (default = %d).\n", FRAGLIM);
-	fprintf(stdout, "-T|--max_tlen:\t\tMaximum template length of concordant mapping. Paired-end mode only (default = %d).\n", MAXTLEN);
-	fprintf(stdout, "-I|--max_intron:\tMaximum length of an intron (default = %d).\n", MAXINTRON);
-	fprintf(stdout, "-o|--output:\t\tOutput file (default = output).\n");
-	fprintf(stdout, "-t|--thread:\t\tNumber of threads (default = 1).\n");
-	fprintf(stdout, "-d|--verbose:\t\tVerbose mode: 0 to 1. Higher values output more information (default = 0).\n");
-	fprintf(stdout, "-s|--scan_lev:\t\tTranscriptome/Genome scan level: 0 to 2. (default = 0)\n\t\t\t"
+	fprintf(stdout, "\nAdvanced options:\n");
+	fprintf(stdout, "\t-m, --compact-index:\tUse this option only while building the index to enable compact version of the index.\n");
+	fprintf(stdout, "\t-p, --pe:\t\tPaired end.\n");
+	fprintf(stdout, "\t-k, --kmer:\t\tKmer size [%d..%d] (default = 19).\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen);
+	fprintf(stdout, "\t-l, --rlen:\t\tMax read length (default = 120).\n");
+	fprintf(stdout, "\t-e, --max-ed:\t\tMax allowed edit distance on each mate (default = %d).\n", EDTH);
+	fprintf(stdout, "\t-c, --max-sc:\t\tMax allowed soft clipping on each mate (default = %d).\n", SOFTCLIPTH);
+	fprintf(stdout, "\t-w, --band:\t\tBand width for banded alignment (default = %d).\n", INDELTH);
+	fprintf(stdout, "\t-S, --seed-lim:\t\tSkip seeds that have more than INT occurrences (default = %d).\n", FRAGLIM);
+	fprintf(stdout, "\t-T, --max-tlen:\t\tMaximum template length of concordant mapping. Paired-end mode only (default = %d).\n", MAXTLEN);
+	fprintf(stdout, "\t-I, --max-intron:\tMaximum length of an intron (default = %d).\n", MAXINTRON);
+	fprintf(stdout, "\t-o, --output:\t\tOutput file (default = output).\n");
+	fprintf(stdout, "\t-t, --thread:\t\tNumber of threads (default = 1).\n");
+	fprintf(stdout, "\t-d, --verbose:\t\tVerbose mode: 0 to 1. Higher values output more information (default = 0).\n");
+	fprintf(stdout, "\t-s, --scan-lev:\t\tTranscriptome/Genome scan level: 0 to 2. (default = 0)\n\t\t\t"
 										"0: Report the first mapping.\n\t\t\t"
 										"1: Continue processing the read unless it is perfectly mapped to cDNA.\n\t\t\t"
 										"2: Report the best mapping.\n");
 	
-	fprintf(stdout, "\nExample Command:\n");
-	fprintf(stdout, "./circminer -r hg19.fa -f reads_1.fastq -g gene_model.gtf -o output --pe\n");
+	fprintf(stdout, "\nOther options:\n");
+	fprintf(stdout, "\t-h, --help:\tShows help message.\n");
+	fprintf(stdout, "\t-v, --version:\tCurrent version.\n");
+
+	fprintf(stdout, "\nExamples:\n");
+	fprintf(stdout, "\tIndexing the reference genome:\n");
+	fprintf(stdout, "\t$ ./circminer --index -r ref.fa -k 20\n");
+	fprintf(stdout, "\tcircRNA detection of paired-end RNA-Seq reads:\n");
+	fprintf(stdout, "\t$ ./circminer -r ref.fa -g gene_model.gtf -f reads_1.fastq -k 20 -o output --pe\n");
 
 	fprintf(stdout, "\n");
 }
