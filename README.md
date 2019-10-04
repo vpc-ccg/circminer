@@ -1,5 +1,4 @@
 CircMiner: Accurate and Rapid Detection of Circular RNA through Splice-Aware Pseudo-Alignment Scheme
-Spliced Aligner for Transcriptome-Level Abberration Detection (circRNA, Fusion)
 ===================
 ## What is it?
 It is a sensitive computational tool for detecting circular RNAs (circRNAs) from RNA-Seq data.
