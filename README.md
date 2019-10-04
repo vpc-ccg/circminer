@@ -48,7 +48,8 @@ Run `circminer -h` to see available options.
 	$ ./circminer -r genome.fasta -g ga.gtf -f reads.fastq -k 20 -o output [--pe] 
 
 ## Output Format
-The information regarding the detected circRNAs is reported in ```output.circ_report``` file. It includes the exact breakpoint location, number of supporting back-splice junctions and their read names.
+The information regarding the detected circRNAs is reported in `output.circ_report` file. It includes the exact breakpoint location, number of supporting back-splice junctions and their read names.
+
 |Column|Type  |Description                                                              |
 |-----:|:----:|:------------------------------------------------------------------------|
 |1     |string|Chromosome name                                                          |
@@ -58,7 +59,7 @@ The information regarding the detected circRNAs is reported in ```output.circ_re
 |5     |string|Type of circRNA                                                          |
 |6     |string|Read names of the supproting back-splice junction reads (comma-separated)|
 
-The mapping results are stored in .pam files. If the scan level parameter (```-s, --scan_lev```) is set to 2 while running the tool, the mapping with the smallest error and soft-clip values is reported.
+The mapping results are stored in .pam files. If the scan level parameter (`-s, --scan_lev`) is set to 2 while running the tool, the mapping with the smallest error and soft-clip values is reported.
 
 ## Contact & Support
 
