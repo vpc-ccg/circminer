@@ -7,6 +7,7 @@ using namespace std;
 bool indexMode = false;
 bool compactIndex = false;
 bool pairedEnd = false;
+bool finalCleaning = true;
 int kmer = 19;
 int maxReadLength = 120;
 int verboseMode = 0;
@@ -18,7 +19,7 @@ int seedLim = FRAGLIM;
 int maxTlen = MAXTLEN;
 int maxIntronLen = MAXINTRON;
 int threadCount = 1;
-int stage = 0;
+int stage = 2;
 int maxCheckSumLen = sizeof(uint16_t) * 8 / 2;	// 2bit per bp
 
 char gtfFilename[FILE_NAME_LENGTH];
@@ -73,10 +74,11 @@ int parse_command( int argc, char *argv[] )
 		{"max-tlen", required_argument, 0, 'T'},
 		{"max-intron", required_argument, 0, 'I'},
 		{"stage", required_argument, 0, 'q'},
+		{"keep-intermediate", required_argument, 0, 'z'},
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvimf:r:g:pk:l:o:t:d:s:e:c:w:S:T:I:q:", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvimf:r:g:pk:l:o:t:d:s:e:c:w:S:T:I:q:z", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
@@ -169,6 +171,10 @@ int parse_command( int argc, char *argv[] )
 					fprintf(stderr, "Invalid stage number: %d\nAborted\n", stage);
 					return 1;
 				}
+				break;
+			}
+			case 'z': {
+				finalCleaning = false;
 				break;
 			}
 			case '?': {

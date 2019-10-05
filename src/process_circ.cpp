@@ -33,6 +33,7 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	fprintf(stdout, "%s\n",fq_file1 );
 
 	report_file = NULL;
+	candid_file = NULL;
 
 	window_size = ws;
 	step = 3;
@@ -71,6 +72,7 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 
 ProcessCirc::~ProcessCirc (void) {
 	close_file(report_file);
+	close_file(candid_file);
 
 	for (int i = 0; i < BESTCHAINLIM; i++)
 		free(bc1.chains[i].frags);
@@ -80,6 +82,14 @@ ProcessCirc::~ProcessCirc (void) {
 
 	free(bc1.chains);
 	free(bc2.chains);
+
+	// Remove intermediate files
+	if (finalCleaning) {
+		char command [FILE_NAME_LENGTH];
+		sprintf(command, "rm %s*_remain_R*.fastq{,.srt}", outputFilename);
+
+		int ret = system(command);
+	}
 }
 
 void ProcessCirc::sort_fq(char* fqname) {
@@ -171,6 +181,8 @@ void ProcessCirc::do_process (void) {
 	if (is_pe) {
 		fq_parser2.reset(fq_file2);
 	}
+
+	open_candid_file();
 	
 	int line = 0;
 	while ( (current_record1 = fq_parser1.get_next()) != NULL ) { // go line by line on fastq file
@@ -304,7 +316,7 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 			
 			CircRes cr;
 			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial, cr);
-			fprintf(stderr, "%d\n", type);
+			fprintf(candid_file, "%d\n", type);
 			if (type < CR) {
 				best_cr.type = type;
 				break;
@@ -425,7 +437,7 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 			
 			CircRes cr;
 			int type = check_split_map(mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, cr);
-			fprintf(stderr, "%d\n", type);
+			fprintf(candid_file, "%d\n", type);
 			if (type < CR) {
 				best_cr.type = type;
 				break;
@@ -918,7 +930,8 @@ void ProcessCirc::report_events (void) {
 			rnames.push_back(circ_res[i].rname);
 		}
 		else {
-			if (last.type == CR or cnt > 1) {	// won't print novel events with single read support
+			//if (last.type == CR or cnt > 1) {	// won't print novel events with single read support
+			if (last.type == CR) {	// won't print novel events
 				fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t", last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str());
 				for (int j = 0; j < rnames.size() - 1; ++j)
 					fprintf(report_file, "%s,", rnames[j].c_str());
@@ -930,7 +943,8 @@ void ProcessCirc::report_events (void) {
 			rnames.push_back(circ_res[i].rname);
 		}
 	}
-	if (last.type == CR or cnt > 1) {
+	//if (last.type == CR or cnt > 1) {
+	if (last.type == CR) {
 		fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t", last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str());
 		for (int j = 0; j < rnames.size() - 1; ++j)
 			fprintf(report_file, "%s,", rnames[j].c_str());
@@ -942,6 +956,12 @@ void ProcessCirc::open_report_file (void) {
 	char temp_fname [FILE_NAME_LENGTH];
 	sprintf(temp_fname, "%s.circ_report", outputFilename);
 	report_file = open_file(temp_fname, "w");
+}
+
+void ProcessCirc::open_candid_file (void) {
+	char temp_fname [FILE_NAME_LENGTH];
+	sprintf(temp_fname, "%s.candidates.pam", outputFilename);
+	candid_file = open_file(temp_fname, "w");
 }
 
 void ProcessCirc::load_genome (void) {
@@ -969,7 +989,7 @@ void ProcessCirc::load_genome (void) {
 
 void ProcessCirc::print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 
 										MatchedMate& partial_mm, ConShift& con_shift) {
-	fprintf(stderr, "%s\t%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
+	fprintf(candid_file, "%s\t%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
 					rname, con_shift.contig.c_str(), 
 					partial_mm.spos - con_shift.shift, partial_mm.epos - con_shift.shift, 
 					partial_mm.qspos, partial_mm.matched_len, partial_mm.dir,
@@ -982,7 +1002,7 @@ void ProcessCirc::print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedM
 
 void ProcessCirc::print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 
 										MatchedMate& r1_partial_mm, MatchedMate& r2_partial_mm, ConShift& con_shift) {
-	fprintf(stderr, "%s\t%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
+	fprintf(candid_file, "%s\t%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
 					rname, con_shift.contig.c_str(), 
 					r1_partial_mm.spos - con_shift.shift, r1_partial_mm.epos - con_shift.shift, 
 					r1_partial_mm.qspos, r1_partial_mm.matched_len, r1_partial_mm.dir,

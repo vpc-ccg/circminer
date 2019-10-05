@@ -27,6 +27,7 @@ private:
 	char fq_file2[FILE_NAME_LENGTH];
 
 	FILE* report_file;
+	FILE* candid_file;
 
 	int window_size;
 	int step;
@@ -53,6 +54,7 @@ public:
 	~ProcessCirc (void);
 
 	void open_report_file (void);
+	void open_candid_file (void);
 	void load_genome (void);
 	void sort_fq (char* fqname);
 

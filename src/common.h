@@ -45,7 +45,7 @@ using namespace std;
 #define SOFTCLIPTH 7
 
 #define MAXTLEN 500
-#define FRAGLIM 5000
+#define FRAGLIM 500
 #define MAXINTRON	2000000
 #define BESTCHAINLIM 30
 
@@ -75,6 +75,7 @@ using namespace std;
 extern bool indexMode;
 extern bool compactIndex;
 extern bool pairedEnd;
+extern bool finalCleaning;
 
 extern int kmer;
 extern int maxReadLength;
