@@ -1,7 +1,8 @@
 #ifndef __ALIGN_H__
 #define __ALIGN_H__
 
-#define MAXSTRSIZE 100
+#define MAXSTRSIZE 160
+//#define MAXSTRSIZE 100
 
 #include <cmath>
 #include "common.h"
