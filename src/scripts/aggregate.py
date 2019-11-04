@@ -49,8 +49,8 @@ def aggregate(crdics, minsup=2):
 		(ch, beg, end) = k
 		vals = [ dic[k] if k in dic.keys() else 0 for dic in crdics ]
 
-		if all(val < minsup for val in vals):
-			continue
+		#if all(val < minsup for val in vals):
+		#	continue
 
 		agg_dict[k] = vals
 		
