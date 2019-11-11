@@ -40,7 +40,7 @@ Run `circminer -h` to see available options.
 ### Example Commands
 #### Indexing reference genome:
 
-	$ ./circminer --index -r genome.fasta -k 20 --threads 4
+	$ ./circminer --index -r genome.fasta -k 20 --thread 4
 
 #### Mapping to reference genome and circRNA calling:
 	
