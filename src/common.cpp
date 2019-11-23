@@ -13,9 +13,24 @@ FILE* open_file(char* filename, char* mode) {
 	return fp;
 }
 
+gzFile open_gzfile(char* filename, char* mode) {
+	gzFile gzfp;
+	gzfp = gzopen(filename, mode);
+	if (gzfp == Z_NULL) {
+		fprintf(stderr, "Error: Could not open gzip file %s\n", filename);
+		exit(1);
+	}
+	return gzfp;
+}
+
 void close_file(FILE* fp) {
 	if (fp != NULL)
 		fclose(fp);
+}
+
+void close_gzfile(gzFile fp) {
+	if (fp != Z_NULL)
+		gzclose(fp);
 }
 
 double get_cpu_time() {

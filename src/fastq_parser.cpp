@@ -1,5 +1,7 @@
 #include <cstdio> 
 #include <cstring>
+#include <zlib.h>
+
 #include "fastq_parser.h"
 
 FASTQParser::FASTQParser (void) { 
@@ -12,6 +14,7 @@ FASTQParser::FASTQParser (char* filename) {
 }
 
 FASTQParser::~FASTQParser (void) {
+	free(zbuffer);
 	for (int i = 0; i < BLOCKSIZE; ++i) {
 		free(current_record[i].rname);
 		free(current_record[i].seq);
@@ -27,11 +30,13 @@ FASTQParser::~FASTQParser (void) {
 
 void FASTQParser::init (void) {
 	input = NULL;
+	gzinput = Z_NULL;
 	mate_q = NULL;
 
 	max_line_size = MAXLINESIZE;
 	set_comp();
 
+	zbuffer = (char*) malloc(BUFFSIZE);
 	// current_record = (Record*) malloc(BLOCKSIZE * sizeof(Record));
 	current_record = new Record[BLOCKSIZE];
 	for (int i = 0; i < BLOCKSIZE; ++i) {
@@ -46,13 +51,22 @@ void FASTQParser::init (void) {
 void FASTQParser::reset (char* filename) {
 	finalize();
 
-	input = open_file(filename, "r");
+	gzinput = open_gzfile(filename, "r");
+
+	//input = open_file(filename, "r");
+	
+	buff_pos = 0;
+	buff_size = 0;
 
 	curr_read = 0;
 	filled_size = 0;
 }
 
 void FASTQParser::finalize (void) {
+	if (gzinput != NULL) {
+		close_gzfile(gzinput);
+		gzinput = Z_NULL;
+	}
 	if (input != NULL) {
 		close_file(input);
 		input = NULL;
@@ -63,30 +77,52 @@ void FASTQParser::set_mate(FASTQParser* mq) {
 	mate_q = mq;
 }
 
+void FASTQParser::read_buffer() {
+	buff_size = gzread(gzinput, zbuffer, BUFFSIZE);
+	buff_pos = 0;
+}
+
+uint32_t FASTQParser::read_line(char** seq) {
+	char cur;
+
+	uint32_t i = 0;
+	while (true) {
+		if (buff_pos >= buff_size) {
+			read_buffer();
+			if (buff_size == 0)
+				return 0;
+		}
+
+		cur = zbuffer[buff_pos++];
+		if (cur == '\n') {
+			(*seq)[i] = '\0';
+			return i;
+		}
+
+		(*seq)[i++] = cur;
+	}
+}
+
 bool FASTQParser::read_block (void) {
 	curr_read = 0;
 	filled_size = 0;
 	for (int i = 0; i < BLOCKSIZE; ++i) {
 		if (has_next()) {
-			int rname_len = getline(&current_record[i].rname, &max_line_size, input);
+			//int rname_len = getline(&current_record[i].rname, &max_line_size, input);
+			int rname_len = read_line(&current_record[i].rname);
 			rname_len = extract_map_info(current_record[i].rname, i);
 
-			getline(&current_record[i].seq, &max_line_size, input);
-			current_record[i].seq_len = strlen(current_record[i].seq) - 1;	// skipping newline at the end
+			//getline(&current_record[i].seq, &max_line_size, input);
+			current_record[i].seq_len = read_line(&current_record[i].seq);
 
-			getline(&current_record[i].comment, &max_line_size, input);
+			//getline(&current_record[i].comment, &max_line_size, input);
+			read_line(&current_record[i].comment);
 			assert(current_record[i].comment[0] == '+');
 
-			getline(&current_record[i].qual, &max_line_size, input);
-			
+			//getline(&current_record[i].qual, &max_line_size, input);
+			read_line(&current_record[i].qual);
 
-
-			if (current_record[i].rname[rname_len - 3] == '/')
-				current_record[i].rname[rname_len - 3] = '\0';
-			else
-				current_record[i].rname[rname_len - 1] = '\0';
-
-			//current_record[i].seq[current_record[i].seq_len] = '\0';
+			fprintf(stderr, "%s\n%s\n%s\n%s\n", current_record[i].rname, current_record[i].seq, current_record[i].comment, current_record[i].qual);
 
 			set_reverse_comp(i);
 			++filled_size;
@@ -135,9 +171,11 @@ int FASTQParser::extract_map_info(char* str, int r_ind) {
 		++i;
 	}
 
-	// i == 1 iff there is no comment in the line
-	int rname_len = (i == 1) ? strlen(tokens[0]) : strlen(tokens[0]) + 1;
+	int rname_len = strlen(tokens[0]) + 1;
 	current_record[r_ind].rname[rname_len] = '\0';
+
+	if (current_record[r_ind].rname[rname_len - 3] == '/')
+		current_record[r_ind].rname[rname_len - 3] = '\0';
 
 	fill_map_info(i, r_ind);
 	return rname_len;

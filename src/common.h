@@ -13,6 +13,7 @@
 #include <vector>
 #include <iostream>
 #include <bitset>
+#include <zlib.h>
 
 #include "interval_info.h"
 
@@ -407,7 +408,9 @@ struct FilterArgs {
 //---------- Functions ----------\\
 
 FILE* open_file(char* filename, char* mode);
+gzFile open_gzfile(char* filename, char* mode);
 void close_file(FILE* fp);
+void close_gzfile(gzFile fp);
 
 // verbose-aware fprintf
 void vafprintf(int verbosity, FILE *stream, const char *format, ...);

@@ -5,16 +5,22 @@
 #include <cstdio>
 #include <cassert>
 #include <cstring>
+#include <zlib.h>
 
 #include "common.h"
 
 #define BLOCKSIZE 100
 #define FQCOMMENTCNT 22
+#define BUFFSIZE 10000000
 
 class FASTQParser {
 private:
 	FILE* input;
+	gzFile gzinput;
 	char comp[ASCISIZE];
+	char* zbuffer;
+	uint32_t buff_pos;
+	uint32_t buff_size;
 
 	Record* current_record;
 	size_t max_line_size;
@@ -24,6 +30,10 @@ private:
 	FASTQParser* mate_q;
 
 	char tokens[FQCOMMENTCNT][100];
+
+
+	void read_buffer();
+	uint32_t read_line(char** seq);
 
 	bool has_next (void);
 	bool read_block (void);
@@ -109,10 +119,13 @@ inline int FASTQParser::get_block_size (void) {
 }
 
 inline bool FASTQParser::has_next (void) {
-	char c = fgetc(input);
-	if (c == EOF)
-		return false;
-	
+	if (buff_pos >= buff_size) {
+		read_buffer();
+		if (buff_size == 0)
+			return false;
+	}
+
+	char c = zbuffer[buff_pos++];
 	assert(c == '@');	// ensure FASTQ format 
 	return true;
 }

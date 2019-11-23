@@ -396,7 +396,7 @@ void FilterRead::write_read_category (Record* current_record, int state) {
 	if (!last_round and state != CONCRD) {
 		//mutex_lock(&write_lock);
 		
-		fprintf(temp_fq_r1, "%s\n%s%s%d\n%s", current_record->rname, current_record->seq, current_record->comment, state, current_record->qual);
+		fprintf(temp_fq_r1, "%s\n%s\n%s%d\n%s\n", current_record->rname, current_record->seq, current_record->comment, state, current_record->qual);
 		
 		//mutex_unlock(&write_lock);
 	}
@@ -420,19 +420,11 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 		sprintf(comment, " %d * * * * * * * * * * * * * * * * * * * *", mr.type);
 	}
 
-	if (last_round) {
-		current_record1->seq[strlen(current_record1->seq)-1] = '\t';
-		current_record2->seq[strlen(current_record2->seq)-1] = '\t';
-
-		current_record1->comment[strlen(current_record1->comment)-1] = '\t';
-		current_record2->comment[strlen(current_record2->comment)-1] = '\t';
-	}
-
 	char sep = (last_round) ? '\t' : '\n';
-	fprintf(temp_fq_r1, "@%s%s%c%s%s%s", current_record1->rname, comment, sep,
-		current_record1->seq, current_record1->comment, current_record1->qual);
-	fprintf(temp_fq_r2, "@%s%s%c%s%s%s", current_record2->rname, comment, sep,
-		current_record2->seq, current_record2->comment, current_record2->qual);
+	fprintf(temp_fq_r1, "@%s%s%c%s%c%s%c%s\n", current_record1->rname, comment, sep,
+		current_record1->seq, sep, current_record1->comment, sep, current_record1->qual);
+	fprintf(temp_fq_r2, "@%s%s%c%s%c%s%c%s\n", current_record2->rname, comment, sep,
+		current_record2->seq, sep, current_record2->comment, sep, current_record2->qual);
 
 	//mutex_unlock(&write_lock);
 
