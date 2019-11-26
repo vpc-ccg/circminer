@@ -8,7 +8,7 @@
 #include "gene_annotation.h"
 #include "common.h"
 
-#define MAXLINESIZE 10000
+#define MAXGTFLINESIZE 10000
 #define MAXGTFATTR 50
 #define INITGTFREC 3e6
 
@@ -28,7 +28,7 @@ GTFParser::~GTFParser(void) {
 void GTFParser::init(char* filename, const ContigLen* contig_len, int contig_count) {
 	input = open_file(filename, "r");
 
-	max_line_size = MAXLINESIZE;
+	max_line_size = MAXGTFLINESIZE;
 	line = (char*) malloc(max_line_size);
 
 	set_contig_shift(contig_len, contig_count);
@@ -98,7 +98,7 @@ bool GTFParser::parse_gtf_rec(char* line, int len, GTFRecord* cr) {
 	tokenize(line, len, major_delim, gtf_fields);
 
 	if (level.find(gtf_fields[2]) != level.end()) {
-		char attr_str[MAXLINESIZE];
+		char attr_str[MAXGTFLINESIZE];
 		strcpy(attr_str, gtf_fields[8].c_str());
 		tokenize(attr_str, gtf_fields[8].length(), minor_delim, gtf_attr);
 

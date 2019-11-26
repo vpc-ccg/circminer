@@ -27,7 +27,7 @@ using namespace std;
 #define maxM(A,B) (((A) > (B)) ? (A) : (B))
 #define minM(A,B) (((A) < (B)) ? (A) : (B))
 
-#define MAXLINESIZE 400
+#define MAXLINESIZE 600
 // #define FILE_NAME_LENGTH 1000
 #define LINELOG	100000
 #define ASCISIZE 128
