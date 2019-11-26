@@ -80,6 +80,15 @@ void FASTQParser::set_mate(FASTQParser* mq) {
 void FASTQParser::read_buffer() {
 	buff_size = gzread(gzinput, zbuffer, BUFFSIZE);
 	buff_pos = 0;
+
+	if (buff_size == 0 and gzeof(gzinput) == 0) {
+		buff_size = -1;
+	}
+	if (buff_size < 0) {
+		int err;
+		fprintf(stderr, "gzread error: %s\n", gzerror(gzinput, &err));
+		exit(1);
+	}
 }
 
 uint32_t FASTQParser::read_line(char** seq) {
@@ -121,8 +130,6 @@ bool FASTQParser::read_block (void) {
 
 			//getline(&current_record[i].qual, &max_line_size, input);
 			read_line(&current_record[i].qual);
-
-			fprintf(stderr, "%s\n%s\n%s\n%s\n", current_record[i].rname, current_record[i].seq, current_record[i].comment, current_record[i].qual);
 
 			set_reverse_comp(i);
 			++filled_size;

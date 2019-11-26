@@ -93,7 +93,7 @@ extern int stage;
 
 extern char gtfFilename[FILE_NAME_LENGTH];
 extern char referenceFilename[FILE_NAME_LENGTH];
-extern char fastqFilename[FILE_NAME_LENGTH];
+extern char fastqFilename[2][FILE_NAME_LENGTH];
 extern char outputFilename[FILE_NAME_LENGTH];
 extern char outputDir[FILE_NAME_LENGTH];
 

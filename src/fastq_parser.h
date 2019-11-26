@@ -9,7 +9,7 @@
 
 #include "common.h"
 
-#define BLOCKSIZE 100
+#define BLOCKSIZE 1000
 #define FQCOMMENTCNT 22
 #define BUFFSIZE 10000000
 
@@ -19,8 +19,8 @@ private:
 	gzFile gzinput;
 	char comp[ASCISIZE];
 	char* zbuffer;
-	uint32_t buff_pos;
-	uint32_t buff_size;
+	int32_t buff_pos;
+	int32_t buff_size;
 
 	Record* current_record;
 	size_t max_line_size;

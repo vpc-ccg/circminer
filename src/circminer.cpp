@@ -63,7 +63,8 @@ int main(int argc, char **argv) {
 	 ***************************************************/
 	else {
 		score_mat.init();
-		fq_parser1.set_mate(&fq_parser2);
+		if (pairedEnd)
+			fq_parser1.set_mate(&fq_parser2);
 
 		// 0 <= stage <= 2
 		int last_round_num = 1;
@@ -95,11 +96,11 @@ int mapping(int& last_round_num) {
 	strcpy(index_file, ref_file);
 	strcat(index_file, ".index");
 
-	char* fq_file1 = fastqFilename;
-	char fq_file2[FILE_NAME_LENGTH];
+	char* fq_file1 = fastqFilename[0];
+	char* fq_file2;
 	bool is_pe = pairedEnd;
-	if (pairedEnd) {
-		get_mate_name(fq_file1, fq_file2);
+	if (is_pe) {
+		fq_file2 = fastqFilename[1];
 	}
 	
 	/*********************/
@@ -154,7 +155,8 @@ int mapping(int& last_round_num) {
 	if (!checkHashTable(index_file))
 		return 1;
 
-	fprintf(stdout, "Load full table? %d\n", loadFullHashTable);
+	fprintf(stdout, "%s mode\n", pairedEnd ? "paired-end" : "single-end");
+	fprintf(stdout, "%s\n", loadFullHashTable ? "Load full hash table from index" : "Create hash table on the fly");
 
 	ContigLen* orig_contig_len;
 	int contig_cnt;

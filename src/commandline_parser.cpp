@@ -21,10 +21,11 @@ int maxIntronLen = MAXINTRON;
 int threadCount = 1;
 int stage = 2;
 int maxCheckSumLen = sizeof(uint16_t) * 8 / 2;	// 2bit per bp
+int seqcnt = 0;
 
 char gtfFilename[FILE_NAME_LENGTH];
 char referenceFilename[FILE_NAME_LENGTH];
-char fastqFilename[FILE_NAME_LENGTH];
+char fastqFilename[2][FILE_NAME_LENGTH];
 char outputFilename[FILE_NAME_LENGTH]="output";
 char outputDir[FILE_NAME_LENGTH] = "./";
 
@@ -57,16 +58,17 @@ int parse_command( int argc, char *argv[] )
 		{"version", no_argument, 0, 'v'},
 		{"index", no_argument, 0, 'i'},
 		{"compact-index", no_argument, 0, 'm'},
-		{"fastq", required_argument, 0, 'f'},
+		{"seq", required_argument, 0, 's'},
+		{"seq1", required_argument, 0, '1'},
+		{"seq2", required_argument, 0, '2'},
 		{"reference", required_argument, 0, 'r'},
 		{"gtf", required_argument, 0, 'g'},
-		{"pe", no_argument, 0, 'p'},
 		{"kmer", required_argument, 0, 'k'},
 		{"rlen", required_argument, 0, 'l'},
 		{"output", required_argument, 0, 'o'},
 		{"verbose", required_argument, 0, 'd'},
 		{"thread", required_argument, 0, 't'},
-		{"scan-lev", required_argument, 0, 's'},
+		{"scan-lev", required_argument, 0, 'a'},
 		{"max-ed", required_argument, 0, 'e'},
 		{"max-sc", required_argument, 0, 'c'},
 		{"band", required_argument, 0, 'w'},
@@ -78,7 +80,7 @@ int parse_command( int argc, char *argv[] )
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvimf:r:g:pk:l:o:t:d:s:e:c:w:S:T:I:q:z", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvims:1:2:r:g:k:l:o:t:d:a:e:c:w:S:T:I:q:z", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
@@ -98,8 +100,22 @@ int parse_command( int argc, char *argv[] )
 				compactIndex = true;
 				break;
 			}
-			case 'f': {
-				strncpy(fastqFilename, optarg, FILE_NAME_LENGTH );
+			case 's': {
+				++seqcnt;
+				pairedEnd = false;
+				strncpy(fastqFilename[0], optarg, FILE_NAME_LENGTH );
+				break;
+			}
+			case '1': {
+				++seqcnt;
+				pairedEnd = false;
+				strncpy(fastqFilename[0], optarg, FILE_NAME_LENGTH );
+				break;
+			}
+			case '2': {
+				++seqcnt;
+				pairedEnd = true;
+				strncpy(fastqFilename[1], optarg, FILE_NAME_LENGTH );
 				break;
 			}
 			case 'r': {
@@ -109,10 +125,6 @@ int parse_command( int argc, char *argv[] )
 			case 'g': {
 				strncpy(gtfFilename, optarg, FILE_NAME_LENGTH );
 				//gtf_flag = 1;
-				break;
-			}
-			case 'p': {
-				pairedEnd = true;
 				break;
 			}
 			case 'k': {
@@ -137,7 +149,7 @@ int parse_command( int argc, char *argv[] )
 				verboseMode = atoi(optarg);
 				break;
 			}
-			case 's': {
+			case 'a': {
 				scanLevel = atoi(optarg);
 				break;
 			}
@@ -178,7 +190,7 @@ int parse_command( int argc, char *argv[] )
 				break;
 			}
 			case '?': {
-				fprintf(stderr, "Unknown parameter: %s\n", long_opt[opt_index].name);
+				//fprintf(stderr, "Unknown parameter: %s\n", long_opt[opt_index].name);
 				exit(1);
 				break;
 			}
@@ -189,9 +201,27 @@ int parse_command( int argc, char *argv[] )
 		}
 	}
 
+	if (seqcnt == 0)
+	{
+		fprintf(stderr, "ERROR: no sequence file is provided.\n");
+		return 1;
+	}
+
+	if (!pairedEnd and seqcnt != 1)
+	{
+		fprintf(stderr, "ERROR: %d single-end sequence files provided.\nOnly one is accepted.\n", seqcnt);
+		return 1;
+	}
+
+	if (pairedEnd and seqcnt != 2)
+	{
+		fprintf(stderr, "ERROR: %d paired-end sequence file(s) provided.\nOnly two files are accepted.\n", seqcnt);
+		return 1;
+	}
+
 	if (kmer > WINDOW_SIZE + maxCheckSumLen || kmer < WINDOW_SIZE)
 	{
-		fprintf(stdout, "ERROR: kmer size should be in [%d..%d]\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen);
+		fprintf(stderr, "ERROR: kmer size should be in [%d..%d]\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen);
 		return 1;
 	}
 
@@ -202,11 +232,6 @@ int parse_command( int argc, char *argv[] )
 		CONTIG_SIZE		= DEF_CONTIG_SIZE;
 		CONTIG_MAX_SIZE	= DEF_CONTIG_MAX_SIZE;
 
-		// if (referenceFilename == NULL)
-		// {
-		// 	fprintf(stdout, "ERROR: Reference(s) should be indicated for indexing\n");
-		// 	return 0;
-		// }
 		sprintf(fileName[0], "%s", referenceFilename);
 		sprintf(fileName[1], "%s.index", fileName[0]);
 	}
@@ -233,15 +258,17 @@ void printHELP(void)
 {
 	fprintf(stdout, "\nSYNOPSIS\n");
 	fprintf(stdout, "\tcircminer --index FILE [options]\n");
-	fprintf(stdout, "\tcircminer -r FILE -g FILE -f FILE [options]\n");
+	fprintf(stdout, "\tcircminer -r FILE -g FILE -s FILE [options]\n");
+	fprintf(stdout, "\tcircminer -r FILE -g FILE -1 FILE -2 FILE [options]\n");
 	fprintf(stdout, "\nGeneral options:\n");
 	fprintf(stdout, "\t-r, --refernce:\tReference file.\n");
 	fprintf(stdout, "\t-g, --gtf:\tGene model file.\n");
-	fprintf(stdout, "\t-f, --fastq:\tRead file (Only specify R1 in paired mode).\n");
+	fprintf(stdout, "\t-s, --seq:\tSingle-end sequence file.\n");
+	fprintf(stdout, "\t-1, --seq1:\t1st paired-end sequence file.\n");
+	fprintf(stdout, "\t-2, --seq2:\t2nd paired-end sequence file.\n");
 	
 	fprintf(stdout, "\nAdvanced options:\n");
 	fprintf(stdout, "\t-m, --compact-index:\tUse this option only while building the index to enable compact version of the index.\n");
-	fprintf(stdout, "\t-p, --pe:\t\tPaired end.\n");
 	fprintf(stdout, "\t-k, --kmer:\t\tKmer size [%d..%d] (default = 19).\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen);
 	fprintf(stdout, "\t-l, --rlen:\t\tMax read length (default = 120).\n");
 	fprintf(stdout, "\t-e, --max-ed:\t\tMax allowed edit distance on each mate (default = %d).\n", EDTH);
@@ -253,9 +280,9 @@ void printHELP(void)
 	fprintf(stdout, "\t-o, --output:\t\tOutput file (default = output).\n");
 	fprintf(stdout, "\t-t, --thread:\t\tNumber of threads (default = 1).\n");
 	fprintf(stdout, "\t-d, --verbose:\t\tVerbose mode: 0 to 1. Higher values output more information (default = 0).\n");
-	fprintf(stdout, "\t-s, --scan-lev:\t\tTranscriptome/Genome scan level: 0 to 2. (default = 0)\n\t\t\t"
-										"0: Report the first mapping.\n\t\t\t"
-										"1: Continue processing the read unless it is perfectly mapped to cDNA.\n\t\t\t"
+	fprintf(stdout, "\t-a, --scan-lev:\t\tTranscriptome/Genome scan level: 0 to 2. (default = 0)\n\t\t\t\t"
+										"0: Report the first mapping.\n\t\t\t\t"
+										"1: Continue processing the read unless it is perfectly mapped to cDNA.\n\t\t\t\t"
 										"2: Report the best mapping.\n");
 	
 	fprintf(stdout, "\nOther options:\n");
@@ -265,8 +292,10 @@ void printHELP(void)
 	fprintf(stdout, "\nExamples:\n");
 	fprintf(stdout, "\tIndexing the reference genome:\n");
 	fprintf(stdout, "\t$ ./circminer --index -r ref.fa -k 20\n");
+	fprintf(stdout, "\tcircRNA detection of single-end RNA-Seq reads:\n");
+	fprintf(stdout, "\t$ ./circminer -r ref.fa -g gene_model.gtf -s reads.fastq -k 20 -o output \n");
 	fprintf(stdout, "\tcircRNA detection of paired-end RNA-Seq reads:\n");
-	fprintf(stdout, "\t$ ./circminer -r ref.fa -g gene_model.gtf -f reads_1.fastq -k 20 -o output --pe\n");
+	fprintf(stdout, "\t$ ./circminer -r ref.fa -g gene_model.gtf -1 reads_1.fastq -2 reads_2.fastq -k 20 -o output \n");
 
 	fprintf(stdout, "\n");
 }
