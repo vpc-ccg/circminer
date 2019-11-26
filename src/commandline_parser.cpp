@@ -250,7 +250,7 @@ int parse_command( int argc, char *argv[] )
 void printHELPShort(void) 
 {
 	fprintf(stdout, "usage: circminer --index ref.fa [options]\n");
-	fprintf(stdout, "       circminer -r ref.fa -g gene_model.gtf -f reads.fastq [options]\n");
+	fprintf(stdout, "       circminer -r ref.fa -g gene_model.gtf -1 reads_1.fastq -2 reads_2.fastq [options]\n");
 	fprintf(stderr, "For more details and command line options run \"circminer --help\"\n");
 }
 /**********************************************/
