@@ -38,16 +38,64 @@ def write_agg(sample_cnt, agg_dict, outfilename):
 				fout.write('\t{}'.format(sup))
 			fout.write('\n')
 
+#def aggregate2(crdics, minsup=2):
+#	all_keys = chain.from_iterable(crdics[i].keys() for i in range(len(crdics)))
+#	all_keys = list(set(all_keys))
+#
+#	print('#circRNAs: {}'.format(len(all_keys)))
+#
+#	for k in all_keys:
+#		vals.append( [ 0 for dic in crdics ] )
+#
+#	agg_dict = defaultdict(list)
+#	all_circ = sorted(all_keys):
+#	i = 0
+#	for dic in crdics:
+#		j = -1
+#		for k in sorted(dic.keys()):
+#			j += 1
+#			if k != all_circ[i]
+#				vals[i][j] = 0
+#				i += 1
+#				continue
+#
+#			vals[i][j] = dic[k]
+#			i += 1
+#			#(ch, beg, end) = k
+#			#vals = [ dic[k] if k in dic.keys() else 0 for dic in crdics ]
+#
+#			#if all(val < minsup for val in vals):
+#			#	continue
+#
+#		agg_dict[k] = vals
+#		
+#	return agg_dict
+
 def aggregate(crdics, minsup=2):
 	all_keys = chain.from_iterable(crdics[i].keys() for i in range(len(crdics)))
 	all_keys = list(set(all_keys))
 
 	print('#circRNAs: {}'.format(len(all_keys)))
 
+	all_circ = sorted(all_keys)
+	j = 1
+	for dic in crdics:
+		i = 0
+		dic_keys = sorted(dic.keys())
+		for k in all_circ:
+			if i >= len(dic_keys) or k != dic_keys[i]:
+				dic[k] = 0
+			else:
+				i += 1
+
+		print('finished file #{}'.format(j))
+		j+=1
+
 	agg_dict = defaultdict(list)
 	for k in all_keys:
 		(ch, beg, end) = k
-		vals = [ dic[k] if k in dic.keys() else 0 for dic in crdics ]
+		#vals = [ dic[k] if k in dic.keys() else 0 for dic in crdics ]
+		vals = [ dic[k] for dic in crdics ]
 
 		#if all(val < minsup for val in vals):
 		#	continue
@@ -67,6 +115,7 @@ def main():
 	
 	outfilename = args[-1]
 	crfilenames = args[:-1]
+	print('# Files: {}'.format(len(crfilenames)))
 	crdics = []
 	for crfile in crfilenames:
 		crdics.append(load_crfile(crfile))
