@@ -19,6 +19,7 @@ LDFLAGS     :=
 
 MYOBJ        = $(SRCDIR)/circminer.o \
                $(SRCDIR)/utils.o \
+               $(SRCDIR)/output.o \
                $(SRCDIR)/filter.o \
                $(SRCDIR)/match_read.o \
                $(SRCDIR)/fastq_parser.o \

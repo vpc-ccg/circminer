@@ -21,6 +21,7 @@ FASTQParser::~FASTQParser (void) {
 		free(current_record[i].rcseq);
 		free(current_record[i].comment);
 		free(current_record[i].qual);
+		free(current_record[i].rqual);
 	}
 	// free(current_record);
 	delete[] current_record;
@@ -45,6 +46,7 @@ void FASTQParser::init (void) {
 		current_record[i].rcseq = (char*) malloc(max_line_size);
 		current_record[i].comment = (char*) malloc(max_line_size);
 		current_record[i].qual = (char*) malloc(max_line_size);
+		current_record[i].rqual = (char*) malloc(max_line_size);
 	}
 }
 
@@ -162,6 +164,18 @@ void FASTQParser::set_reverse_comp (int r_ind) {
 		current_record[r_ind].rcseq[len-i-1] = comp[current_record[r_ind].seq[i]];
 	}
 	current_record[r_ind].rcseq[len] = '\0';
+
+	// reverse qual
+	int qual_len = strlen(current_record[r_ind].qual);
+	if (qual_len != len) {
+		fprintf(stderr, "ERROR: read: %s, length of sequence (%d) does not match with quality (%d)!\nAborting\n", current_record[r_ind].rname, len, qual_len);
+		exit(1);
+	}
+
+	for (int i = len-1; i >= 0; --i) {
+		current_record[r_ind].rqual[len-i-1] = current_record[r_ind].qual[i];
+	}
+	current_record[r_ind].rqual[len] = '\0';
 }
 
 int FASTQParser::extract_map_info(char* str, int r_ind) {

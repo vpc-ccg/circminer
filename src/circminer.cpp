@@ -325,7 +325,8 @@ void* map_reads (void* args) {
 						(current_record1->mr->mlen_r1 + current_record1->mr->mlen_r2 == current_record1->seq_len + current_record2->seq_len));
 
 			if (skip or is_last)
-				filter_read.print_mapping(current_record1->rname, *(current_record1->mr));
+				filter_read.print_sam(current_record1, current_record2);
+				//filter_read.print_mapping(current_record1->rname, *(current_record1->mr));
 			if ((!is_last and !skip) or (is_last and (current_record1->mr->type == CHIBSJ or current_record1->mr->type == CHI2BSJ)))
 				filter_read.write_read_category(current_record1, current_record2, *(current_record1->mr));
 		}

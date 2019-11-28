@@ -9,6 +9,7 @@
 #include "match_read.h"
 #include "chain.h"
 #include "extend.h"
+#include "output.h"
 
 using namespace std;
 
@@ -27,6 +28,7 @@ private:
 	char comment[400];
 
 	TransExtension* extension;
+	SAMOutput sam_output;
 
 public:
 	FilterRead (void);
@@ -52,6 +54,8 @@ public:
 	void write_read_category (Record* current_record, int is_chimeric);
 	void write_read_category (Record* current_record1, Record* current_record2, const MatchedRead& mr);
 
+	void print_sam (Record* rec);
+	void print_sam (Record* rec1, Record* rec2);
 	void print_mapping (char* rname, const MatchedRead& mr);
 
 	int get_last_round (void) { return last_round; };

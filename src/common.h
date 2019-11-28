@@ -359,6 +359,7 @@ struct Record {
 	char* rcseq;
 	char* comment;
 	char* qual;
+	char* rqual;
 
 	int seq_len;
 

@@ -34,7 +34,8 @@ FilterRead::~FilterRead (void) {
 void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, bool last_round, 
 						char* fq_file1, char* fq_file2) {
 
-	extension = new TransExtension[threadCount];
+	sam_output.init(save_fname);
+	extension  = new TransExtension[threadCount];
 
 	for (int i = 0; i < threadCount; ++i)
 		extension[i].init(i);
@@ -74,30 +75,30 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 	sprintf(mode, "%s", (first_round) ? "w" : "a");
 
 	sprintf(cat_fname, "%s.%s.pam", save_fname, output_names[0]);
-	cat_file_pam[0] = open_file(cat_fname, mode);
+	//cat_file_pam[0] = open_file(cat_fname, mode);
 
-	if (! last_round)
-		return;
+	//if (! last_round)
+	//	return;
 
-	for (int i = 1; i < CATNUM; i++) {
-		sprintf(cat_fname, "%s.%s.pam", save_fname, output_names[i]);
-		cat_file_pam[i] = open_file(cat_fname, "w");
-	}
+	//for (int i = 1; i < CATNUM; i++) {
+	//	sprintf(cat_fname, "%s.%s.pam", save_fname, output_names[i]);
+	//	cat_file_pam[i] = open_file(cat_fname, "w");
+	//}
 
 }
 
 void FilterRead::finalize (void) {
 	delete[] extension;
 	
-	close_file(cat_file_pam[0]);
+	//close_file(cat_file_pam[0]);
 
 	close_file(temp_fq_r1);
 	close_file(temp_fq_r2);
-	if (last_round) {
-		for (int i = 1; i < CATNUM; i++) {
-			close_file(cat_file_pam[i]);
-		}
-	}
+	//if (last_round) {
+	//	for (int i = 1; i < CATNUM; i++) {
+	//		close_file(cat_file_pam[i]);
+	//	}
+	//}
 }
 
 // SE mode
@@ -428,6 +429,14 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 
 	//mutex_unlock(&write_lock);
 
+}
+
+void FilterRead::print_sam (Record* rec) {
+	sam_output.write_sam_rec_se(rec);
+}
+
+void FilterRead::print_sam (Record* rec1, Record* rec2) {
+	sam_output.write_sam_rec_pe(rec1, rec2);
 }
 
 void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
