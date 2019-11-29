@@ -34,6 +34,9 @@ SAMOutput::~SAMOutput (void) {
 	free(r2_attr.rname);
 	free(r2_attr.cigar);
 	free(r2_attr.rnext);
+
+	free(r1_attr.tags.all_tags);
+	free(r2_attr.tags.all_tags);
 }
 
 void SAMOutput::init (char* sam_prefix) {
@@ -50,6 +53,9 @@ void SAMOutput::init (char* sam_prefix) {
 	r2_attr.rname = (char*) malloc(MAXLINESIZE);
 	r2_attr.cigar = (char*) malloc(MAXLINESIZE);
 	r2_attr.rnext = (char*) malloc(MAXLINESIZE);
+
+	r1_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
+	r2_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
 }
 
 uint16_t SAMOutput::set_flag_se (MatchedMate* mm) {
@@ -76,7 +82,7 @@ void SAMOutput::set_output_se (Record* rec) {
 	strcpy(r1_attr.rname, rec->mr->chr_r1.c_str());
 	strcpy(r1_attr.rnext, "*");
 
-	r1_attr.pos   = rec->mr->spos_r1 + 1;
+	r1_attr.pos   = rec->mr->spos_r1;
 	r1_attr.pnext = 0;
 	r1_attr.tlen  = 0;
 
@@ -158,8 +164,8 @@ void SAMOutput::set_output_pe (Record* rec1, Record* rec2) {
 		strcpy(r2_attr.rnext, (rec1->mr->chr_r1 == rec1->mr->chr_r2)?
 								"=" : rec1->mr->chr_r1.c_str());
 
-		r1_attr.pos   = rec1->mr->spos_r1 + 1;
-		r2_attr.pnext = rec1->mr->spos_r1 + 1;
+		r1_attr.pos   = rec1->mr->spos_r1;
+		r2_attr.pnext = rec1->mr->spos_r1;
 	}
 	if (r2_attr.flag & RUNMAP) {
 		strcpy(r2_attr.rname, "*");
@@ -174,8 +180,8 @@ void SAMOutput::set_output_pe (Record* rec1, Record* rec2) {
 		strcpy(r1_attr.rnext, (rec1->mr->chr_r1 == rec1->mr->chr_r2)?
 								"=" : rec1->mr->chr_r2.c_str());
 
-		r2_attr.pos   = rec1->mr->spos_r2 + 1;
-		r1_attr.pnext = rec1->mr->spos_r2 + 1;
+		r2_attr.pos   = rec1->mr->spos_r2;
+		r1_attr.pnext = rec1->mr->spos_r2;
 	}
 
 	if (r1_attr.flag & RREVER) {
@@ -195,6 +201,34 @@ void SAMOutput::set_output_pe (Record* rec1, Record* rec2) {
 		r2_attr.seq  = rec2->seq;
 		r2_attr.qual = rec2->qual;
 	}
+
+	r1_attr.tags.map_type 	= rec1->mr->type;
+	r2_attr.tags.map_type 	= rec1->mr->type;
+
+	if (r1_attr.flag & RUNMAP) {
+		r1_attr.tags.ed			= 0;
+		r1_attr.tags.junc_cnt	= 0;
+		r1_attr.tags.gm_compat 	= 0;
+	}
+	else {
+		r1_attr.tags.ed			= rec1->mr->ed_r1;
+		r1_attr.tags.junc_cnt	= rec1->mr->junc_num;
+		r1_attr.tags.gm_compat 	= rec1->mr->gm_compatible;
+	}
+
+	if (r2_attr.flag & RUNMAP) {
+		r2_attr.tags.ed			= 0;
+		r2_attr.tags.junc_cnt	= 0;
+		r2_attr.tags.gm_compat 	= 0;
+	}
+	else {
+		r2_attr.tags.ed			= rec1->mr->ed_r2;
+		r2_attr.tags.junc_cnt	= rec1->mr->junc_num;
+		r2_attr.tags.gm_compat 	= rec1->mr->gm_compatible;
+	}
+	
+	r1_attr.tags.to_string();
+	r2_attr.tags.to_string();
 }
 
 void SAMOutput::write_sam_rec_se (Record* rec) {
@@ -207,15 +241,15 @@ void SAMOutput::write_sam_rec_se (Record* rec) {
 
 void SAMOutput::write_sam_rec_pe (Record* rec1, Record* rec2) {
 	set_output_pe(rec1, rec2);
-	fprintf(outsam, "%s\t%u\t%s\t%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s\n", 
+	fprintf(outsam, "%s\t%u\t%s\t%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s%s\n", 
 			com_attr.qname, r1_attr.flag, r1_attr.rname, r1_attr.pos, com_attr.mapq,
 			r1_attr.cigar, r1_attr.rnext, r1_attr.pnext, r1_attr.tlen, r1_attr.seq, 
-			r1_attr.qual);
+			r1_attr.qual, r1_attr.tags.all_tags);
 
-	fprintf(outsam, "%s\t%u\t%s\t%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s\n", 
+	fprintf(outsam, "%s\t%u\t%s\t%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s%s\n", 
 			com_attr.qname, r2_attr.flag, r2_attr.rname, r2_attr.pos, com_attr.mapq,
 			r2_attr.cigar, r2_attr.rnext, r2_attr.pnext, r2_attr.tlen, r2_attr.seq, 
-			r2_attr.qual);
+			r2_attr.qual, r2_attr.tags.all_tags);
 }
 
 void SAMOutput::print_header (void) {
@@ -226,4 +260,26 @@ void SAMOutput::print_header (void) {
 	for (int i = 0; i < chr_cnt; ++i) {
 		fprintf(outsam, "@SQ\tSN:%s\tLN:%d\n", chr_names[i], chr_lens[i]);
 	}
+}
+
+void OptionalTags::to_string(void) {
+	char tmp[MAXTOTALTAGLEN];
+	int filled = 0;
+
+	sprintf(tmp, "\tAT:i:%d\0", map_type);
+	strcpy(all_tags + filled, tmp);
+	filled += strlen(tmp);
+
+	sprintf(tmp, "\tNM:i:%d\0", ed);
+	strcpy(all_tags + filled, tmp);
+	filled += strlen(tmp);
+
+	sprintf(tmp, "\tJC:i:%d\0", junc_cnt);
+	strcpy(all_tags + filled, tmp);
+	filled += strlen(tmp);
+
+	sprintf(tmp, "\tTC:i:%d\0", gm_compat);
+	strcpy(all_tags + filled, tmp);
+	filled += strlen(tmp);
+
 }

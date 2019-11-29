@@ -4,21 +4,34 @@
 #include <stdint.h>
 #include <cstdio>
 
+#define MAXTOTALTAGLEN 200
+
+struct OptionalTags {
+	int 		map_type;	//AT
+	int 		ed;			//NM
+	uint16_t 	junc_cnt;	//JC
+	bool 		gm_compat;	//TC
+	char*		all_tags;
+
+	void to_string(void);
+};
+
 struct CommonAttr {
 	char* 		qname;
 	uint8_t 	mapq;
 };
 
 struct SeparateAttr {
-	uint16_t 	flag;
-	char* 		rname;
-	uint32_t 	pos;
-	char* 		cigar;
-	char* 		rnext;
-	uint32_t 	pnext;
-	int32_t 	tlen;
-	char* 		seq;
-	char* 		qual;
+	uint16_t 		flag;
+	char* 			rname;
+	uint32_t 		pos;
+	char* 			cigar;
+	char* 			rnext;
+	uint32_t 		pnext;
+	int32_t 		tlen;
+	char* 			seq;
+	char* 			qual;
+	OptionalTags 	tags;
 
 };
 
