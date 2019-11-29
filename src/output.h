@@ -36,6 +36,8 @@ private:
 	void set_output_se (Record* rec);
 	void set_output_pe (Record* rec1, Record* rec2);
 
+	void print_header (void);
+
 public:
 	SAMOutput (void);
 	SAMOutput (char* sam_prefix);

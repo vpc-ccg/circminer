@@ -3,6 +3,10 @@
 #include "common.h"
 #include "output.h"
 
+extern "C" {
+#include "mrsfast/HashTable.h"
+}
+
 #define PAIRED (1UL << 0)
 #define PROPER (1UL << 1)
 #define RUNMAP (1UL << 2)
@@ -37,6 +41,8 @@ void SAMOutput::init (char* sam_prefix) {
 	sprintf(fname, "%s.mapping.sam", sam_prefix);
 	outsam = open_file(fname, "w");
 
+	print_header();
+
 	r1_attr.rname = (char*) malloc(MAXLINESIZE);
 	r1_attr.cigar = (char*) malloc(MAXLINESIZE);
 	r1_attr.rnext = (char*) malloc(MAXLINESIZE);
@@ -49,8 +55,10 @@ void SAMOutput::init (char* sam_prefix) {
 uint16_t SAMOutput::set_flag_se (MatchedMate* mm) {
 	uint16_t flag = 0;
 
-	if (mm->type != CONCRD)
+	if (mm->type != CONCRD) {
 		flag |= RUNMAP;
+		return flag;
+	}
 
 	if (mm->dir < 0)
 		flag |= RREVER;
@@ -95,19 +103,19 @@ uint16_t SAMOutput::set_flag_pe (MatchedRead* mr, bool first) {
 	}
 
 	if (first) {
-		if (!mr->r1_forward)
+		if (!(flag & RUNMAP) and !mr->r1_forward)
 			flag |= RREVER;
 
-		if (!mr->r2_forward)
+		if (!(flag & MUNMAP) and !mr->r2_forward)
 			flag |= MREVER;
 
 		flag |= FIPAIR;
 	}
 	else {
-		if (!mr->r1_forward)
+		if (!(flag & MUNMAP) and !mr->r1_forward)
 			flag |= MREVER;
 
-		if (!mr->r2_forward)
+		if (!(flag & RUNMAP) and !mr->r2_forward)
 			flag |= RREVER;
 
 		flag |= SIPAIR;
@@ -208,4 +216,14 @@ void SAMOutput::write_sam_rec_pe (Record* rec1, Record* rec2) {
 			com_attr.qname, r2_attr.flag, r2_attr.rname, r2_attr.pos, com_attr.mapq,
 			r2_attr.cigar, r2_attr.rnext, r2_attr.pnext, r2_attr.tlen, r2_attr.seq, 
 			r2_attr.qual);
+}
+
+void SAMOutput::print_header (void) {
+	fprintf(outsam, "@HD\tVN:1.4\tSO:unsorted\n");
+	int chr_cnt = getChrCnt();
+	char** chr_names = getChrNames();
+	int* chr_lens = getChrLens();
+	for (int i = 0; i < chr_cnt; ++i) {
+		fprintf(outsam, "@SQ\tSN:%s\tLN:%d\n", chr_names[i], chr_lens[i]);
+	}
 }

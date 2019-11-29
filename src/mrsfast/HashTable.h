@@ -66,6 +66,7 @@ unsigned char	*getAlphabetCount();
 void			rewindHashTable();
 int 			getChrCnt();
 char 			**getChrNames();
+int				*getChrLens();
 int 			getMaxChrLength();
 int				generateHashTableOnDisk(char*, char*);
 int				generateHashTable(char*, char*);

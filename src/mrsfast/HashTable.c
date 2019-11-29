@@ -51,6 +51,7 @@ int				_ih_maxHashTableSize	= 0;
 unsigned int	_ih_hashTableMemSize	= 0;
 GeneralIndex	*_ih_hashTableMem		= NULL;
 int				_ih_refGenLen			= 0;
+int				*_ih_chrLens			= NULL;
 CompressedSeq	*_ih_crefGen			= NULL;
 int				_ih_crefGenLen			= 0;
 char			*_ih_refGenName			= NULL;
@@ -564,7 +565,6 @@ int initLoadingCompressedGenomeMeta(char *fileName, ContigLen **contig_len, int 
 	tmp = fread(&CONTIG_MAX_SIZE, sizeof(CONTIG_MAX_SIZE), 1, _ih_fp);
 
 	// Reading Meta
-	char *strtmp = getMem(2*CONTIG_NAME_SIZE);
 	tmp = fread(&_ih_chrCnt, sizeof(int), 1, _ih_fp);
 	_ih_chrNames = getMem(_ih_chrCnt * sizeof(char *));
 
@@ -586,20 +586,15 @@ int initLoadingCompressedGenomeMeta(char *fileName, ContigLen **contig_len, int 
 		_ih_chrNames[i][nameLen] = '\0';
 		tmp = fread(&_ih_refGenLen, sizeof(int), 1, _ih_fp);
 		
-		sprintf(strtmp,"@SQ\tSN:%s\tLN:%d%c", _ih_chrNames[i], _ih_refGenLen, '\0');
-		
 		//***//
 		strcpy((*contig_len)[i].name, _ih_chrNames[i]);
 		(*contig_len)[i].len = _ih_refGenLen;
 		//***//
 
-//		outputMeta(strtmp);
-	
 		if (_ih_refGenLen > _ih_maxChrLength)
 			_ih_maxChrLength = _ih_refGenLen;
 	}
 
-	freeMem(strtmp, 2*CONTIG_NAME_SIZE);
 	// Reading Meta End
 
 	if (pairedEndMode)
@@ -659,9 +654,9 @@ int initLoadingHashTableMeta(char *fileName, ContigLen **contig_len, int *contig
 	tmp = fread(&CONTIG_MAX_SIZE, sizeof(CONTIG_MAX_SIZE), 1, _ih_fp);
 
 	// Reading Meta
-	char *strtmp = getMem(2*CONTIG_NAME_SIZE);
 	tmp = fread(&_ih_chrCnt, sizeof(int), 1, _ih_fp);
 	_ih_chrNames = getMem(_ih_chrCnt * sizeof(char *));
+	_ih_chrLens  = getMem(_ih_chrCnt * sizeof(int));
 
 	//***//
 	*contig_cnt = _ih_chrCnt;
@@ -680,21 +675,17 @@ int initLoadingHashTableMeta(char *fileName, ContigLen **contig_len, int *contig
 		tmp = fread(_ih_chrNames[i], sizeof(char), nameLen, _ih_fp);
 		_ih_chrNames[i][nameLen] = '\0';
 		tmp = fread(&_ih_refGenLen, sizeof(int), 1, _ih_fp);
-		
-		sprintf(strtmp,"@SQ\tSN:%s\tLN:%d%c", _ih_chrNames[i], _ih_refGenLen, '\0');
+		_ih_chrLens[i] = _ih_refGenLen;
 		
 		//***//
 		strcpy((*contig_len)[i].name, _ih_chrNames[i]);
 		(*contig_len)[i].len = _ih_refGenLen;
 		//***//
 
-//		outputMeta(strtmp);
-	
 		if (_ih_refGenLen > _ih_maxChrLength)
 			_ih_maxChrLength = _ih_refGenLen;
 	}
 
-	freeMem(strtmp, 2*CONTIG_NAME_SIZE);
 	// Reading Meta End
 
 	if (pairedEndMode)
@@ -753,7 +744,6 @@ int initLoadingHashTable(char *fileName)
 	tmp = fread(&CONTIG_MAX_SIZE, sizeof(CONTIG_MAX_SIZE), 1, _ih_fp);
 
 	// Reading Meta
-	char *strtmp = getMem(2*CONTIG_NAME_SIZE);
 	tmp = fread(&_ih_chrCnt, sizeof(int), 1, _ih_fp);
 	_ih_chrNames = getMem(_ih_chrCnt * sizeof(char *));
 	for (i = 0; i < _ih_chrCnt; i++)
@@ -764,14 +754,10 @@ int initLoadingHashTable(char *fileName)
 		_ih_chrNames[i][nameLen] = '\0';
 		tmp = fread(&_ih_refGenLen, sizeof(int), 1, _ih_fp);
 		
-		sprintf(strtmp,"@SQ\tSN:%s\tLN:%d%c", _ih_chrNames[i], _ih_refGenLen, '\0');
-//		outputMeta(strtmp);
-	
 		if (_ih_refGenLen > _ih_maxChrLength)
 			_ih_maxChrLength = _ih_refGenLen;
 	}
 
-	freeMem(strtmp, 2*CONTIG_NAME_SIZE);
 	// Reading Meta End
 
 	if (pairedEndMode)
@@ -836,6 +822,7 @@ void finalizeLoadingHashTable()
 	for (i = 0; i < _ih_chrCnt; i++)
 		freeMem(_ih_chrNames[i], CONTIG_NAME_SIZE);
 	freeMem(_ih_chrNames, _ih_chrCnt * sizeof(char *));
+	freeMem(_ih_chrLens, _ih_chrCnt * sizeof(int));
 	fclose(_ih_fp);
 }
 /**********************************************/
@@ -1246,6 +1233,11 @@ int getChrCnt()
 char **getChrNames()
 {
 	return _ih_chrNames;
+}
+/**********************************************/
+int *getChrLens()
+{
+	return _ih_chrLens;
 }
 /**********************************************/
 int getMaxChrLength()
