@@ -2,7 +2,8 @@ all: OPTIMIZE_FLAGS build
 debug: DEBUG_FLAGS OPTIMIZE_FLAGS build
 profile: PROFILE_FLAGS DEBUG_FLAGS OPTIMIZE_FLAGS build
 valgrind: OPTIMIZE_FLAGS DEBUG_FLAGS build
-build: mrsfast circminer cleanobj
+build: cleanexe mrsfast circminer cleanobj
+clean: cleanobj
 
 CC          ?= gcc
 CXX         ?= g++
@@ -41,10 +42,10 @@ mrsfast:
 	@$(MAKE) -C $(MRSDIR)
 
 cleanobj:
-	@rm -f $(MYOBJ)
-
-clean:
 	@rm -f $(MYOBJ) $(MRSOBJ)
+
+cleanexe:
+	@rm -f circminer
 
 OPTIMIZE_FLAGS:
 	$(eval CFLAGS = $(CFLAGS) -O3)
