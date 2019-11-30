@@ -1,6 +1,8 @@
 src/*.o
 src/mrsfast/*.o
+src/edlib.cpp
+src/edlib.h
 test/*
 profiling/*
-circRNA
+circminer
 cmd.run

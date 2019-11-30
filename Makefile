@@ -2,13 +2,14 @@ all: OPTIMIZE_FLAGS build
 debug: DEBUG_FLAGS OPTIMIZE_FLAGS build
 profile: PROFILE_FLAGS DEBUG_FLAGS OPTIMIZE_FLAGS build
 valgrind: OPTIMIZE_FLAGS DEBUG_FLAGS build
-build: cleanexe mrsfast circminer cleanobj
+build: cleanexe $(EDLIB_SRC_PATH) mrsfast circminer cleanobj
 clean: cleanobj
 
 CC          ?= gcc
 CXX         ?= g++
 
 SRCDIR      := src
+LIBDIR      := lib
 MRSDIR      := $(SRCDIR)/mrsfast
 
 INCS        := 
@@ -31,9 +32,29 @@ MYOBJ        = $(SRCDIR)/circminer.o \
 			   $(SRCDIR)/common.o \
 			   $(SRCDIR)/hash_table.o \
 			   $(SRCDIR)/process_circ.o \
-			   $(SRCDIR)/extend.o
+			   $(SRCDIR)/extend.o \
+			   $(SRCDIR)/edlib.o \
 
 MRSOBJ       = $(MRSDIR)/[!base]*.o
+
+
+EDLIB_LIB_HED_PATH = $(LIBDIR)/edlib/edlib/include/edlib.h
+EDLIB_LIB_SRC_PATH = $(LIBDIR)/edlib/edlib/src/edlib.cpp
+
+EDLIB_SRC_PATH = $(SRCDIR)/edlib.cpp
+EDLIB_HED_PATH = $(SRCDIR)/edlib.h
+
+$(EDLIB_LIB_SRC_PATH):
+		@echo Please clone the repository with --recursive option!; exit 1;
+
+$(EDLIB_LIB_HED_PATH):
+		@echo Please clone the repository with --recursive option!; exit 1;
+
+$(EDLIB_SRC_PATH): $(EDLIB_LIB_SRC_PATH) $(EDLIB_HED_PATH)
+		@cp -v $(EDLIB_LIB_SRC_PATH) $(EDLIB_SRC_PATH)
+
+$(EDLIB_HED_PATH): $(EDLIB_LIB_HED_PATH)
+		@cp -v $(EDLIB_LIB_HED_PATH) $(EDLIB_HED_PATH)
 
 circminer: $(MYOBJ)
 	$(CXX) -w $(MYOBJ) $(BWAOBJ) $(MRSOBJ) -o $@ ${LDFLAGS} ${LIBS}
