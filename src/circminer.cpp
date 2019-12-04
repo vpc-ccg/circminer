@@ -305,6 +305,15 @@ void* map_reads (void* args) {
 	FilterArgs* fa = (struct FilterArgs*) args;
 	printf("--- thread #%d\n", fa->id);
 
+	filter_print_func print_func_ptr;
+	if (reportMapping == SAMFORMAT)
+		print_func_ptr = &FilterRead::print_sam;
+	else if (reportMapping == PAMFORMAT)
+		print_func_ptr = &FilterRead::print_pam;
+	else
+		print_func_ptr = &FilterRead::print_nothing;
+	
+
 	int rid;
 	Record* current_record1;
 	Record* current_record2;
@@ -324,9 +333,9 @@ void* map_reads (void* args) {
 						(current_record1->mr->ed_r1 + current_record1->mr->ed_r2 == 0) and 
 						(current_record1->mr->mlen_r1 + current_record1->mr->mlen_r2 == current_record1->seq_len + current_record2->seq_len));
 
-			if (skip or is_last)
-				filter_read.print_sam(current_record1, current_record2);
-				//filter_read.print_mapping(current_record1->rname, *(current_record1->mr));
+			if (skip or is_last) {
+				(filter_read.*(print_func_ptr))(current_record1, current_record2);
+			}
 			if ((!is_last and !skip) or (is_last and (current_record1->mr->type == CHIBSJ or current_record1->mr->type == CHI2BSJ)))
 				filter_read.write_read_category(current_record1, current_record2, *(current_record1->mr));
 		}

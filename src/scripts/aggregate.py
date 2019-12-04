@@ -24,11 +24,12 @@ def load_crfile(crfile, minsup=1):
 
 	return crdic
 
-def write_agg(sample_cnt, agg_dict, outfilename):
+def write_agg(snames, sample_cnt, agg_dict, outfilename):
 	with open(outfilename, 'w') as fout:
 		fout.write('chr\tstart\tend')
 		for i in range(sample_cnt):
-			fout.write('\tS{}_sup'.format(i+1))
+			fout.write('\t{}'.format(snames[i]))
+			#fout.write('\tS{}_sup'.format(i+1))
 		fout.write('\n')
 
 		for k in agg_dict.keys():
@@ -117,11 +118,15 @@ def main():
 	crfilenames = args[:-1]
 	print('# Files: {}'.format(len(crfilenames)))
 	crdics = []
+	snames = []
 	for crfile in crfilenames:
+		snames.append(crfile.split('/')[-2])
 		crdics.append(load_crfile(crfile))
 
+	print(snames)
+
 	agg_dict = aggregate(crdics)
-	write_agg(len(crdics), agg_dict, outfilename)
+	write_agg(snames, len(crdics), agg_dict, outfilename)
 
 if __name__ == '__main__':
 	main()

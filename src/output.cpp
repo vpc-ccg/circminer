@@ -18,15 +18,34 @@ extern "C" {
 
 SAMOutput::SAMOutput () {
 	outsam = NULL;
+	r1_attr.rname = (char*) malloc(MAXLINESIZE);
+	r1_attr.cigar = (char*) malloc(MAXLINESIZE);
+	r1_attr.rnext = (char*) malloc(MAXLINESIZE);
+
+	r2_attr.rname = (char*) malloc(MAXLINESIZE);
+	r2_attr.cigar = (char*) malloc(MAXLINESIZE);
+	r2_attr.rnext = (char*) malloc(MAXLINESIZE);
+
+	r1_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
+	r2_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
 }
 
-SAMOutput::SAMOutput (char* sam_prefix) {
-	init(sam_prefix);
+SAMOutput::SAMOutput (char* sam_prefix, char* open_mode) {
+	r1_attr.rname = (char*) malloc(MAXLINESIZE);
+	r1_attr.cigar = (char*) malloc(MAXLINESIZE);
+	r1_attr.rnext = (char*) malloc(MAXLINESIZE);
+
+	r2_attr.rname = (char*) malloc(MAXLINESIZE);
+	r2_attr.cigar = (char*) malloc(MAXLINESIZE);
+	r2_attr.rnext = (char*) malloc(MAXLINESIZE);
+
+	r1_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
+	r2_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
+
+	init(sam_prefix, open_mode);
 }
 
 SAMOutput::~SAMOutput (void) {
-	close_file(outsam);
-
 	free(r1_attr.rname);
 	free(r1_attr.cigar);
 	free(r1_attr.rnext);
@@ -39,23 +58,24 @@ SAMOutput::~SAMOutput (void) {
 	free(r2_attr.tags.all_tags);
 }
 
-void SAMOutput::init (char* sam_prefix) {
+void SAMOutput::finalize (void) {
+	close_file(outsam);
+}
+
+void SAMOutput::init (char* sam_prefix, char* open_mode) {
 	char fname[FILE_NAME_LENGTH];
-	sprintf(fname, "%s.mapping.sam", sam_prefix);
-	outsam = open_file(fname, "w");
+	if (reportMapping == SAMFORMAT)
+		sprintf(fname, "%s.mapping.sam", sam_prefix);
+	else if (reportMapping == PAMFORMAT)
+		sprintf(fname, "%s.mapping.pam", sam_prefix);
+	else 
+		return;
 
-	print_header();
+	outsam = open_file(fname, open_mode);
 
-	r1_attr.rname = (char*) malloc(MAXLINESIZE);
-	r1_attr.cigar = (char*) malloc(MAXLINESIZE);
-	r1_attr.rnext = (char*) malloc(MAXLINESIZE);
+	if (strcmp(open_mode, "w") == 0 and reportMapping == SAMFORMAT)
+		print_header();
 
-	r2_attr.rname = (char*) malloc(MAXLINESIZE);
-	r2_attr.cigar = (char*) malloc(MAXLINESIZE);
-	r2_attr.rnext = (char*) malloc(MAXLINESIZE);
-
-	r1_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
-	r2_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
 }
 
 uint16_t SAMOutput::set_flag_se (MatchedMate* mm) {
@@ -239,6 +259,10 @@ void SAMOutput::write_sam_rec_se (Record* rec) {
 			r1_attr.qual);
 }
 
+void SAMOutput::write_pam_rec_se (Record* rec) {
+	
+}
+
 void SAMOutput::write_sam_rec_pe (Record* rec1, Record* rec2) {
 	set_output_pe(rec1, rec2);
 	fprintf(outsam, "%s\t%u\t%s\t%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s%s\n", 
@@ -250,6 +274,26 @@ void SAMOutput::write_sam_rec_pe (Record* rec1, Record* rec2) {
 			com_attr.qname, r2_attr.flag, r2_attr.rname, r2_attr.pos, com_attr.mapq,
 			r2_attr.cigar, r2_attr.rnext, r2_attr.pnext, r2_attr.tlen, r2_attr.seq, 
 			r2_attr.qual, r2_attr.tags.all_tags);
+}
+
+void SAMOutput::write_pam_rec_pe (Record* rec1, Record* rec2) {
+	MatchedRead* mr = rec1->mr;
+	char r1_dir = (mr->r1_forward) ? '+' : '-';
+	char r2_dir = (mr->r2_forward) ? '+' : '-';
+
+	//mutex_lock(&pmap_lock);
+	
+	if (mr->type == CONCRD or mr->type == DISCRD or mr->type == CHIORF or mr->type == CHIBSJ or mr->type == CHI2BSJ or mr->type == CONGNM or mr->type == CONGEN) {
+		fprintf(outsam, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%d\t%d\t%d\t%d\n", 
+				rec1->rname, mr->chr_r1.c_str(), mr->spos_r1, mr->epos_r1, mr->mlen_r1, mr->qspos_r1, mr->qepos_r1, r1_dir, mr->ed_r1,
+				mr->chr_r2.c_str(), mr->spos_r2, mr->epos_r2, mr->mlen_r2, mr->qspos_r2, mr->qepos_r2, r2_dir, mr->ed_r2, 
+				mr->tlen, mr->junc_num, mr->gm_compatible, mr->type);
+	}
+	else {
+		fprintf(outsam, "%s\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\n", rec1->rname);
+	}
+
+	//mutex_unlock(&pmap_lock);
 }
 
 void SAMOutput::print_header (void) {

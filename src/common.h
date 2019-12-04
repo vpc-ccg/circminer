@@ -71,6 +71,11 @@ using namespace std;
 #define NOPROC_MANYHIT 12
 #define NOPROC_NOMATCH 13
 
+// mapping file format
+#define DISCARDMAPREPORT 0
+#define PAMFORMAT 1
+#define SAMFORMAT 2
+
 //---------- Global Variables ----------\\
 
 extern bool indexMode;
@@ -90,6 +95,7 @@ extern int maxTlen;
 extern int maxIntronLen;
 extern int threadCount;
 extern int stage;
+extern int reportMapping;
 
 extern char gtfFilename[FILE_NAME_LENGTH];
 extern char referenceFilename[FILE_NAME_LENGTH];

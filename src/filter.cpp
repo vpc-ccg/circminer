@@ -34,7 +34,10 @@ FilterRead::~FilterRead (void) {
 void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, bool last_round, 
 						char* fq_file1, char* fq_file2) {
 
-	sam_output.init(save_fname);
+	char mode[2];
+	sprintf(mode, "%s", (first_round) ? "w" : "a");
+
+	sam_output.init(save_fname, mode);
 	extension  = new TransExtension[threadCount];
 
 	for (int i = 0; i < threadCount; ++i)
@@ -67,38 +70,14 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 		sprintf(fq_file1, "%s_%d_remain.fastq", save_fname, round);
 	}
 
-	// openning pam files
-	char* output_names[CATNUM] = { "concordant", "discordant", "circ_RF", "circ_bsj", "circ_2bsj", "genic", "fusion", "genomic", "OEA2", "keep", "OEA", "orphan", "many_hits", "no_hit" };
-	char cat_fname [FILE_NAME_LENGTH];
-
-	char mode[2];
-	sprintf(mode, "%s", (first_round) ? "w" : "a");
-
-	sprintf(cat_fname, "%s.%s.pam", save_fname, output_names[0]);
-	//cat_file_pam[0] = open_file(cat_fname, mode);
-
-	//if (! last_round)
-	//	return;
-
-	//for (int i = 1; i < CATNUM; i++) {
-	//	sprintf(cat_fname, "%s.%s.pam", save_fname, output_names[i]);
-	//	cat_file_pam[i] = open_file(cat_fname, "w");
-	//}
-
 }
 
 void FilterRead::finalize (void) {
+	sam_output.finalize();
 	delete[] extension;
 	
-	//close_file(cat_file_pam[0]);
-
 	close_file(temp_fq_r1);
 	close_file(temp_fq_r2);
-	//if (last_round) {
-	//	for (int i = 1; i < CATNUM; i++) {
-	//		close_file(cat_file_pam[i]);
-	//	}
-	//}
 }
 
 // SE mode
@@ -439,25 +418,8 @@ void FilterRead::print_sam (Record* rec1, Record* rec2) {
 	sam_output.write_sam_rec_pe(rec1, rec2);
 }
 
-void FilterRead::print_mapping (char* rname, const MatchedRead& mr) {
-	char r1_dir = (mr.r1_forward) ? '+' : '-';
-	char r2_dir = (mr.r2_forward) ? '+' : '-';
-
-	//mutex_lock(&pmap_lock);
-
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ or mr.type == CONGNM or mr.type == CONGEN) {
-		fprintf(cat_file_pam[mr.type], "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%s\t%u\t%u\t%d\t%u\t%u\t%c\t%d\t%d\t%d\t%d\t%d\n", 
-										rname, 
-										mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1, 
-										mr.chr_r2.c_str(), mr.spos_r2, mr.epos_r2, mr.mlen_r2, mr.qspos_r2, mr.qepos_r2, r2_dir, mr.ed_r2,
-										mr.tlen, mr.junc_num, mr.gm_compatible, mr.type);
-	}
-
-	else {
-		fprintf(cat_file_pam[mr.type], "%s\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\n", rname);
-	}
-
-	//mutex_unlock(&pmap_lock);
+void FilterRead::print_pam (Record* rec1, Record* rec2) {
+	sam_output.write_pam_rec_pe(rec1, rec2);
 }
 
 void FilterRead::get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits) {

@@ -21,6 +21,7 @@ int maxIntronLen = MAXINTRON;
 int threadCount = 1;
 int stage = 2;
 int maxCheckSumLen = sizeof(uint16_t) * 8 / 2;	// 2bit per bp
+int reportMapping = DISCARDMAPREPORT;
 int seqcnt = 0;
 
 char gtfFilename[FILE_NAME_LENGTH];
@@ -76,11 +77,13 @@ int parse_command( int argc, char *argv[] )
 		{"max-tlen", required_argument, 0, 'T'},
 		{"max-intron", required_argument, 0, 'I'},
 		{"stage", required_argument, 0, 'q'},
-		{"keep-intermediate", required_argument, 0, 'z'},
+		{"keep-intermediate", no_argument, 0, 'z'},
+		{"sam", no_argument, 0, 'A'},
+		{"pam", no_argument, 0, 'P'},
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvims:1:2:r:g:k:l:o:t:d:a:e:c:w:S:T:I:q:z", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvims:1:2:r:g:k:l:o:t:d:a:e:c:w:S:T:I:q:zAP", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
@@ -189,6 +192,14 @@ int parse_command( int argc, char *argv[] )
 				finalCleaning = false;
 				break;
 			}
+			case 'A': {
+				reportMapping = SAMFORMAT;
+				break;
+			}
+			case 'P': {
+				reportMapping = PAMFORMAT;
+				break;
+			}
 			case '?': {
 				//fprintf(stderr, "Unknown parameter: %s\n", long_opt[opt_index].name);
 				exit(1);
@@ -279,6 +290,8 @@ void printHELP(void)
 	fprintf(stdout, "\t-I, --max-intron:\tMaximum length of an intron (default = %d).\n", MAXINTRON);
 	fprintf(stdout, "\t-o, --output:\t\tOutput file (default = output).\n");
 	fprintf(stdout, "\t-t, --thread:\t\tNumber of threads (default = 1).\n");
+	fprintf(stdout, "\t-A, --sam:\t\tEnables SAM output for aligned reads. Cannot be set along with --pam.\n");
+	fprintf(stdout, "\t-P, --pam:\t\tEnables custom pam output for aligned reads. Cannot be set along with --sam.\n");
 	fprintf(stdout, "\t-d, --verbose:\t\tVerbose mode: 0 to 1. Higher values output more information (default = 0).\n");
 	fprintf(stdout, "\t-a, --scan-lev:\t\tTranscriptome/Genome scan level: 0 to 2. (default = 0)\n\t\t\t\t"
 										"0: Report the first mapping.\n\t\t\t\t"

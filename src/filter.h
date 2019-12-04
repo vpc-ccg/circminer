@@ -55,12 +55,18 @@ public:
 	void write_read_category (Record* current_record1, Record* current_record2, const MatchedRead& mr);
 
 	void print_sam (Record* rec);
+	void print_pam (Record* rec);
+	inline void print_nothing (Record* rec) {}
+
 	void print_sam (Record* rec1, Record* rec2);
-	void print_mapping (char* rname, const MatchedRead& mr);
+	void print_pam (Record* rec1, Record* rec2);
+	inline void print_nothing (Record* rec1, Record* rec2) {}
 
 	int get_last_round (void) { return last_round; };
 
 };
+
+typedef void (FilterRead::*filter_print_func)(Record*, Record*);
 
 void* process_block (void* args);
 

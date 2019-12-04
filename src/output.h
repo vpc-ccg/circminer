@@ -53,13 +53,18 @@ private:
 
 public:
 	SAMOutput (void);
-	SAMOutput (char* sam_prefix);
+	SAMOutput (char* sam_prefix, char* open_mode);
 	~SAMOutput (void);
 
-	void init(char* sam_prefix);
+	void init (char* sam_prefix, char* open_mode);
+
+	void finalize (void);
 
 	void write_sam_rec_se (Record* rec);
+	void write_pam_rec_se (Record* rec);
+
 	void write_sam_rec_pe (Record* rec1, Record* rec2);
+	void write_pam_rec_pe (Record* rec1, Record* rec2);
 };
 
 #endif //__OUTPUT_H__
