@@ -93,6 +93,7 @@ extern int bandWidth;
 extern int seedLim;
 extern int maxTlen;
 extern int maxIntronLen;
+extern int maxChainLen;
 extern int threadCount;
 extern int stage;
 extern int reportMapping;

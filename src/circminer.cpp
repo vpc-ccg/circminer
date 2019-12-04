@@ -126,12 +126,12 @@ int mapping(int& last_round_num) {
 		fbc_r2[th] = (chain_list*) malloc(1 * sizeof(chain_list));
 		bbc_r2[th] = (chain_list*) malloc(1 * sizeof(chain_list));
 
-		fbc_r1[th]->chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-		bbc_r1[th]->chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-		fbc_r2[th]->chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-		bbc_r2[th]->chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
+		fbc_r1[th]->chains = (chain_t*) malloc(maxChainLen * sizeof(chain_t));
+		bbc_r1[th]->chains = (chain_t*) malloc(maxChainLen * sizeof(chain_t));
+		fbc_r2[th]->chains = (chain_t*) malloc(maxChainLen * sizeof(chain_t));
+		bbc_r2[th]->chains = (chain_t*) malloc(maxChainLen * sizeof(chain_t));
 		
-		for (int i = 0; i < BESTCHAINLIM; i++) {
+		for (int i = 0; i < maxChainLen; i++) {
 			fbc_r1[th]->chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
 			bbc_r1[th]->chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
 			fbc_r2[th]->chains[i].frags = (fragment_t*) malloc(max_seg_cnt * sizeof(fragment_t));
@@ -271,7 +271,7 @@ int mapping(int& last_round_num) {
 		free(fl[th]);
 		free(bl[th]);
 
-		for (int i = 0; i < BESTCHAINLIM; i++) {
+		for (int i = 0; i < maxChainLen; i++) {
 			free(fbc_r1[th]->chains[i].frags);
 			free(bbc_r1[th]->chains[i].frags);
 			free(fbc_r2[th]->chains[i].frags);

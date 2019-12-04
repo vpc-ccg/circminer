@@ -228,8 +228,8 @@ int FilterRead::process_read (int thid, Record* current_record1, Record* current
 int FilterRead::process_mates(int thid, const chain_list& forward_chain, const Record* forward_rec, const chain_list& backward_chain, const Record* backward_rec, MatchedRead& mr, bool r1_forward) {
 	vector <MatePair> mate_pairs;
 
-	bool forward_paired[BESTCHAINLIM];
-	bool backward_paired[BESTCHAINLIM];
+	bool forward_paired[maxChainLen];
+	bool backward_paired[maxChainLen];
 	pair_chains(forward_chain, backward_chain, mate_pairs, forward_paired, backward_paired, mr.type);
 
 	int min_ret1 = ORPHAN;
@@ -454,8 +454,8 @@ void FilterRead::pair_chains(const chain_list& forward_chain, const chain_list& 
 
 	mate_pairs.clear();
 
-	memset(forward_paired, 0, BESTCHAINLIM * sizeof(bool));
-	memset(reverse_paired, 0, BESTCHAINLIM * sizeof(bool));
+	memset(forward_paired, 0, maxChainLen * sizeof(bool));
+	memset(reverse_paired, 0, maxChainLen * sizeof(bool));
 
 	uint32_t fs, fe;
 	uint32_t rs, re;

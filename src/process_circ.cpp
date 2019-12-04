@@ -54,11 +54,11 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 
 
 	int max_kmer_cnt = (maxReadLength - window_size) / step + 1;
-	bc1.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-	for (int i = 0; i < BESTCHAINLIM; i++)
+	bc1.chains = (chain_t*) malloc(maxChainLen * sizeof(chain_t));
+	for (int i = 0; i < maxChainLen; i++)
 		bc1.chains[i].frags = (fragment_t*) malloc(max_kmer_cnt * sizeof(fragment_t));
-	bc2.chains = (chain_t*) malloc(BESTCHAINLIM * sizeof(chain_t));
-	for (int i = 0; i < BESTCHAINLIM; i++)
+	bc2.chains = (chain_t*) malloc(maxChainLen * sizeof(chain_t));
+	for (int i = 0; i < maxChainLen; i++)
 		bc2.chains[i].frags = (fragment_t*) malloc(max_kmer_cnt * sizeof(fragment_t));
 
 	// circ_type.push_back("SingleTranscriptomeCircRNA");
@@ -74,10 +74,10 @@ ProcessCirc::~ProcessCirc (void) {
 	close_file(report_file);
 	close_file(candid_file);
 
-	for (int i = 0; i < BESTCHAINLIM; i++)
+	for (int i = 0; i < maxChainLen; i++)
 		free(bc1.chains[i].frags);
 
-	for (int i = 0; i < BESTCHAINLIM; i++)
+	for (int i = 0; i < maxChainLen; i++)
 		free(bc2.chains[i].frags);
 
 	free(bc1.chains);

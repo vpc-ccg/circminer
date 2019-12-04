@@ -18,6 +18,7 @@ int bandWidth = INDELTH;
 int seedLim = FRAGLIM;
 int maxTlen = MAXTLEN;
 int maxIntronLen = MAXINTRON;
+int maxChainLen = BESTCHAINLIM;
 int threadCount = 1;
 int stage = 2;
 int maxCheckSumLen = sizeof(uint16_t) * 8 / 2;	// 2bit per bp
@@ -76,6 +77,7 @@ int parse_command( int argc, char *argv[] )
 		{"seed-lim", required_argument, 0, 'S'},
 		{"max-tlen", required_argument, 0, 'T'},
 		{"max-intron", required_argument, 0, 'I'},
+		{"max-chain-list", required_argument, 0, 'C'},
 		{"stage", required_argument, 0, 'q'},
 		{"keep-intermediate", no_argument, 0, 'z'},
 		{"sam", no_argument, 0, 'A'},
@@ -83,7 +85,7 @@ int parse_command( int argc, char *argv[] )
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvims:1:2:r:g:k:l:o:t:d:a:e:c:w:S:T:I:q:zAP", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvims:1:2:r:g:k:l:o:t:d:a:e:c:w:S:T:I:C:q:zAP", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
@@ -178,6 +180,10 @@ int parse_command( int argc, char *argv[] )
 			}
 			case 'I': {
 				maxIntronLen = atoi(optarg);
+				break;
+			}
+			case 'C': {
+				maxChainLen = atoi(optarg);
 				break;
 			}
 			case 'q': {
@@ -288,6 +294,7 @@ void printHELP(void)
 	fprintf(stdout, "\t-S, --seed-lim:\t\tSkip seeds that have more than INT occurrences (default = %d).\n", FRAGLIM);
 	fprintf(stdout, "\t-T, --max-tlen:\t\tMaximum template length of concordant mapping. Paired-end mode only (default = %d).\n", MAXTLEN);
 	fprintf(stdout, "\t-I, --max-intron:\tMaximum length of an intron (default = %d).\n", MAXINTRON);
+	fprintf(stdout, "\t-C, --max-chain-list:\tMaximum number of chained candidates to be processed (default = %d).\n", BESTCHAINLIM);
 	fprintf(stdout, "\t-o, --output:\t\tOutput file (default = output).\n");
 	fprintf(stdout, "\t-t, --thread:\t\tNumber of threads (default = 1).\n");
 	fprintf(stdout, "\t-A, --sam:\t\tEnables SAM output for aligned reads. Cannot be set along with --pam.\n");
