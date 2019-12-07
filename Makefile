@@ -17,7 +17,7 @@ INCS        :=
 #LIBS        := -lz
 LIBS        := -lz -lm -lpthread
 CFLAGS      := -w 
-CXXFLAGS    := -w $(INCS) -std=c++11
+CXXFLAGS    := -Wall $(INCS) -std=c++11
 LDFLAGS     := 
 
 MYOBJ        = $(SRCDIR)/circminer.o \

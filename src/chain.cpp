@@ -36,7 +36,7 @@ bool check_junction(uint32_t s1, uint32_t s2, const IntervalInfo<UniqSeg>* ol_ex
 
 	int e12end, beg2s2;
 	int trans_dist2intron = -1;
-	for (int i = 0; i < ol_exons->seg_list.size(); i++) {
+	for (unsigned int i = 0; i < ol_exons->seg_list.size(); i++) {
 		e12end = ol_exons->seg_list[i].end - e1;
 		beg2s2 = s2 - ol_exons->seg_list[i].next_exon_beg;
 
@@ -76,8 +76,8 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 	int max_frag_cnt = seedLim;
 	chain_cell dp[kmer_cnt][max_frag_cnt + 1];
 
-	int max_best = maxChainLen;
-	int best_count = 0;
+	uint32_t max_best = maxChainLen;
+	uint32_t best_count = 0;
 	double best_score = -1;
 
 	int distr, distt;
@@ -87,9 +87,9 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 
 	double temp_score;
 
-	int i, j;
 	int ii, jj;
-	int lb_ind[kmer_cnt];
+	uint32_t i, j;
+	uint32_t lb_ind[kmer_cnt];
 	uint32_t max_lpos_lim;
 	uint32_t read_remain;
 	uint32_t seg_start;
@@ -137,7 +137,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 			seg_end = cur_mk->frags[i].info + kmer - 1;
 					
 			//max_lpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end);	// = 0 means not found
-			max_lpos_lim = -1;
+			max_lpos_lim = MAXUB;
 
 			for (jj = ii+1; jj < kmer_cnt; jj++) {
 				pc_mk = fragment_list + jj;
@@ -155,7 +155,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 				if (lb_ind[jj] >= pc_mk->frag_count)	// no more fragment from pre are in range for the remaining of the t
 					continue;
 
-				if (max_lpos_lim == -1)
+				if (max_lpos_lim == MAXUB)
 				{
 					max_lpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end, ol_exons);	// = 0 means not found
 					//vafprintf(2, stderr, "[%d-%d] -> upper bound: %u\n", seg_start, seg_end, max_lpos_lim);
@@ -246,7 +246,7 @@ void chain_seeds_sorted_kbest(int seq_len, GIMatchedKmer* fragment_list, chain_l
 	map <double, chain_cell_list>::reverse_iterator it;
 	
 	for (it = score2chain.rbegin(); it != score2chain.rend(); ++it) {
-		for (int l = 0; l < it->second.count; l++) {
+		for (uint32_t l = 0; l < it->second.count; l++) {
 			if (best_count >= max_best)
 				break;
 			
@@ -315,8 +315,8 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 	int max_frag_cnt = seedLim;
 	chain_cell dp[kmer_cnt][max_frag_cnt + 1];
 
-	int max_best = maxChainLen;
-	int best_count = 0;
+	uint32_t max_best = maxChainLen;
+	uint32_t best_count = 0;
 	double best_score = -1;
 
 	int distr, distt;
@@ -326,9 +326,9 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 
 	double temp_score;
 
-	int i, j;
 	int ii, jj;
-	int lb_ind[kmer_cnt];
+	uint32_t i, j;
+	uint32_t lb_ind[kmer_cnt];
 	uint32_t max_lpos_lim;
 	uint32_t read_remain;
 	uint32_t seg_start;
@@ -374,7 +374,7 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 			seg_end = cur_mk->frags[i].info + kmer - 1;
 					
 			//max_lpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end);	// = 0 means not found
-			max_lpos_lim = -1;
+			max_lpos_lim = MAXUB;
 
 			for (jj = ii+1; jj < kmer_cnt; jj++) {
 				pc_mk = fragment_list + jj;
@@ -392,7 +392,7 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 				if (lb_ind[jj] >= pc_mk->frag_count)	// no more fragment from pre are in range for the remaining of the t
 					continue;
 
-				if (max_lpos_lim == -1)
+				if (max_lpos_lim == MAXUB)
 				{
 					max_lpos_lim = gtf_parser.get_upper_bound(seg_start, kmer, read_remain, max_exon_end, ol_exons);	// = 0 means not found
 					//vafprintf(2, stderr, "[%d-%d] -> upper bound: %u\n", seg_start, seg_end, max_lpos_lim);
@@ -482,7 +482,7 @@ void chain_seeds_sorted_kbest2(int seq_len, GIMatchedKmer* fragment_list, chain_
 	map <double, chain_cell_list>::reverse_iterator it;
 	
 	for (it = score2chain.rbegin(); it != score2chain.rend(); ++it) {
-		for (int l = 0; l < it->second.count; l++) {
+		for (uint32_t l = 0; l < it->second.count; l++) {
 			if (best_count >= max_best)
 				break;
 			

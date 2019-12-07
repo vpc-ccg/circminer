@@ -88,7 +88,7 @@ ProcessCirc::~ProcessCirc (void) {
 		char command [FILE_NAME_LENGTH];
 		sprintf(command, "rm %s*_remain_R*.fastq{,.srt}", outputFilename);
 
-		int ret = system(command);
+		system(command);
 	}
 }
 
@@ -174,10 +174,10 @@ void ProcessCirc::do_process (void) {
 	bool is_pe = pairedEnd;
 
 	FASTQParser fq_parser1(fq_file1);
-	Record* current_record1;
+	Record* current_record1 = NULL;
 
 	FASTQParser fq_parser2;
-	Record* current_record2;
+	Record* current_record2 = NULL;
 	if (is_pe) {
 		fq_parser2.reset(fq_file2);
 	}
@@ -216,7 +216,8 @@ void ProcessCirc::do_process (void) {
 		//	refresh_hash_table_list();
 		//pre_chr = current_record1->mr->chr_r1;
 
-		call_circ(current_record1, current_record2);
+		if (is_pe)
+			call_circ(current_record1, current_record2);
 	}
 
 	report_events();
@@ -287,7 +288,7 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 
 	CircRes best_cr;
 	best_cr.type = NF;
-	for (int i = 0; i < gene_info->seg_list.size(); ++i) {
+	for (unsigned int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
 		char gene_seq[gene_len + 1];
 		gene_seq[gene_len] = '\0';
@@ -350,9 +351,6 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 	uint32_t r1_qepos = ((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (mr.qspos_r1 - 1) : (current_record1->seq_len);
 	uint32_t r2_qepos = ((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (mr.qspos_r2 - 1) : (current_record2->seq_len);
 
-
-	int r1_whole_seq_len = current_record1->seq_len;
-	int r2_whole_seq_len = current_record2->seq_len;
 	
 	int r1_remain_len = r1_qepos - r1_qspos + 1;
 	int r2_remain_len = r2_qepos - r2_qspos + 1;
@@ -383,7 +381,7 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 
 	CircRes best_cr;
 	best_cr.type = NF;
-	for (int i = 0; i < gene_info->seg_list.size(); ++i) {
+	for (unsigned int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
 		char gene_seq[gene_len + 1];
 		gene_seq[gene_len] = '\0';
@@ -465,7 +463,7 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, RegionalHashTable* reg
 	int max_id = 0;
 	memset(bins, 0, bin_num * sizeof(int));
 
-	for (int i = qspos - 1; i <= qepos - window_size; i += step) {
+	for (uint32_t i = qspos - 1; i <= qepos - window_size; i += step) {
 		GIMatchedKmer* gl = regional_ht->find_hash(regional_ht->hash_val(remain_seq + i));
 		if (gl == NULL) {
 			vafprintf(2, stderr, "Hash val not found!!!\n");
@@ -473,7 +471,7 @@ void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, RegionalHashTable* reg
 
 		vafprintf(2, stderr, "Occ: %d\n", gl->frag_count);
 		
-		for (int j = 0; j < gl->frag_count; j++) {
+		for (uint32_t j = 0; j < gl->frag_count; j++) {
 			int bin_id = gl->frags[j].info / BINSIZE;
 			bins[bin_id]++;
 
@@ -499,7 +497,7 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 	GIMatchedKmer fl[kmer_cnt+1];
 
 	int l = 0;
-	for (int i = qspos - 1; i <= qepos - window_size; i += step) {
+	for (uint32_t i = qspos - 1; i <= qepos - window_size; i += step) {
 		GIMatchedKmer* gl = regional_ht->find_hash(regional_ht->hash_val(remain_seq + i));
 		if (gl == NULL) {	// has N inside kmer
 			vafprintf(2, stderr, "Hash val not found!!!\n");
@@ -539,7 +537,7 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 
 		least_miss = missing;
 
-		for (int i = 0; i < bc.chains[j].chain_len; i++) {
+		for (uint32_t i = 0; i < bc.chains[j].chain_len; i++) {
 			vafprintf(1, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, bc.chains[j].frags[i].rpos - shift, bc.chains[j].frags[i].qpos, bc.chains[j].frags[i].len);
 		}
 	}
@@ -747,10 +745,10 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 			const IntervalInfo<UniqSeg>* curr_seg;
 			curr_seg = gtf_parser.get_interval(ind_epos);
 			while (mm_r1_r.spos < curr_seg->epos) {
-				for (int i = 0; i < curr_seg->seg_list.size(); ++i) {
+				for (unsigned int i = 0; i < curr_seg->seg_list.size(); ++i) {
 					diff = mm_r1_r.epos + mm_r1_r.sclen_right - curr_seg->seg_list[i].end;
 					if (abs(diff) <= BPRES) {
-						for (int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j) {
+						for (unsigned int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j) {
 							end_tids.push_back(make_pair(curr_seg->seg_list[i].trans_id[j], diff));
 						}
 					}
@@ -763,10 +761,10 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 			int ind_spos = mm_r1_l.exon_ind_spos;
 			curr_seg = gtf_parser.get_interval(ind_spos);
 			while (mm_r1_l.epos > curr_seg->spos) {
-				for (int i = 0; i < curr_seg->seg_list.size(); ++i) {
+				for (unsigned int i = 0; i < curr_seg->seg_list.size(); ++i) {
 					diff = mm_r1_l.spos - mm_r1_l.sclen_left - curr_seg->seg_list[i].start;
 					if (abs(diff) <= BPRES) {
-						for (int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j) {
+						for (unsigned int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j) {
 							start_tids.push_back(make_pair(curr_seg->seg_list[i].trans_id[j], diff));
 						}
 					}
@@ -776,8 +774,8 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 			}
 
 			int sdiff, ediff;
-			for (int i = 0; i < start_tids.size(); ++i) {
-				for (int j = 0; j < end_tids.size(); ++j) {
+			for (unsigned int i = 0; i < start_tids.size(); ++i) {
+				for (unsigned int j = 0; j < end_tids.size(); ++j) {
 					sdiff = start_tids[i].second;
 					ediff = end_tids[j].second;
 					if (start_tids[i].first == end_tids[j].first and sdiff == ediff) {
@@ -840,7 +838,7 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 			const IntervalInfo<UniqSeg>* curr_seg;
 			curr_seg = gtf_parser.get_interval(ind_epos);
 			while (split_mm_left.spos < curr_seg->epos) {
-				for (int i = 0; i < curr_seg->seg_list.size(); ++i) {
+				for (unsigned int i = 0; i < curr_seg->seg_list.size(); ++i) {
 					diff = split_mm_left.epos + split_mm_left.sclen_right - curr_seg->seg_list[i].end;
 					
 					// fprintf(stderr, "\nend transcripts: ");
@@ -850,7 +848,7 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 					// 				split_mm_left.epos, split_mm_left.sclen_right, curr_seg->seg_list[i].end, diff);
 					
 					if (abs(diff) <= BPRES) {
-						for (int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j) {
+						for (unsigned int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j) {
 							end_tids.push_back(make_pair(curr_seg->seg_list[i].trans_id[j], diff));
 						}
 					}
@@ -863,7 +861,7 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 			int ind_spos = split_mm_right.exon_ind_spos;
 			curr_seg = gtf_parser.get_interval(ind_spos);
 			while (split_mm_right.epos > curr_seg->spos) {
-				for (int i = 0; i < curr_seg->seg_list.size(); ++i) {
+				for (unsigned int i = 0; i < curr_seg->seg_list.size(); ++i) {
 					diff = split_mm_right.spos - split_mm_right.sclen_left - curr_seg->seg_list[i].start;
 					
 					// fprintf(stderr, "\nstart transcripts: ");
@@ -873,7 +871,7 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 					// 				split_mm_right.spos, split_mm_right.sclen_left, curr_seg->seg_list[i].start, diff);
 					
 					if (abs(diff) <= BPRES) {
-						for (int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j) {
+						for (unsigned int j = 0; j < curr_seg->seg_list[i].trans_id.size(); ++j) {
 							start_tids.push_back(make_pair(curr_seg->seg_list[i].trans_id[j], diff));
 						}
 					}
@@ -883,8 +881,8 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 			}
 
 			int sdiff, ediff;
-			for (int i = 0; i < start_tids.size(); ++i) {
-				for (int j = 0; j < end_tids.size(); ++j) {
+			for (unsigned int i = 0; i < start_tids.size(); ++i) {
+				for (unsigned int j = 0; j < end_tids.size(); ++j) {
 					sdiff = start_tids[i].second;
 					ediff = end_tids[j].second;
 					// if (start_tids[i].first == end_tids[j].first)
@@ -924,7 +922,7 @@ void ProcessCirc::report_events (void) {
 	CircRes last = circ_res[0];
 	vector <string> rnames;
 	rnames.push_back(circ_res[0].rname);
-	for (int i = 1; i < circ_res.size(); ++i) {
+	for (unsigned int i = 1; i < circ_res.size(); ++i) {
 		if (circ_res[i] == last) {
 			cnt++;
 			rnames.push_back(circ_res[i].rname);
@@ -933,7 +931,7 @@ void ProcessCirc::report_events (void) {
 			//if (last.type == CR or cnt > 1) {	// won't print novel events with single read support
 			if (last.type == CR) {	// won't print novel events
 				fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t", last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str());
-				for (int j = 0; j < rnames.size() - 1; ++j)
+				for (unsigned int j = 0; j < rnames.size() - 1; ++j)
 					fprintf(report_file, "%s,", rnames[j].c_str());
 				fprintf(report_file, "%s\n", rnames[rnames.size() - 1].c_str());
 			}
@@ -946,22 +944,36 @@ void ProcessCirc::report_events (void) {
 	//if (last.type == CR or cnt > 1) {
 	if (last.type == CR) {
 		fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t", last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str());
-		for (int j = 0; j < rnames.size() - 1; ++j)
+		for (unsigned int j = 0; j < rnames.size() - 1; ++j)
 			fprintf(report_file, "%s,", rnames[j].c_str());
 		fprintf(report_file, "%s\n", rnames[rnames.size() - 1].c_str());
 	}
 }
 
 void ProcessCirc::open_report_file (void) {
-	char temp_fname [FILE_NAME_LENGTH];
+	char* temp_fname = (char*) malloc(FILE_NAME_LENGTH);
+	char* mode = (char*) malloc(FILE_NAME_LENGTH);
+
 	sprintf(temp_fname, "%s.circ_report", outputFilename);
-	report_file = open_file(temp_fname, "w");
+	sprintf(mode, "%c", 'w');
+
+	report_file = open_file(temp_fname, mode);
+
+	free(temp_fname);
+	free(mode);
 }
 
 void ProcessCirc::open_candid_file (void) {
-	char temp_fname [FILE_NAME_LENGTH];
+	char* temp_fname = (char*) malloc(FILE_NAME_LENGTH);
+	char* mode = (char*) malloc(FILE_NAME_LENGTH);
+
 	sprintf(temp_fname, "%s.candidates.pam", outputFilename);
-	candid_file = open_file(temp_fname, "w");
+	sprintf(mode, "%c", 'w');
+
+	candid_file = open_file(temp_fname, mode);
+
+	free(temp_fname);
+	free(mode);
 }
 
 void ProcessCirc::load_genome (void) {
@@ -973,7 +985,7 @@ void ProcessCirc::load_genome (void) {
 
 	fprintf(stdout, "Started loading index...\n");
 
-	int flag = loadCompressedRefGenome ( &tmpTime );  			// Reading a fragment
+	loadCompressedRefGenome ( &tmpTime );  			// Reading a fragment
 
 	pre_contig = atoi(getRefGenomeName()) - 1;
 	contigNum = pre_contig;
@@ -1013,11 +1025,6 @@ void ProcessCirc::print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedM
 					mm_r2.spos - con_shift.shift, mm_r2.epos - con_shift.shift, 
 					mm_r2.qspos, mm_r2.matched_len, mm_r2.dir);
 			
-}
-
-int ProcessCirc::get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos) {
-
-
 }
 
 void set_mm(const chain_t& ch, uint32_t qspos, int rlen, int dir, MatchedMate& mm) {

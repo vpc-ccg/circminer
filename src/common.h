@@ -5,7 +5,7 @@
 #define DEBUG_MODE
 #endif
 
-#include <stdint.h>
+#include <cinttypes>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -76,13 +76,14 @@ using namespace std;
 #define PAMFORMAT 1
 #define SAMFORMAT 2
 
-//---------- Global Variables ----------\\
+//---------- Global Variables ----------//
 
 extern bool indexMode;
 extern bool compactIndex;
 extern bool pairedEnd;
 extern bool finalCleaning;
 
+extern uint32_t seedLim;
 extern int kmer;
 extern int maxReadLength;
 extern int verboseMode;
@@ -90,7 +91,6 @@ extern int scanLevel;
 extern int maxEd;
 extern int maxSc;
 extern int bandWidth;
-extern int seedLim;
 extern int maxTlen;
 extern int maxIntronLen;
 extern int maxChainLen;
@@ -119,7 +119,7 @@ extern pthread_mutex_t pmap_lock;
 extern pthread_mutex_t read_lock;
 
 
-//---------- Structures ----------\\
+//---------- Structures ----------//
 
 struct fragment_t{
 	uint32_t rpos;
@@ -131,7 +131,7 @@ struct fragment_t{
 	}
 };
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 typedef struct {
 	fragment_t* frags;
@@ -139,14 +139,14 @@ typedef struct {
 	float score;
 } chain_t;
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 typedef struct {
 	chain_t* chains;
 	int best_chain_count;
 } chain_list;
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 typedef struct {
 	GeneralIndex* frags;	// array of locations
@@ -155,7 +155,7 @@ typedef struct {
 	int32_t qpos;
 } GIMatchedKmer;
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 struct GeneInfo {
 	uint32_t start;
@@ -171,7 +171,7 @@ struct GeneInfo {
 
 inline ostream& operator<<(ostream& os, const GeneInfo& gi);
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 struct UniqSeg {
 	uint32_t start;
@@ -201,7 +201,7 @@ struct UniqSeg {
 // Temporary, just for testing --will be deleted
 inline ostream& operator<<(ostream& os, const UniqSeg& us);
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 struct MatchedRead;
 
@@ -217,7 +217,7 @@ struct MatchedMate {
 
 	int			sclen_right;
 	int			sclen_left;
-	int			matched_len;
+	uint32_t	matched_len;
 	int			dir;
 	int			type;
 
@@ -251,7 +251,7 @@ struct MatchedMate {
 
 };
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 struct MatchedRead {
 	// pos on reference
@@ -266,8 +266,8 @@ struct MatchedRead {
 	uint32_t 	qepos_r1;
 	uint32_t 	qepos_r2;
 
-	int 		mlen_r1;
-	int 		mlen_r2;
+	uint32_t	mlen_r1;
+	uint32_t 	mlen_r2;
 
 	bool		r1_forward;
 	bool		r2_forward;
@@ -293,7 +293,7 @@ struct MatchedRead {
 	inline bool go_for_update(const MatchedMate& r1, const MatchedMate& r2, int32_t tlen, bool gm_compatible, int type);
 };
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 struct MatePair {
 	int type;
@@ -309,14 +309,14 @@ struct MatePair {
 	bool operator < (const MatePair& r) const;
 };
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 typedef struct {
 	string contig;
 	uint32_t shift;
 } ConShift;
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 struct GenRegion {
 	uint32_t last_pos;	// last position on exon
@@ -330,7 +330,7 @@ struct GenRegion {
 	bool operator < (const GenRegion& r) const;
 };
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 struct AllCoord {
 	uint32_t rspos;
@@ -343,7 +343,7 @@ struct AllCoord {
 	bool operator < (const AllCoord& r) const;
 };
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 struct CircRes {
 	string chr;
@@ -358,7 +358,7 @@ struct CircRes {
 	bool operator == (const CircRes& r) const;
 };
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 struct Record {
 	char* rname;
@@ -368,7 +368,7 @@ struct Record {
 	char* qual;
 	char* rqual;
 
-	int seq_len;
+	uint32_t seq_len;
 
 	MatchedRead* mr;
 
@@ -381,7 +381,7 @@ struct Record {
 	}
 };
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 struct FilterArgs {
 	int id;
@@ -395,7 +395,7 @@ struct FilterArgs {
 	chain_list* fbc_r2; 
 	chain_list* bbc_r2;
 
-	FilterArgs (int k) : kmer_size(k), id(0) {}
+	FilterArgs (int k) : id(0), kmer_size(k) {}
 
 	void set(GIMatchedKmer* f, GIMatchedKmer* b, 
 			 chain_list* fc1, chain_list* bc1, 
@@ -411,9 +411,9 @@ struct FilterArgs {
 	}
 };
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
-//---------- Functions ----------\\
+//---------- Functions ----------//
 
 FILE* open_file(char* filename, char* mode);
 gzFile open_gzfile(char* filename, char* mode);
@@ -429,7 +429,7 @@ double get_real_time();
 void mutex_lock(pthread_mutex_t* m);
 void mutex_unlock(pthread_mutex_t* m);
 
-//------- Implementations --------\\
+//------- Implementations --------//
 
 // verbose-aware fprintf
 inline void vafprintf(int verbosity, FILE *stream, const char *format, ...) {
@@ -443,6 +443,6 @@ inline void vafprintf(int verbosity, FILE *stream, const char *format, ...) {
 	#endif
 }
 
-//--------------------------------\\
+//--------------------------------//
 
 #endif	//__COMMON_H__

@@ -310,19 +310,19 @@ void OptionalTags::to_string(void) {
 	char tmp[MAXTOTALTAGLEN];
 	int filled = 0;
 
-	sprintf(tmp, "\tAT:i:%d\0", map_type);
+	sprintf(tmp, "\tAT:i:%d%c", map_type, '\0');
 	strcpy(all_tags + filled, tmp);
 	filled += strlen(tmp);
 
-	sprintf(tmp, "\tNM:i:%d\0", ed);
+	sprintf(tmp, "\tNM:i:%d%c", ed, '\0');
 	strcpy(all_tags + filled, tmp);
 	filled += strlen(tmp);
 
-	sprintf(tmp, "\tJC:i:%d\0", junc_cnt);
+	sprintf(tmp, "\tJC:i:%d%c", junc_cnt, '\0');
 	strcpy(all_tags + filled, tmp);
 	filled += strlen(tmp);
 
-	sprintf(tmp, "\tTC:i:%d\0", gm_compat);
+	sprintf(tmp, "\tTC:i:%d%c", gm_compat, '\0');
 	strcpy(all_tags + filled, tmp);
 	filled += strlen(tmp);
 

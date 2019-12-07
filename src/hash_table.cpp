@@ -92,9 +92,9 @@ int RegionalHashTable::hash_val (char* seq) const {
 
 	while(i < window_size)
 	{
-		if (nuc_hval[seq[i]] == -1)	// N
+		if (nuc_hval[uint8_t(seq[i])] == -1)	// N
 			return -1; 
-		val = (val << 2) | nuc_hval[seq[i++]]; 
+		val = (val << 2) | nuc_hval[uint8_t(seq[i++])]; 
 	}
 	return val;
 }

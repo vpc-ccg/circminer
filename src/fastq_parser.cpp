@@ -53,9 +53,18 @@ void FASTQParser::init (void) {
 void FASTQParser::reset (char* filename) {
 	finalize();
 
-	gzinput = open_gzfile(filename, "r");
+	char* fname = (char*) malloc(FILE_NAME_LENGTH);
+	char* rmode = (char*) malloc(FILE_NAME_LENGTH);
+
+	sprintf(fname, "%s", filename);
+	sprintf(rmode, "%c", 'r');
+
+	gzinput = open_gzfile(fname, rmode);
 
 	//input = open_file(filename, "r");
+	
+	free(fname);
+	free(rmode);
 	
 	buff_pos = 0;
 	buff_size = 0;
@@ -120,8 +129,8 @@ bool FASTQParser::read_block (void) {
 	for (int i = 0; i < BLOCKSIZE; ++i) {
 		if (has_next()) {
 			//int rname_len = getline(&current_record[i].rname, &max_line_size, input);
-			int rname_len = read_line(&current_record[i].rname);
-			rname_len = extract_map_info(current_record[i].rname, i);
+			read_line(&current_record[i].rname);
+			extract_map_info(current_record[i].rname, i);
 
 			//getline(&current_record[i].seq, &max_line_size, input);
 			current_record[i].seq_len = read_line(&current_record[i].seq);
@@ -145,36 +154,40 @@ bool FASTQParser::read_block (void) {
 }
 
 void FASTQParser::set_comp (void) {
-	comp['A'] = 'T';
-	comp['C'] = 'G';
-	comp['G'] = 'C';
-	comp['T'] = 'A';
-	comp['N'] = 'N';
+	comp[uint8_t('A')] = 'T';
+	comp[uint8_t('C')] = 'G';
+	comp[uint8_t('G')] = 'C';
+	comp[uint8_t('T')] = 'A';
+	comp[uint8_t('N')] = 'N';
 
-	comp['a'] = 'T';
-	comp['c'] = 'G';
-	comp['g'] = 'C';
-	comp['t'] = 'A';
-	comp['n'] = 'N';
+	comp[uint8_t('a')] = 'T';
+	comp[uint8_t('c')] = 'G';
+	comp[uint8_t('g')] = 'C';
+	comp[uint8_t('t')] = 'A';
+	comp[uint8_t('n')] = 'N';
 }
 
 void FASTQParser::set_reverse_comp (int r_ind) {
-	int len = current_record[r_ind].seq_len;
-	for (int i = len-1; i >= 0; --i) {
-		current_record[r_ind].rcseq[len-i-1] = comp[current_record[r_ind].seq[i]];
-	}
+	uint32_t len = current_record[r_ind].seq_len;
+	uint32_t i = len;
+	do {
+		--i;
+		current_record[r_ind].rcseq[len-i-1] = comp[uint8_t(current_record[r_ind].seq[i])];
+	} while (i != 0);
 	current_record[r_ind].rcseq[len] = '\0';
 
 	// reverse qual
-	int qual_len = strlen(current_record[r_ind].qual);
+	uint32_t qual_len = strlen(current_record[r_ind].qual);
 	if (qual_len != len) {
 		fprintf(stderr, "ERROR: read: %s, length of sequence (%d) does not match with quality (%d)!\nAborting\n", current_record[r_ind].rname, len, qual_len);
 		exit(1);
 	}
 
-	for (int i = len-1; i >= 0; --i) {
+	i = len; 
+	do {
+		--i;
 		current_record[r_ind].rqual[len-i-1] = current_record[r_ind].qual[i];
-	}
+	} while (i != 0);
 	current_record[r_ind].rqual[len] = '\0';
 }
 

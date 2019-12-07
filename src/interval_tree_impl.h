@@ -121,7 +121,7 @@ void FlatIntervalTree<T>::build(map <T, string>& sorted_list) {
 		}
 	}
 
-	fprintf(stdout, "#disjoint_intervals = %d\n", disjoint_intervals.size());
+	fprintf(stdout, "#disjoint_intervals = %lu\n", disjoint_intervals.size());
 }
 // assumption: target is not less than list[0]
 // input interval: [, )

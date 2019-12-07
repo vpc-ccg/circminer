@@ -20,13 +20,13 @@ private:
 	void extend_left_trans (uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, 
 							int ed_th, uint32_t lb,  AlignRes& best, bool& consecutive, map <AllCoord, AlignRes>& align_res);
 
-	bool extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, int qseq_len, 
+	bool extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, uint32_t qseq_len, 
 							int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res);
 
 	void extend_right_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, int qseq_len, 
 						int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res);
 
-	bool extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, int qseq_len, 
+	bool extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, uint32_t qseq_len, 
 							int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res);
 
 	void extend_left_end(uint32_t pos, char* ref_seq, uint32_t ref_len, char* qseq, int qseq_len, 

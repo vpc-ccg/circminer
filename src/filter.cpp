@@ -48,18 +48,22 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 	this->last_round = last_round;
 	
 	// temp fastq file(s) to be read in next round
-	char temp_fname [FILE_NAME_LENGTH];
+	char* temp_fname = (char*) malloc(FILE_NAME_LENGTH);
+	char* wmode = (char*) malloc(FILE_NAME_LENGTH);
+	sprintf(wmode, "%c", 'w');
 	if (is_pe) {
 		sprintf(temp_fname, "%s_%d_remain_R1.fastq", save_fname, round);
-		temp_fq_r1 = open_file(temp_fname, "w");
+		temp_fq_r1 = open_file(temp_fname, wmode);
 
 		sprintf(temp_fname, "%s_%d_remain_R2.fastq", save_fname, round);
-		temp_fq_r2 = open_file(temp_fname, "w");
+		temp_fq_r2 = open_file(temp_fname, wmode);
 	}
 	else {
 		sprintf(temp_fname, "%s_%d_remain.fastq", save_fname, round);
-		temp_fq_r1 = open_file(temp_fname, "w");
+		temp_fq_r1 = open_file(temp_fname, wmode);
 	}
+	free(temp_fname);
+	free(wmode);
 
 	// updating fq file to be read in next round
 	if (is_pe) {
@@ -121,8 +125,6 @@ int FilterRead::process_read (int thid, Record* current_record1, Record* current
 								chain_list& forward_best_chain_r1, chain_list& backward_best_chain_r1, 
 								chain_list& forward_best_chain_r2, chain_list& backward_best_chain_r2) {
 
-	int max_frag_count = current_record1->seq_len / kmer_size + 1;
-	int kmer_count = 2 * (current_record1->seq_len / kmer_size);
 	int fhh_r1, bhh_r1;
 	int fhh_r2, bhh_r2;
 
@@ -135,13 +137,13 @@ int FilterRead::process_read (int thid, Record* current_record1, Record* current
 	vafprintf(1, stderr, "R1/%s\n", current_record1->rname);
 	vafprintf(1, stderr, "R1 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r1.chains[0].score, (unsigned long)forward_best_chain_r1.best_chain_count);
 	for (int j = 0; j < forward_best_chain_r1.best_chain_count; j++)
-		for (int i = 0; i < forward_best_chain_r1.chains[j].chain_len; i++) {
+		for (unsigned int i = 0; i < forward_best_chain_r1.chains[j].chain_len; i++) {
 			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, forward_best_chain_r1.chains[j].frags[i].rpos, forward_best_chain_r1.chains[j].frags[i].qpos, forward_best_chain_r1.chains[j].frags[i].len);
 		}
 
 	vafprintf(1, stderr, "R1 Reverse score:%.4f,\t len: %lu\n", backward_best_chain_r1.chains[0].score, (unsigned long)backward_best_chain_r1.best_chain_count);
 	for (int j = 0; j < backward_best_chain_r1.best_chain_count; j++)
-		for (int i = 0; i < backward_best_chain_r1.chains[j].chain_len; i++) {
+		for (unsigned int i = 0; i < backward_best_chain_r1.chains[j].chain_len; i++) {
 			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, backward_best_chain_r1.chains[j].frags[i].rpos, backward_best_chain_r1.chains[j].frags[i].qpos, backward_best_chain_r1.chains[j].frags[i].len);
 		}
 
@@ -154,13 +156,13 @@ int FilterRead::process_read (int thid, Record* current_record1, Record* current
 	vafprintf(1, stderr, "R2/%s\n", current_record2->rname);
 	vafprintf(1, stderr, "R2 Forward score:%.4f,\t len: %lu\n", forward_best_chain_r2.chains[0].score, (unsigned long)forward_best_chain_r2.best_chain_count);
 	for (int j = 0; j < forward_best_chain_r2.best_chain_count; j++)
-		for (int i = 0; i < forward_best_chain_r2.chains[j].chain_len; i++) {
+		for (unsigned int i = 0; i < forward_best_chain_r2.chains[j].chain_len; i++) {
 			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, forward_best_chain_r2.chains[j].frags[i].rpos, forward_best_chain_r2.chains[j].frags[i].qpos, forward_best_chain_r2.chains[j].frags[i].len);
 		}
 
 	vafprintf(1, stderr, "R2 Reverse score:%.4f,\t len: %lu\n", backward_best_chain_r2.chains[0].score, (unsigned long)backward_best_chain_r2.best_chain_count);
 	for (int j = 0; j < backward_best_chain_r2.best_chain_count; j++)
-		for (int i = 0; i < backward_best_chain_r2.chains[j].chain_len; i++) {
+		for (unsigned int i = 0; i < backward_best_chain_r2.chains[j].chain_len; i++) {
 			vafprintf(2, stderr, "#%d\tfrag[%d]: %lu\t%d\t%d\n", j, i, backward_best_chain_r2.chains[j].frags[i].rpos, backward_best_chain_r2.chains[j].frags[i].qpos, backward_best_chain_r2.chains[j].frags[i].len);
 		}
 
@@ -240,7 +242,7 @@ int FilterRead::process_mates(int thid, const chain_list& forward_chain, const R
 
 	// concordant?
 	vafprintf(1, stderr, "#pairs = %d\n", mate_pairs.size());
-	for (int i = 0; i < mate_pairs.size(); i++) {
+	for (unsigned int i = 0; i < mate_pairs.size(); i++) {
 		vafprintf(2, stderr, "Mate[%d]: %d, %d\n", i, mate_pairs[i].forward.frags[0].rpos, mate_pairs[i].reverse.frags[0].rpos);
 		// fprintf(stderr, "# common_tid: %d\n", mate_pairs[i].common_tid.size());
 		// for (int k = 0; k < mate_pairs[i].common_tid.size(); k++)
@@ -423,8 +425,6 @@ void FilterRead::print_pam (Record* rec1, Record* rec2) {
 }
 
 void FilterRead::get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits) {
-	int kmer_count = ceil(seq_len / kmer_size);
-	int forward_fragment_count, backward_fragment_count;
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
 
 	split_match_hash(read_seq, seq_len, kmer_size, frag_l);
@@ -482,7 +482,7 @@ void FilterRead::pair_chains(const chain_list& forward_chain, const chain_list& 
 				same_gen = same_gene(reverse_exon_list[j], fs, fe);
 
 			if (same_tr	or same_gen 
-				or (tlen <= MAXDISCRDTLEN) and (saved_type >= CONGNM)) {
+				or ((tlen <= MAXDISCRDTLEN) and (saved_type >= CONGNM))) {
 				//or (forward_exon_list[i] == NULL and reverse_exon_list[j] == NULL and tlen <= maxTlen)) {
 				temp.forward = forward_chain.chains[i];
 				temp.reverse = reverse_chain.chains[j];

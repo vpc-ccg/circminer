@@ -1,7 +1,7 @@
 #ifndef __OUTPUT_H__
 #define __OUTPUT_H__
 
-#include <stdint.h>
+#include <cinttypes>
 #include <cstdio>
 
 #define MAXTOTALTAGLEN 200

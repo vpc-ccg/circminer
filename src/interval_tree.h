@@ -1,7 +1,7 @@
 #ifndef __INTERVAL_TREE_H__
 #define __INTERVAL_TREE_H__
 
-#include <stdint.h>
+#include <cinttypes>
 #include <string>
 #include <vector>
 #include <map>

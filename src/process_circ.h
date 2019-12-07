@@ -80,8 +80,6 @@ public:
 
 	void report_events (void);
 
-	int get_exact_locs_hash (char* seq, uint32_t qspos, uint32_t qepos);
-
 	void print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 
 										MatchedMate& partial_mm, ConShift& con_shift);
 

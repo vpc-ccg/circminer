@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstdio>
 #include <cstdlib>
-#include <stdint.h>
+#include <cinttypes>
 #include <map>
 
 #include "common.h"
@@ -28,7 +28,7 @@ typedef struct {
 	uint32_t prev_end;
 	uint32_t gene_id_int;
 	uint32_t trans_id_int;
-	int chr_id;	// 0-based
+	uint32_t chr_id;	// 0-based
 	int exon_num_int;
 
 	bool forward_strand;

@@ -1,6 +1,6 @@
 #include <set>
 #include <cstdlib>
-#include <stdint.h>
+#include <cinttypes>
 
 #include "extend.h"
 #include "common.h"
@@ -64,10 +64,10 @@ bool TransExtension::extend_both_mates(const chain_t& lch, const chain_t& rch, c
 		r_extend = false;
 	}
 
-	bool llok;
-	bool lrok;
-	bool rlok;
-	bool rrok;
+	bool llok = false;
+	bool lrok = false;
+	bool rlok = false;
+	bool rrok = false;
 
 	int lerr = lmm.middle_ed;
 	int rerr = rmm.middle_ed;
@@ -273,7 +273,7 @@ bool TransExtension::extend_right(const vector <uint32_t>& common_tid, char* seq
 
 	map <AllCoord, AlignRes> align_res; 
 	
-	for (int i = 0; i < common_tid.size(); i++) {
+	for (unsigned int i = 0; i < common_tid.size(); i++) {
 		// fprintf(stderr, "common_tid[%d] = %d -> %s\n", i, common_tid[i], gtf_parser.transcript_ids[contigNum][common_tid[i]].c_str());
 		extend_right_trans(common_tid[i], pos, ref_seq, ref_len, seq, seq_len, ed_th, ub, best_alignment, consecutive, align_res);
 		//best_alignment.print();
@@ -345,7 +345,7 @@ bool TransExtension::extend_left(const vector <uint32_t>& common_tid, char* seq,
 
 	map <AllCoord, AlignRes> align_res;
 
-	for (int i = 0; i < common_tid.size(); i++) {
+	for (unsigned int i = 0; i < common_tid.size(); i++) {
 		extend_left_trans(common_tid[i], pos, ref_seq, ref_len, seq, seq_len, ed_th, lb, best_alignment, consecutive, align_res);
 		//best_alignment.print();
 		// if (best_alignment.qcovlen >= seq_len and best_alignment.ed == 0 and best_alignment.sclen == 0) {
@@ -398,7 +398,7 @@ bool TransExtension::extend_left(const vector <uint32_t>& common_tid, char* seq,
 }
 
 // returns true iff extension was successful
-bool TransExtension::extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, int qseq_len, 
+bool TransExtension::extend_right_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, uint32_t qseq_len, 
 							int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res) {
 
 	vafprintf(2, stderr, "Middle Right Ext Going for %lu - %lu\n", pos + 1, pos + exon_len);
@@ -406,7 +406,7 @@ bool TransExtension::extend_right_middle(uint32_t pos, char* ref_seq, uint32_t e
 		return false;
 
 	int indel;
-	int seq_remain = minM(exon_len + bandWidth, qseq_len);
+	uint32_t seq_remain = minM(exon_len + bandWidth, qseq_len);
 	// Alignment alignment;
 	int edit_dist = alignment.local_alignment_right(qseq, seq_remain, ref_seq, exon_len, indel);
 
@@ -471,7 +471,7 @@ void TransExtension::extend_right_trans(uint32_t tid, uint32_t pos, char* ref_se
 	
 	int it_ind_start = gtf_parser.get_trans_start_ind(contigNum, tid);
 	int rel_ind = it_ind - it_ind_start;
-	int curr_exon_start_ind = it_ind;
+	//int curr_exon_start_ind = it_ind;
 	int curr_exon_end_ind = it_ind;
 	
 	uint32_t rspos = pos;
@@ -480,7 +480,7 @@ void TransExtension::extend_right_trans(uint32_t tid, uint32_t pos, char* ref_se
 	int covered = 0;
 	int indel;
 
-	for (int i = rel_ind + 1; i < gtf_parser.trans2seg[contigNum][tid].size(); i++) {
+	for (unsigned int i = rel_ind + 1; i < gtf_parser.trans2seg[contigNum][tid].size(); i++) {
 		if (exon_len >= qseq_len - covered)
 			break;
 		if (gtf_parser.trans2seg[contigNum][tid][i] == 1) {
@@ -491,7 +491,7 @@ void TransExtension::extend_right_trans(uint32_t tid, uint32_t pos, char* ref_se
 					return;
 				}
 
-				int remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
+				uint32_t remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
 
 				// search in map
 				AllCoord tmp_coord(rspos, exon_len, covered, remain_qseq_len);
@@ -527,7 +527,7 @@ void TransExtension::extend_right_trans(uint32_t tid, uint32_t pos, char* ref_se
 			remain_ref_len -= exon_len;
 			covered += exon_len + indel;
 			exon_len = 0;
-			curr_exon_start_ind = i + it_ind_start;
+			//curr_exon_start_ind = i + it_ind_start;
 			curr_exon_end_ind = i + it_ind_start;
 			it_seg = gtf_parser.get_interval(i + it_ind_start);
 			rspos = it_seg->spos - 1;
@@ -541,7 +541,7 @@ void TransExtension::extend_right_trans(uint32_t tid, uint32_t pos, char* ref_se
 
 
 	if ((exon_len > 0) and (exon_len < qseq_len - covered) and (rspos + exon_len <= ub)) { // reached end of transcript and read remains
-		int remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
+		uint32_t remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
 
 		// search in map
 		AllCoord tmp_coord(rspos, exon_len, covered, remain_qseq_len);
@@ -599,7 +599,7 @@ void TransExtension::extend_right_trans(uint32_t tid, uint32_t pos, char* ref_se
 }
 
 // returns true iff extension was successful
-bool TransExtension::extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, int qseq_len, 
+bool TransExtension::extend_left_middle(uint32_t pos, char* ref_seq, uint32_t exon_len, char* qseq, uint32_t qseq_len, 
 							int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res) {
 
 	vafprintf(2, stderr, "Middle Left Ext Going for %lu - %lu\n", pos - exon_len, pos - 1);
@@ -607,7 +607,7 @@ bool TransExtension::extend_left_middle(uint32_t pos, char* ref_seq, uint32_t ex
 		return false;
 
 	int indel;
-	int seq_remain = minM(exon_len + bandWidth, qseq_len);
+	uint32_t seq_remain = minM(exon_len + bandWidth, qseq_len);
 	// Alignment alignment;
 	int edit_dist = alignment.local_alignment_left(qseq, seq_remain, ref_seq, exon_len, indel);
 
@@ -673,7 +673,7 @@ void TransExtension::extend_left_trans (uint32_t tid, uint32_t pos, char* ref_se
 	int it_ind_start = gtf_parser.get_trans_start_ind(contigNum, tid);
 	int rel_ind = it_ind - it_ind_start;
 	int curr_exon_start_ind = it_ind;
-	int curr_exon_end_ind = it_ind;
+	//int curr_exon_end_ind = it_ind;
 	
 	uint32_t lepos = pos;
 	int exon_len = 0;
@@ -693,7 +693,7 @@ void TransExtension::extend_left_trans (uint32_t tid, uint32_t pos, char* ref_se
 			else {
 				if (exon_len == 0) {
 					curr_exon_start_ind = i + it_ind_start;
-					curr_exon_end_ind = i + it_ind_start;
+					//curr_exon_end_ind = i + it_ind_start;
 					lepos = it_seg->epos + 1;
 				}
 				exon_len += it_seg->epos - it_seg->spos + 1;
@@ -711,7 +711,7 @@ void TransExtension::extend_left_trans (uint32_t tid, uint32_t pos, char* ref_se
 					return;
 				}
 
-				int remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
+				uint32_t remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
 
 				// search in map
 				AllCoord tmp_coord(lepos, exon_len, covered, remain_qseq_len);
@@ -751,7 +751,7 @@ void TransExtension::extend_left_trans (uint32_t tid, uint32_t pos, char* ref_se
 	}
 
 	if ((exon_len > 0) and (exon_len < qseq_len - covered) and (lepos >= lb + exon_len)) { // reached end of transcript and read remains
-		int remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
+		uint32_t remain_qseq_len = minM(exon_len + bandWidth, qseq_len - covered);
 
 		// search in map
 		AllCoord tmp_coord(lepos, exon_len, covered, remain_qseq_len);
@@ -816,9 +816,13 @@ int TransExtension::calc_middle_ed(const chain_t& ch, int edth, char* qseq, int 
 	uint32_t rspos;
 	int qlen;
 	int rlen;
+
+	if (ch.chain_len == 0)
+		return 0;
+
 	// Alignment alignment;
-	for (int i = 0; i < ch.chain_len - 1; i++) {
-		if (ch.frags[i+1].qpos > ch.frags[i].qpos + ch.frags[i].len) {
+	for (uint32_t i = 0; i < ch.chain_len - 1; i++) {
+		if (ch.frags[i+1].qpos > int32_t(ch.frags[i].qpos + ch.frags[i].len)) {
 			int diff = (ch.frags[i+1].rpos - ch.frags[i].rpos) - (ch.frags[i+1].qpos - ch.frags[i].qpos);
 
 			qspos = ch.frags[i].qpos + ch.frags[i].len;

@@ -56,7 +56,7 @@ void mutex_unlock(pthread_mutex_t* m) {
 		pthread_mutex_unlock(m);
 }
 
-//---------- Structures ----------\\
+//---------- Structures ----------//
 
 bool GeneInfo::operator < (const GeneInfo& gi) const {
 	if (start != gi.start)
@@ -69,11 +69,11 @@ inline ostream& operator<<(ostream& os, const GeneInfo& gi) {
 	return os;
 }
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 UniqSeg::UniqSeg(const UniqSeg& other) : start(other.start), end(other.end), next_exon_beg(other.next_exon_beg), gene_id(other.gene_id) {
 	trans_id.clear();
-	for (int i = 0; i < other.trans_id.size(); i++)
+	for (unsigned int i = 0; i < other.trans_id.size(); i++)
 		trans_id.push_back(other.trans_id[i]);
 }
 
@@ -87,7 +87,7 @@ UniqSeg& UniqSeg::operator = (const UniqSeg& other) {
 	gene_id 		= other.gene_id;
 	
 	trans_id.clear();
-	for (int i = 0; i < other.trans_id.size(); i++)
+	for (unsigned int i = 0; i < other.trans_id.size(); i++)
 		trans_id.push_back(other.trans_id[i]);
 
 	return *this;
@@ -122,24 +122,27 @@ bool UniqSeg::next_exon(const UniqSeg& r) const {	// is this next exon of r?
 // Temporary, just for testing --will be deleted
 inline ostream& operator<<(ostream& os, const UniqSeg& us) {
 	os << "(";
-	for (int i = 0; i < us.trans_id.size(); i++)
+	for (unsigned int i = 1; i < us.trans_id.size(); i++)
 		os << us.trans_id[i] << ", ";
 	os << ") " << " [" << us.gene_id << ": " << us.start << "-" << us.end << "] " << us.next_exon_beg;
 	return os;
 }
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
-MatchedMate::MatchedMate() : type(ORPHAN), junc_num(0), right_ed(maxEd+1), left_ed(maxEd+1), middle_ed(maxEd+1), sclen_right(0), sclen_left(0), left_ok(false), right_ok(false), 
-					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), exons_spos(NULL), exons_epos(NULL), 
-					exon_ind_spos(-1), exon_ind_epos(-1), gene_info(NULL) { }
+MatchedMate::MatchedMate() : right_ed(maxEd+1), left_ed(maxEd+1), middle_ed(maxEd+1), 
+					sclen_right(0), sclen_left(0), type(ORPHAN), junc_num(0), 
+					left_ok(false), right_ok(false), 
+					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), 
+					exon_ind_spos(-1), exon_ind_epos(-1), exons_spos(NULL), exons_epos(NULL), 
+					gene_info(NULL) { }
 
 void MatchedMate::set (uint32_t rs, uint32_t re, uint32_t qs, uint32_t qe, int d) {
 	spos = rs; 
 	epos = re;
 	qspos = qs;
 	qepos = qe; 
-	matched_len = qe - qs + 1;
+	matched_len = (qe + 1 >= qs) ? (qe - qs + 1) : 0;
 	dir = d;
 }
 
@@ -175,8 +178,8 @@ bool MatchedMate::merge_to_right(const MatchedMate& rmm) {
 // r1_2 = 1 or 2
 MatchedMate::MatchedMate(const MatchedRead& mr, int r1_2, int rlen, bool partial) : 
 					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), 
-					exons_spos(NULL), exons_epos(NULL), 
-					exon_ind_spos(-1), exon_ind_epos(-1), gene_info(NULL) {
+					exon_ind_spos(-1), exon_ind_epos(-1), 
+					exons_spos(NULL), exons_epos(NULL), gene_info(NULL) {
 
 	type = mr.type;
 	if (r1_2 == 1) {
@@ -247,10 +250,12 @@ void MatchedMate::operator = (const MatchedMate& mm) {
 	exons_epos	= mm.exons_epos;
 }
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
-MatchedRead::MatchedRead() : type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), chr_r1("-"), chr_r2("-"), 
-					r1_forward(true), r2_forward(true), ed_r1(maxEd+1), ed_r2(maxEd+1), contig_num(0) { }
+MatchedRead::MatchedRead() : r1_forward(true), r2_forward(true), ed_r1(maxEd+1), ed_r2(maxEd+1), 
+							type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), 
+							contig_num(0), 
+							chr_r1("-"), chr_r2("-") { }
 
 // assuming r1 and r2 are on same chr
 bool MatchedRead::update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, 
@@ -259,7 +264,7 @@ bool MatchedRead::update(const MatchedMate& r1, const MatchedMate& r2, const str
 	if (!go_for_update(r1, r2, tlen, gm_compatible, type))
 		return false;
 
-	int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed + r2.left_ed + r2.middle_ed + r2.right_ed;
+	//int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed + r2.left_ed + r2.middle_ed + r2.right_ed;
 
 	this->type = type;
 	this->chr_r1 = chr;
@@ -322,8 +327,11 @@ bool MatchedRead::update(const MatchedMate& r1, const MatchedMate& r2, const str
 }
 
 bool MatchedRead::update_type(int type) {
-	if (type < this->type)
+	if (type < this->type) {
 		this->type = type;
+		return true;
+	}
+	return false;
 }
 
 
@@ -371,11 +379,11 @@ inline bool MatchedRead::go_for_update(const MatchedMate& r1, const MatchedMate&
 	return false;
 }
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 MatePair::MatePair(const MatePair& other) : type(other.type), score(other.score), forward(other.forward), reverse(other.reverse) {
 	common_tid.clear();
-	for (int i = 0; i < other.common_tid.size(); i++)
+	for (unsigned int i = 0; i < other.common_tid.size(); i++)
 		common_tid.push_back(other.common_tid[i]);
 }
 
@@ -386,7 +394,7 @@ MatePair& MatePair::operator = (const MatePair& other) {
 	reverse = other.reverse;
 
 	common_tid.clear();
-	for (int i = 0; i < other.common_tid.size(); i++)
+	for (unsigned int i = 0; i < other.common_tid.size(); i++)
 		common_tid.push_back(other.common_tid[i]);
 
 	return *this;
@@ -398,7 +406,7 @@ bool MatePair::operator < (const MatePair& r) const {
 	return score > r.score;
 }
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 void GenRegion::set (uint32_t lp, uint32_t np) {
 	last_pos = lp;
@@ -411,7 +419,7 @@ bool GenRegion::operator < (const GenRegion& r) const {
 	return (next_pos < r.next_pos);
 }
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 bool AllCoord::operator < (const AllCoord& r) const {
 	if (rspos != r.rspos)
@@ -423,7 +431,7 @@ bool AllCoord::operator < (const AllCoord& r) const {
 	return qlen < r.qlen;
 }
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/
 
 void CircRes::set_bp (uint32_t sp, uint32_t ep) {
 	spos = sp;
@@ -446,4 +454,4 @@ bool CircRes::operator == (const CircRes& r) const {
 	// return (chr == r.chr) and (spos == r.spos) and (epos == r.epos) and (type == r.type);
 }
 
-//\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\
+/**************************************************************************************************/

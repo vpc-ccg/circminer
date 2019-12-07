@@ -1,7 +1,7 @@
 #ifndef __INTERVAL_INFO_H__
 #define __INTERVAL_INFO_H__
 
-#include <stdint.h>
+#include <cinttypes>
 #include <vector>
 
 using namespace std;

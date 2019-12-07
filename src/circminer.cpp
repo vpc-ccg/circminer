@@ -187,12 +187,8 @@ int mapping(int& last_round_num) {
 	/**Mapping Reads**/
 	/*****************/
 
-	int cat_count;
 	bool is_first = true;
 	bool is_last = false;
-
-	Record** current_records1;
-	Record** current_records2;
 
 	do {
 		fprintf(stdout, "Started loading index...\n");
@@ -232,8 +228,6 @@ int mapping(int& last_round_num) {
 		for (int th = 0; th < threadCount; ++th)
 			filter_args[th]->set(fl[th], bl[th], fbc_r1[th], bbc_r1[th], fbc_r2[th], bbc_r2[th]);
 
-		int line = 0;
-		int block_size = 0;
 		lookup_cnt = 0;
 
 		for (int th = 0; th < threadCount; ++th) {
@@ -346,4 +340,5 @@ void* map_reads (void* args) {
 		}
 	}
 
+	return NULL;
 }

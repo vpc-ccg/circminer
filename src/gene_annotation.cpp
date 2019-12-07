@@ -26,7 +26,16 @@ GTFParser::~GTFParser(void) {
 }
 
 void GTFParser::init(char* filename, const ContigLen* contig_len, int contig_count) {
-	input = open_file(filename, "r");
+	char* fname = (char*) malloc(FILE_NAME_LENGTH);
+	char* rmode = (char*) malloc(FILE_NAME_LENGTH);
+
+	sprintf(fname, "%s", filename);
+	sprintf(rmode, "%c", 'r');
+
+	input = open_file(fname, rmode);
+
+	free(fname);
+	free(rmode);
 
 	max_line_size = MAXGTFLINESIZE;
 	line = (char*) malloc(max_line_size);
@@ -59,7 +68,7 @@ bool GTFParser::read_next(void) {
 }
 
 bool is_delim(char c, const string& delim) {
-	for (int i = 0; i < delim.size(); i++)
+	for (unsigned int i = 0; i < delim.size(); i++)
 		if (c == delim[i])
 			return true;
 	return false;
@@ -109,7 +118,7 @@ bool GTFParser::parse_gtf_rec(char* line, int len, GTFRecord* cr) {
 		cr->end = atoi(gtf_fields[4].c_str());
 		cr->forward_strand = (gtf_fields[6] == "+");
 
-		for (int i = 0; i < gtf_attr.size(); i += 2) {
+		for (unsigned int i = 0; i < gtf_attr.size(); i += 2) {
 			if (gtf_attr[i] == "gene_id")
 				cr->gene_id = gtf_attr[i+1];
 			else if (gtf_attr[i] == "transcript_id")
@@ -186,6 +195,7 @@ bool GTFParser::load_gtf(void) {
 	
 	prev_record->type = "";
 
+	int tmp_chr;
 	while (has_next()) {
 		if (! get_next()) {		// end of file
 			break;
@@ -195,13 +205,15 @@ bool GTFParser::load_gtf(void) {
 		if (!found) continue;
 
 		chrloc2conloc(current_record->chr, current_record->start, current_record->end);
-		current_record->chr_id = atoi(current_record->chr.c_str()) - 1;
+		tmp_chr = atoi(current_record->chr.c_str()) - 1;
 
-		if (current_record->chr_id < 0)	// chr not present in genome index
+		if (tmp_chr < 0)	// chr not present in genome index
 			continue;
 
 		// if (current_record->chr == "0")	// chr not found in genome index
 		// 	continue;
+
+		current_record->chr_id = tmp_chr;
 
 		if (current_record->type == "gene") {
 			if (current_record->chr_id >= gene_ids.size()) {
@@ -218,14 +230,15 @@ bool GTFParser::load_gtf(void) {
 				intronic_bs[current_record->chr_id].reset();
 			}
 
-			for (int k = current_record->start; k <= current_record->end; k++) {
+			for (uint32_t k = current_record->start; k <= current_record->end; k++) {
 				intronic_bs[current_record->chr_id].set(k, 1);
 			}
 
 			if (current_record->chr_id >= gid2ginfo.size()) {
 				gid2ginfo.resize(current_record->chr_id+1);
 			}
-			GeneInfo tmp = {.start = current_record->start, .end = current_record->end, .gene_id = gid2ginfo[current_record->chr_id].size()};
+			GeneInfo tmp = {.start = current_record->start, .end = current_record->end, 
+							.gene_id = uint32_t(gid2ginfo[current_record->chr_id].size())};
 			gid2ginfo[current_record->chr_id].push_back(tmp);
 
 			if (current_record->chr_id >= merged_genes.size()) {
@@ -250,14 +263,14 @@ bool GTFParser::load_gtf(void) {
 		if (current_record->type == "exon") {
 
 			// prepare mask
-			for (int k = current_record->start; k <= current_record->end; k++) {
+			for (uint32_t k = current_record->start; k <= current_record->end; k++) {
 				intronic_bs[current_record->chr_id].set(k, 0);
 			}
 			
-			for (int k = maxM(0, current_record->start - maxReadLength); k < current_record->start; k++) {
+			for (uint32_t k = maxM(0, current_record->start - maxReadLength); k < current_record->start; k++) {
 				near_border_bs[current_record->chr_id].set(k, 1);
 			}
-			for (int k = maxM(0, current_record->end - maxReadLength + 1); k <= current_record->end; k++) {
+			for (uint32_t k = maxM(0, current_record->end - maxReadLength + 1); k <= current_record->end; k++) {
 				near_border_bs[current_record->chr_id].set(k, 1);
 			}
 			//
@@ -339,7 +352,7 @@ bool GTFParser::load_gtf(void) {
 	trans2seg.resize(merged_exons.size());
 	trans_start_ind.resize(merged_exons.size());
 
-	for (int con = 0; con < merged_exons.size(); con++) {
+	for (unsigned int con = 0; con < merged_exons.size(); con++) {
 		exons_int_map[con].build(merged_exons[con]);
 		//exons_int_map[con_it->first].print();
 
@@ -349,16 +362,16 @@ bool GTFParser::load_gtf(void) {
 	}
 
 	genes_int_map.resize(merged_genes.size());
-	for (int con = 0; con < merged_genes.size(); con++) {
+	for (unsigned int con = 0; con < merged_genes.size(); con++) {
 		genes_int_map[con].build(merged_genes[con]);
 		//genes_int_map[con].print();
 	}
 
-	for (int i = 0; i < near_border_bs.size(); i++) {
-		fprintf(stdout, "Contig [%d]: Near exon boundaries: %d\n", i+1, near_border_bs[i].count());
+	for (unsigned int i = 0; i < near_border_bs.size(); i++) {
+		fprintf(stdout, "Contig [%u]: Near exon boundaries: %zu\n", i+1, near_border_bs[i].count());
 	}
-	for (int i = 0; i < intronic_bs.size(); i++) {
-		fprintf(stdout, "Contig [%d]: Intronic: %d\n", i+1, intronic_bs[i].count());
+	for (unsigned int i = 0; i < intronic_bs.size(); i++) {
+		fprintf(stdout, "Contig [%u]: Intronic: %zu\n", i+1, intronic_bs[i].count());
 	}
 
 	delete prev_record;
@@ -391,7 +404,7 @@ void GTFParser::print_record(const GTFRecord& r) {
 }
 
 void GTFParser::set_contig_shift(const ContigLen* chr_info, int contig_count) {
-	int curr_contig = 1;
+	unsigned int curr_contig = 1;
 	uint32_t sum_size = 0;
 	ConShift con_shift;
 	ConShift chr_shift;
@@ -419,7 +432,7 @@ void GTFParser::set_contig_shift(const ContigLen* chr_info, int contig_count) {
 }
 
 ConShift GTFParser::get_shift(int contig_id, uint32_t loc) {
-	int i;
+	unsigned int i;
 	for (i = 1; i < con2chr[contig_id].size(); i++)
 		if (loc < con2chr[contig_id][i].shift)
 			return con2chr[contig_id][i-1];
@@ -455,7 +468,7 @@ uint32_t GTFParser::get_upper_bound_lookup(uint32_t spos, uint32_t mlen, uint32_
 	uint32_t min_end = 1e9;
 	uint32_t max_next_exon = 0;
 	if (epos > ov_res->epos) {
-		for (int i = 0; i < ov_res->seg_list.size(); i++) {
+		for (unsigned int i = 0; i < ov_res->seg_list.size(); i++) {
 			if (ov_res->seg_list[i].end >= epos) {	// => exonic
 				max_end = maxM(max_end, ov_res->seg_list[i].end);
 				min_end = minM(min_end, ov_res->seg_list[i].end);
@@ -476,11 +489,10 @@ uint32_t GTFParser::get_upper_bound_lookup(uint32_t spos, uint32_t mlen, uint32_
 		ol_exons = ov_res;
 
 		// loc excluded
-		int32_t min2end = min_end - epos;
+		//int32_t min2end = min_end - epos;
 
-		if (min2end < rlen and max_next_exon != 0)	// junction is allowed
+		if (min_end < rlen + epos and max_next_exon != 0)	// junction is allowed
 			return max_next_exon + mlen - 1;
-			//return max_next_exon + rlen - min2end - mlen - 1;
 		else
 			return max_end - mlen + 1;
 	}

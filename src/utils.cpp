@@ -36,8 +36,8 @@ void update_match_mate_info(bool lok, bool rok, int err, MatchedMate& mm) {
 
 int estimate_middle_error(const chain_t& ch) {
 	int mid_err = 0;
-	for (int i = 0; i < ch.chain_len - 1; i++) {
-		if (ch.frags[i+1].qpos > ch.frags[i].qpos + ch.frags[i].len) {
+	for (uint32_t i = 0; i < ch.chain_len - 1; i++) {
+		if (ch.frags[i+1].qpos > int32_t(ch.frags[i].qpos + ch.frags[i].len)) {
 			int diff = (ch.frags[i+1].rpos - ch.frags[i].rpos) - (ch.frags[i+1].qpos - ch.frags[i].qpos);
 			if (diff == 0)
 				mid_err++;
@@ -56,15 +56,15 @@ int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num) {
 	const IntervalInfo<UniqSeg>* this_region;
 	uint32_t tid;
 	int start_ind;
-	int start_table_ind;
-	int end_table_ind;
+	uint32_t start_table_ind;
+	uint32_t end_table_ind;
 	int tlen;
 	int min_tlen = INF;
 	int this_it_ind;
 	int in;
 
-	for (int i = 0; i < sm.exons_epos->seg_list.size(); i++) {
-		for (int j = 0; j < sm.exons_epos->seg_list[i].trans_id.size(); j++) {
+	for (unsigned int i = 0; i < sm.exons_epos->seg_list.size(); i++) {
+		for (unsigned int j = 0; j < sm.exons_epos->seg_list[i].trans_id.size(); j++) {
 			tid = sm.exons_epos->seg_list[i].trans_id[j];
 			start_ind = gtf_parser.get_trans_start_ind(contigNum, tid);
 			start_table_ind = sm.exon_ind_epos - start_ind;
@@ -72,7 +72,11 @@ int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num) {
 				continue;
 			
 			end_table_ind = lm.exon_ind_spos - start_ind;
-			if (end_table_ind >= gtf_parser.trans2seg[contigNum][tid].size() or gtf_parser.trans2seg[contigNum][tid][end_table_ind] == 0)	// transcript does not contain lm exon
+			// transcript does not contain lm exon
+			if (lm.exon_ind_spos < start_ind or 
+				end_table_ind >= gtf_parser.trans2seg[contigNum][tid].size() or 
+				gtf_parser.trans2seg[contigNum][tid][end_table_ind] == 0)	
+
 				continue;
 
 			if (start_table_ind == end_table_ind) {
@@ -84,7 +88,7 @@ int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num) {
 				in = 0;
 				tlen = sm.exons_epos->epos - sm.epos + 1;
 				this_it_ind = sm.exon_ind_epos;
-				for (int k = start_table_ind + 1; k < end_table_ind; k++) {
+				for (uint32_t k = start_table_ind + 1; k < end_table_ind; k++) {
 					this_it_ind++;
 					if (gtf_parser.trans2seg[contigNum][tid][k] != 0) {
 						this_region = gtf_parser.get_interval(this_it_ind);
@@ -113,7 +117,7 @@ int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num) {
 }
 
 
-bool is_concord(const chain_t& a, int seq_len, MatchedMate& mr) {
+bool is_concord(const chain_t& a, uint32_t seq_len, MatchedMate& mr) {
 	if (a.chain_len < 2) {
 		mr.is_concord = false;
 	}
@@ -133,7 +137,7 @@ bool is_concord(const chain_t& a, int seq_len, MatchedMate& mr) {
 	return mr.is_concord;
 }
 
-bool is_concord2(const chain_t& a, int seq_len, MatchedMate& mr) {
+bool is_concord2(const chain_t& a, uint32_t seq_len, MatchedMate& mr) {
 	if (a.chain_len < 2) {
 		mr.is_concord = false;
 	}
@@ -175,8 +179,8 @@ bool concordant_explanation(const MatchedMate& sm, const MatchedMate& lm, Matche
 	else {
 		//fprintf(stderr, "Left Mate [%u-%u] dir=%d, type=%d, Right Mate[%u-%u] dir=%d, type=%d\n", sm.spos, sm.epos, sm.dir, sm.type, lm.spos, lm.epos, lm.dir, lm.type);
 	// starts on same exon
-		for (int i = 0; i < sm.exons_spos->seg_list.size(); i++)
-			for (int j = 0; j < lm.exons_spos->seg_list.size(); j++)
+		for (unsigned int i = 0; i < sm.exons_spos->seg_list.size(); i++)
+			for (unsigned int j = 0; j < lm.exons_spos->seg_list.size(); j++)
 				if (sm.exons_spos->seg_list[i].same_exon(lm.exons_spos->seg_list[j])) {
 					// => assume genomic locations
 					tlen = lm.spos + lm.matched_len - sm.spos;
@@ -224,8 +228,8 @@ bool check_chimeric(const MatchedMate& sm, const MatchedMate& lm, MatchedRead& m
 		return false;
 
 	//fprintf(stderr, "Left Mate [%u-%u] dir=%d, type=%d, Right Mate[%u-%u] dir=%d, type=%d\n", sm.spos, sm.epos, sm.dir, sm.type, lm.spos, lm.epos, lm.dir, lm.type);
-	for (int i = 0; i < sm.exons_spos->seg_list.size(); i++)
-		for (int j = 0; j < lm.exons_spos->seg_list.size(); j++)
+	for (unsigned int i = 0; i < sm.exons_spos->seg_list.size(); i++)
+		for (unsigned int j = 0; j < lm.exons_spos->seg_list.size(); j++)
 			if (sm.exons_spos->seg_list[i].same_gene(lm.exons_spos->seg_list[j]) and sm.spos < lm.spos) {
 				mr.update(sm, lm, chr, shift, lm.epos - sm.spos + 1, 0, false, CHIORF, r1_sm);
 				return true;
@@ -259,8 +263,8 @@ bool check_bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string& 
 		return false;
 	}
 
-	for (int i = 0; i < sm.exons_spos->seg_list.size(); i++)
-		for (int j = 0; j < lm.exons_spos->seg_list.size(); j++)
+	for (unsigned int i = 0; i < sm.exons_spos->seg_list.size(); i++)
+		for (unsigned int j = 0; j < lm.exons_spos->seg_list.size(); j++)
 			if (sm.exons_spos->seg_list[i].same_gene(lm.exons_spos->seg_list[j])) {
 				mr.update(sm, lm, chr, shift, lm.epos - sm.spos + 1, 0, false, CHIBSJ, r1_sm);
 				return true;
@@ -313,8 +317,8 @@ bool check_2bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string&
 		return false;
 	}
 
-	for (int i = 0; i < sm.exons_spos->seg_list.size(); i++)
-		for (int j = 0; j < lm.exons_spos->seg_list.size(); j++)
+	for (unsigned int i = 0; i < sm.exons_spos->seg_list.size(); i++)
+		for (unsigned int j = 0; j < lm.exons_spos->seg_list.size(); j++)
 			if (sm.exons_spos->seg_list[i].same_gene(lm.exons_spos->seg_list[j])) {
 				mr.update(sm, lm, chr, shift, lm.epos - sm.spos + 1, 0, false, CHI2BSJ, r1_sm);
 				return true;
@@ -323,8 +327,8 @@ bool check_2bsj(MatchedMate& sm, MatchedMate& lm, MatchedRead& mr, const string&
 }
 
 void intersect_trans(const vector<uint32_t>& tid_l1, const vector<uint32_t>& tid_l2, vector<uint32_t>& common_tid) {
-	for (int i = 0; i < tid_l1.size(); i++) {
-		for (int j = 0; j < tid_l2.size(); j++) {
+	for (unsigned int i = 0; i < tid_l1.size(); i++) {
+		for (unsigned int j = 0; j < tid_l2.size(); j++) {
 			uint32_t tid1 = tid_l1[i];
 			uint32_t tid2 = tid_l2[j];
 			if (tid1 == tid2) {
@@ -343,12 +347,12 @@ bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>
 	vector<uint32_t> seg1_tid;
 	vector<uint32_t> seg2_tid;
 
-	for (int i = 0; i < s->seg_list.size(); i++)
-		for (int k = 0; k < s->seg_list[i].trans_id.size(); k++)
+	for (unsigned int i = 0; i < s->seg_list.size(); i++)
+		for (unsigned int k = 0; k < s->seg_list[i].trans_id.size(); k++)
 			seg1_tid.push_back(s->seg_list[i].trans_id[k]);
 
-	for (int j = 0; j < r->seg_list.size(); j++)
-		for (int l = 0; l < r->seg_list[j].trans_id.size(); l++)
+	for (unsigned int j = 0; j < r->seg_list.size(); j++)
+		for (unsigned int l = 0; l < r->seg_list[j].trans_id.size(); l++)
 			seg2_tid.push_back(r->seg_list[j].trans_id[l]);
 
 	intersect_trans(seg1_tid, seg2_tid, common_tid);
@@ -368,8 +372,8 @@ bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>
 
 	vector<uint32_t> seg_tid;
 
-	for (int i = 0; i < s->seg_list.size(); i++)
-		for (int k = 0; k < s->seg_list[i].trans_id.size(); k++)
+	for (unsigned int i = 0; i < s->seg_list.size(); i++)
+		for (unsigned int k = 0; k < s->seg_list[i].trans_id.size(); k++)
 			seg_tid.push_back(s->seg_list[i].trans_id[k]);
 
 	intersect_trans(sr_common_tid, seg_tid, common_tid);
@@ -403,8 +407,8 @@ bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
 	if (s == NULL or r == NULL)
 		return false;
 
-	for (int i = 0; i < s->seg_list.size(); i++)
-		for (int j = 0; j < r->seg_list.size(); j++)
+	for (unsigned int i = 0; i < s->seg_list.size(); i++)
+		for (unsigned int j = 0; j < r->seg_list.size(); j++)
 			if (s->seg_list[i].gene_id == r->seg_list[j].gene_id)
 				return true;
 
@@ -413,7 +417,7 @@ bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
 
 bool same_gene(const IntervalInfo<UniqSeg>* mate, uint32_t s, uint32_t e) {
 	GeneInfo* ginfo;
-	for (int i = 0; i < mate->seg_list.size(); i++) {
+	for (unsigned int i = 0; i < mate->seg_list.size(); i++) {
 		ginfo = gtf_parser.get_gene_info(mate->seg_list[i].gene_id);
 		if (ginfo->start <= s and e <= ginfo->end)
 			return true;
@@ -425,7 +429,7 @@ bool same_gene(const IntervalInfo<UniqSeg>* mate, uint32_t s, uint32_t e) {
 
 bool same_gene(const MatchedMate& mm, const MatchedMate& other) {
 	GeneInfo* ginfo;
-	for (int i = 0; i < mm.exons_spos->seg_list.size(); i++) {
+	for (unsigned int i = 0; i < mm.exons_spos->seg_list.size(); i++) {
 		ginfo = gtf_parser.get_gene_info(mm.exons_spos->seg_list[i].gene_id);
 		//fprintf(stderr, "Gene[%d][%s]: [%d - %d], [%d - %d]\n", i, mm.exons_spos->seg_list[i].gene_id.c_str(), ginfo->start, ginfo->end, other.spos, other.epos);
 		if (ginfo->start <= other.spos and other.epos <= ginfo->end)
@@ -444,11 +448,11 @@ bool same_gene(uint32_t sme, const IntervalInfo<GeneInfo>* smg, uint32_t lms, co
 
 	bool same_intron;
 	int step = 10;
-	for (int i = 0; i < smg->seg_list.size(); i++)
-		for (int j = 0; j < lmg->seg_list.size(); j++)
+	for (unsigned int i = 0; i < smg->seg_list.size(); i++)
+		for (unsigned int j = 0; j < lmg->seg_list.size(); j++)
 			if (smg->seg_list[i].start == lmg->seg_list[j].start and smg->seg_list[i].end == lmg->seg_list[j].end) {
 				same_intron = true;
-				for (int k = sme; k <= lms; k += step)
+				for (uint32_t k = sme; k <= lms; k += step)
 					if (!(intronic_bs[contigNum][k])) {
 						same_intron = false;
 						break;

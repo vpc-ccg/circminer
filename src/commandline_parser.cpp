@@ -4,6 +4,7 @@
 
 using namespace std;
 
+uint32_t seedLim = FRAGLIM;
 bool indexMode = false;
 bool compactIndex = false;
 bool pairedEnd = false;
@@ -15,7 +16,6 @@ int scanLevel = 0;
 int maxEd = EDTH;
 int maxSc = SOFTCLIPTH;
 int bandWidth = INDELTH;
-int seedLim = FRAGLIM;
 int maxTlen = MAXTLEN;
 int maxIntronLen = MAXINTRON;
 int maxChainLen = BESTCHAINLIM;

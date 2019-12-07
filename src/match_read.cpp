@@ -15,7 +15,7 @@ void print_hits(GIMatchedKmer*, int);
 // => 
 // closest Greater than: returned index
 // closest Less than or Equal: returned index - 1
-int frag_binary_search(const vector<fragment_t>& list, int beg, int end, int target) {
+int frag_binary_search(const vector<fragment_t>& list, int beg, int end, uint32_t target) {
 	if (end - beg <= 1)
 		return end;
 	int mid = (beg + end) / 2;
@@ -91,9 +91,9 @@ bool reduce_hits_behind(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 
 	uint32_t max_dist = ((sl->qpos - ll->qpos) / kmer) * maxIntronLen;
 
-	int size = 0;
-	int j = 0;
-	for (int i = 0; i < ll->frag_count; i++) {
+	uint32_t size = 0;
+	uint32_t j = 0;
+	for (uint32_t i = 0; i < ll->frag_count; i++) {
 		while (j < sl->frag_count and sl->frags[j].info <= ll->frags[i].info)
 			j++;
 
@@ -121,9 +121,9 @@ bool reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 
 	uint32_t max_dist = ((ll->qpos - sl->qpos) / kmer) * maxIntronLen;
 
-	int size = 0;
-	int j = 0;
-	for (int i = 0; i < ll->frag_count; i++) {
+	uint32_t size = 0;
+	uint32_t j = 0;
+	for (uint32_t i = 0; i < ll->frag_count; i++) {
 		if (j >= sl->frag_count)
 			break;
 
@@ -156,7 +156,7 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 	int occ;
 	int invalid_kmer = 0;
 	int valid_kmer = 0;
-	int valid_kmer_ind = 0;
+	//int valid_kmer_ind = 0;
 	uint32_t match_len = kmer_size;
 
 	GIMatchedKmer* cur = mk_res;
@@ -189,12 +189,12 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 			invalid_kmer++;
 		}
 
-		else if (occ > seedLim ) {
+		else if (uint32_t(occ) > seedLim ) {
 			invalid_kmer++;
 		}
 
 		else {
-			valid_kmer_ind = j;
+			//valid_kmer_ind = j;
 			valid_kmer++;
 		}
 
@@ -234,10 +234,10 @@ int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* sta
 	int valid_nonov_kmer = 0;
 	int valid_ov_kmer = 0;
 	int nonov_em_count;
-	int ov_em_count;
 
 	valid_nonov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, 0, kmer_size, 2, starting_node, nonov_em_count);
 
+	//int ov_em_count;
 	//if (valid_nonov_kmer < 2)
 	//	valid_ov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, kmer_size / 2, kmer_size, 2, starting_node + 1, ov_em_count);
 	
@@ -251,7 +251,7 @@ int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* sta
 bool pac2char(uint32_t start, int len, char* str) {
 	//fprintf(stderr, "extract pos: %d-%d\n", start, start+len-1);
 	int ref_len = getRefGenLength();
-	if (((int) start < 0) or (start + len - 1 > ref_len))
+	if (((int) (start) < 0) or ((int)(start) + len - 1 > ref_len))
 		return false;		// do not write ref seq if it goes out of the contig border
 
 	char lookup[8] = { 'A', 'C', 'G', 'T', 'N', 'N', 'N', 'N' };
@@ -283,12 +283,12 @@ bool pac2char(uint32_t start, int len, char* str) {
 	return true;
 }
 
-void print_hits(GIMatchedKmer* frag_l, int cnt) {
-	for (int i = 0; i < cnt; i+=2) {
-		fprintf(stderr, "Frag cnt: %lu\n", (frag_l+i)->frag_count);
-		for (int j = 0; j < (frag_l+i)->frag_count; j++) {
-			fprintf(stderr, "%lu\t", (frag_l+i)->frags[j].info);
-		}
-		fprintf(stderr, "\n");
-	}
-}
+//void print_hits(GIMatchedKmer* frag_l, int cnt) {
+//	for (int i = 0; i < cnt; i+=2) {
+//		fprintf(stderr, "Frag cnt: %"PRIu32"\n", (frag_l+i)->frag_count);
+//		for (uint32_t j = 0; j < (frag_l+i)->frag_count; j++) {
+//			fprintf(stderr, "%"PRIu32"\t", (frag_l+i)->frags[j].info);
+//		}
+//		fprintf(stderr, "\n");
+//	}
+//}
