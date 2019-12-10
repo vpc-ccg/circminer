@@ -290,11 +290,11 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 	best_cr.type = NF;
 	for (unsigned int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
-		char gene_seq[gene_len + 1];
-		gene_seq[gene_len] = '\0';
-		pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
+		//char gene_seq[gene_len + 1];
+		//gene_seq[gene_len] = '\0';
+		//pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
 
-		regional_ht = get_hash_table(gene_info->seg_list[i], gene_seq);
+		regional_ht = get_hash_table(gene_info->seg_list[i]);
 		
 		vafprintf(2, stderr, "R%d partial: [%d-%d]\n", (int) (!r1_partial) + 1, qspos, qepos);
 		vafprintf(2, stderr, "%s\n", remain_seq);
@@ -383,11 +383,11 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 	best_cr.type = NF;
 	for (unsigned int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
-		char gene_seq[gene_len + 1];
-		gene_seq[gene_len] = '\0';
-		pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
+		//char gene_seq[gene_len + 1];
+		//gene_seq[gene_len] = '\0';
+		//pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
 
-		regional_ht = get_hash_table(gene_info->seg_list[i], gene_seq);
+		regional_ht = get_hash_table(gene_info->seg_list[i]);
 		
 		vafprintf(2, stderr, "R1 partial: [%d-%d]\nremain: %s\n", r1_qspos, r1_qepos, r1_remain_seq);
 		chaining(r1_qspos, r1_qepos, regional_ht, r1_remain_seq, gene_len, gene_info->seg_list[i].start, bc1);
@@ -613,7 +613,7 @@ void ProcessCirc::check_removables (uint32_t rspos) {
 	}
 }
 
-RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info, char* gene_seq) {
+RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info) {
 	uint32_t gid, removable_ind;
 	RegionalHashTable* regional_ht;
 	RegionalHashTable* new_ht;
@@ -628,6 +628,10 @@ RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info, char*
 		//fprintf(stderr, "Found gid: %d\t---Skipping HT create\n", gid);
 	}
 	else {
+		char gene_seq[gene_len + 1];
+		gene_seq[gene_len] = '\0';
+		pac2char(gene_info.start, gene_len, gene_seq);
+
 		if (removables.size() == 0) {
 			new_ht = new RegionalHashTable(window_size, gene_info.start, gene_info.end);
 
