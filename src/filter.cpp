@@ -402,7 +402,7 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 		sprintf(comment, " %d * * * * * * * * * * * * * * * * * * * *", mr.type);
 	}
 
-	char sep = (last_round) ? '\t' : '\n';
+	char sep = '\n';
 	fprintf(temp_fq_r1, "@%s%s%c%s%c%s%c%s\n", current_record1->rname, comment, sep,
 		current_record1->seq, sep, current_record1->comment, sep, current_record1->qual);
 	fprintf(temp_fq_r2, "@%s%s%c%s%c%s%c%s\n", current_record2->rname, comment, sep,
