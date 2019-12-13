@@ -138,6 +138,8 @@ bool FASTQParser::read_block (void) {
 			//getline(&current_record[i].comment, &max_line_size, input);
 			read_line(&current_record[i].comment);
 			assert(current_record[i].comment[0] == '+');
+			// ignore comment
+			current_record[i].comment[1] = '\0';
 
 			//getline(&current_record[i].qual, &max_line_size, input);
 			read_line(&current_record[i].qual);
