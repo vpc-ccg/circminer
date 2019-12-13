@@ -172,7 +172,7 @@ void ProcessCirc::sort_fq(char* fqname) {
 	}
 
 	char command [FILE_NAME_LENGTH];
-	sprintf(command, "cat %s | paste - - - - | sort -k22,22 -k3,3 -k4,4n | tr \"\t\" \"\n\" > %s.srt", fqname, fqname);
+	sprintf(command, "cat %s | paste - - - - | sort --parallel=%d -S 8G -k22,22 -k3,3 -k4,4n | tr \"\t\" \"\n\" > %s.srt", fqname, threadCount, fqname);
 
 	int ret = system(command);
 	if (ret == 0)
