@@ -57,6 +57,7 @@ public:
 	void open_candid_file (void);
 	void load_genome (void);
 	void sort_fq (char* fqname);
+	void sort_fq_internal (char* fqname);
 
 	void do_process (void);
 	void call_circ (Record* current_record1, Record* current_record2);

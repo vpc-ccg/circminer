@@ -9,6 +9,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -241,7 +242,7 @@ struct MatchedMate {
 
 	const IntervalInfo<GeneInfo>* gene_info;
 
-	MatchedMate ();
+	MatchedMate (void);
 	MatchedMate (const MatchedRead& mr, int r1_2, int rlen, bool partial);
 	
 	void set (uint32_t rs, uint32_t re, uint32_t qs, uint32_t qe, int d);
@@ -283,7 +284,8 @@ struct MatchedRead {
 	string		chr_r1;
 	string		chr_r2;
 
-	MatchedRead();
+	MatchedRead(void);
+	MatchedRead(MatchedRead* orig);
 	
 	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, 
 							int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first);
@@ -379,6 +381,39 @@ struct Record {
 	~Record(void) {
 		delete mr;
 	}
+
+	Record(Record* orig);
+
+	void init(void);
+	void finalize(void);
+
+	void deep_copy(Record* orig);
+
+	bool operator < (const Record& r) const;
+};
+
+struct RecordStr {
+	string rname;
+	string seq;
+	string comment;
+	string qual;
+
+	uint64_t genome_pos;
+
+	MatchedRead mr;
+
+	RecordStr(void) {
+	}
+
+	~RecordStr(void) {
+	}
+
+	RecordStr(const RecordStr& other);
+	RecordStr(Record* orig);
+
+	void deep_copy(Record* orig);
+
+	bool operator < (const RecordStr& r) const;
 };
 
 /**************************************************************************************************/

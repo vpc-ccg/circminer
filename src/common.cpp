@@ -130,7 +130,7 @@ inline ostream& operator<<(ostream& os, const UniqSeg& us) {
 
 /**************************************************************************************************/
 
-MatchedMate::MatchedMate() : right_ed(maxEd+1), left_ed(maxEd+1), middle_ed(maxEd+1), 
+MatchedMate::MatchedMate(void) : right_ed(maxEd+1), left_ed(maxEd+1), middle_ed(maxEd+1), 
 					sclen_right(0), sclen_left(0), type(ORPHAN), junc_num(0), 
 					left_ok(false), right_ok(false), 
 					looked_up_spos(false), looked_up_epos(false), looked_up_gene(false), 
@@ -252,11 +252,24 @@ void MatchedMate::operator = (const MatchedMate& mm) {
 
 /**************************************************************************************************/
 
-MatchedRead::MatchedRead() : r1_forward(true), r2_forward(true), ed_r1(maxEd+1), ed_r2(maxEd+1), 
-							type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), 
-							contig_num(0), 
-							chr_r1("-"), chr_r2("-") { }
+MatchedRead::MatchedRead(void) : 
+		r1_forward(true), r2_forward(true), ed_r1(maxEd+1), ed_r2(maxEd+1), 
+		type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), 
+		contig_num(0), chr_r1("-"), chr_r2("-") 
+{ }
 
+MatchedRead::MatchedRead(MatchedRead* orig) : 
+		spos_r1(orig->spos_r1), spos_r2(orig->spos_r2), 
+		epos_r1(orig->epos_r1), epos_r2(orig->epos_r2),
+		qspos_r1(orig->qspos_r1), qspos_r2(orig->qspos_r2), 
+		qepos_r1(orig->qepos_r1), qepos_r2(orig->qepos_r2),
+		mlen_r1(orig->mlen_r1), mlen_r2(orig->mlen_r2),
+		r1_forward(orig->r1_forward), r2_forward(orig->r2_forward), 
+		ed_r1(orig->ed_r1), ed_r2(orig->ed_r2), 
+		type(orig->type), tlen(orig->tlen), junc_num(orig->junc_num), 
+		gm_compatible(orig->gm_compatible), contig_num(orig->contig_num), 
+		chr_r1(orig->chr_r1), chr_r2(orig->chr_r2) 
+{ }
 // assuming r1 and r2 are on same chr
 bool MatchedRead::update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, 
 							uint16_t jun_between, bool gm_compatible, int type, bool r1_first) {
@@ -452,6 +465,89 @@ bool CircRes::operator == (const CircRes& r) const {
 	// return (chr == r.chr) and (abs(int(spos - r.spos)) <= BPRES) and (abs(int(epos - r.epos)) <= BPRES);
 	return (chr == r.chr) and (spos == r.spos) and (epos == r.epos);
 	// return (chr == r.chr) and (spos == r.spos) and (epos == r.epos) and (type == r.type);
+}
+
+/**************************************************************************************************/
+
+void Record::init(void) {
+	rname	= (char*) malloc(MAXLINESIZE);
+	seq		= (char*) malloc(MAXLINESIZE);
+	rcseq	= (char*) malloc(MAXLINESIZE);
+	comment	= (char*) malloc(MAXLINESIZE);
+	qual	= (char*) malloc(MAXLINESIZE);
+	rqual	= (char*) malloc(MAXLINESIZE);
+}
+
+void Record::finalize(void) {
+	free(rname);
+	free(seq);
+	free(rcseq);
+	free(comment);
+	free(qual);
+	free(rqual);
+}
+
+Record::Record(Record* orig) : seq_len(orig->seq_len), mr(orig->mr) {
+	strcpy(rname,   orig->rname);
+	strcpy(seq,     orig->seq);
+	strcpy(rcseq,   orig->rcseq);
+	strcpy(comment, orig->comment);
+	strcpy(qual,    orig->qual);
+	strcpy(rqual,   orig->rqual);
+}
+
+void Record::deep_copy(Record* orig) {
+	seq_len = orig->seq_len;
+	*mr = *(orig->mr);
+
+	strcpy(rname,   orig->rname);
+	strcpy(seq,     orig->seq);
+	strcpy(rcseq,   orig->rcseq);
+	strcpy(comment, orig->comment);
+	strcpy(qual,    orig->qual);
+	strcpy(rqual,   orig->rqual);
+}
+
+bool Record::operator < (const Record& r) const {
+	if (mr->contig_num != r.mr->contig_num) 
+		return mr->contig_num < r.mr->contig_num;
+	if (mr->chr_r1 != r.mr->chr_r1) 
+		return mr->chr_r1 < r.mr->chr_r1;
+	return mr->spos_r1 < r.mr->spos_r1;
+}
+
+/**************************************************************************************************/
+
+RecordStr::RecordStr(const RecordStr& other) : mr(other.mr) {
+	rname	= other.rname;
+	seq		= other.seq;
+	comment	= other.comment;
+	qual	= other.qual;
+
+}
+
+RecordStr::RecordStr(Record* orig) : mr(orig->mr) {
+	rname	= std::string(orig->rname);
+	seq		= std::string(orig->seq);
+	comment	= std::string(orig->comment);
+	qual	= std::string(orig->qual);
+}
+
+void RecordStr::deep_copy(Record* orig) {
+	mr = *(orig->mr);
+
+	rname	= std::string(orig->rname);
+	seq		= std::string(orig->seq);
+	comment	= std::string(orig->comment);
+	qual	= std::string(orig->qual);
+}
+
+bool RecordStr::operator < (const RecordStr& r) const {
+	if (mr.contig_num != r.mr.contig_num) 
+		return mr.contig_num < r.mr.contig_num;
+	if (mr.chr_r1 != r.mr.chr_r1) 
+		return mr.chr_r1 < r.mr.chr_r1;
+	return mr.spos_r1 < r.mr.spos_r1;
 }
 
 /**************************************************************************************************/

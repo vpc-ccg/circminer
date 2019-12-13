@@ -24,8 +24,8 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	sprintf(fq_file1, "%s_%d_remain_R1.fastq", outputFilename, last_round_num);
 	sprintf(fq_file2, "%s_%d_remain_R2.fastq", outputFilename, last_round_num);
 
-	sort_fq(fq_file1);
-	sort_fq(fq_file2);
+	sort_fq_internal(fq_file1);
+	sort_fq_internal(fq_file2);
 
 	sprintf(fq_file1, "%s_%d_remain_R1.fastq.srt", outputFilename, last_round_num);
 	sprintf(fq_file2, "%s_%d_remain_R2.fastq.srt", outputFilename, last_round_num);
@@ -90,6 +90,78 @@ ProcessCirc::~ProcessCirc (void) {
 
 		system(command);
 	}
+}
+
+bool record_ptr_compare(Record* r, Record* o) {
+	if (r->mr->contig_num != o->mr->contig_num)
+		return r->mr->contig_num < o->mr->contig_num;
+	if (r->mr->chr_r1 != o->mr->chr_r1)
+		return r->mr->chr_r1 < o->mr->chr_r1;
+	return r->mr->spos_r1 < o->mr->spos_r1;
+
+}
+
+void ProcessCirc::sort_fq_internal(char* fqname) {
+	fprintf(stdout, "Sorting remaining read mappings internally... ");
+	fflush(stdout);
+
+	double cpu_time = get_cpu_time();
+	double real_time = get_real_time();
+
+	char* sorted_file = (char*) malloc(FILE_NAME_LENGTH);
+	char* wmode = (char*) malloc(FILE_NAME_LENGTH);
+
+	sprintf(sorted_file, "%s.srt", fqname);
+	sprintf(wmode, "%c", 'w');
+
+	FASTQParser fq_parser(fqname);
+	vector <RecordStr> all_records;
+	Record* current_record;
+
+	while ( (current_record = fq_parser.get_next()) != NULL) {
+		all_records.push_back(RecordStr(current_record));
+	}
+
+	sort(all_records.begin(), all_records.end());
+
+	FILE* sorted_fout = open_file(sorted_file, wmode);
+
+	char sep = '\n';
+	MatchedRead* mr;
+	char comment[400];
+	char r1_dir, r2_dir;
+	for (unsigned int i = 0; i < all_records.size(); ++i) {
+		mr = &(all_records[i].mr);
+
+		r1_dir = (mr->r1_forward) ? '+' : '-';
+		r2_dir = (mr->r2_forward) ? '+' : '-';
+
+		sprintf(comment, " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d",
+				mr->type, mr->chr_r1.c_str(), mr->spos_r1, mr->epos_r1, mr->mlen_r1,
+				mr->qspos_r1, mr->qepos_r1, r1_dir, mr->ed_r1,
+				mr->chr_r2.c_str(), mr->spos_r2, mr->epos_r2, mr->mlen_r2, 
+				mr->qspos_r2, mr->qepos_r2, r2_dir, mr->ed_r2,
+				mr->tlen, mr->junc_num, mr->gm_compatible, mr->contig_num);
+
+		fprintf(sorted_fout, "@%s%s%c%s%c%s%c%s\n", all_records[i].rname.c_str(), comment, sep,
+				all_records[i].seq.c_str(), sep, all_records[i].comment.c_str(), sep, all_records[i].qual.c_str());
+	}
+	
+	close_file(sorted_fout);
+
+	//for (unsigned int i = 0; i < all_records.size(); ++i) {
+	//	all_records[i]->finalize();
+	//	delete all_records[i];
+	//}
+	free(sorted_file);
+	free(wmode);
+
+	double final_cpu_time = get_cpu_time();
+	double final_real_time = get_real_time();
+
+	fprintf(stdout, "Finished sorting in %.2lf CPU sec (%.2lf real sec)\n", 
+			final_cpu_time - cpu_time, final_real_time - real_time);
+	fflush(stdout);
 }
 
 void ProcessCirc::sort_fq(char* fqname) {
@@ -185,11 +257,15 @@ void ProcessCirc::do_process (void) {
 	open_candid_file();
 	
 	int line = 0;
-	while ( (current_record1 = fq_parser1.get_next()) != NULL ) { // go line by line on fastq file
+	//while ( (current_record1 = fq_parser1.get_next()) != NULL ) { // go line by line on fastq file
+	while ( true ) {
+
+		current_record1 = fq_parser1.get_next();
+
+		if (current_record1 == NULL)
+			break;
 		if (is_pe)
 			current_record2 = fq_parser2.get_next();
-		if (current_record1 == NULL)	// no new line
-			break;
 
 		line++;
 		vafprintf(2, stderr, "Line: %d\n", line);
