@@ -229,35 +229,37 @@ void FASTQParser::fill_map_info(int cnt, int r_ind) {
 	else {
 		char* stop_string;
 		int base = 10;
-		current_record[r_ind].mr->type 	= atoi(tokens[1]);
+		current_record[r_ind].mr->type 	= atoi(tokens[2]);
 
 		if (current_record[r_ind].mr->type == CONCRD or current_record[r_ind].mr->type == DISCRD or current_record[r_ind].mr->type == CHIORF or 
 			current_record[r_ind].mr->type == CHIBSJ or current_record[r_ind].mr->type == CHI2BSJ or current_record[r_ind].mr->type == CONGNM  or 
 			current_record[r_ind].mr->type == CONGEN) {
-			current_record[r_ind].mr->chr_r1 	= tokens[2];	
-			current_record[r_ind].mr->spos_r1	= strtoul(tokens[3], &stop_string, base);
-			current_record[r_ind].mr->epos_r1	= strtoul(tokens[4], &stop_string, base);
-			current_record[r_ind].mr->mlen_r1	= atoi(tokens[5]);
-			current_record[r_ind].mr->qspos_r1	= strtoul(tokens[6], &stop_string, base);
-			current_record[r_ind].mr->qepos_r1	= strtoul(tokens[7], &stop_string, base);
-			current_record[r_ind].mr->r1_forward	= (tokens[8][0] == '+');
-			current_record[r_ind].mr->ed_r1		= atoi(tokens[9]);
+			current_record[r_ind].mr->genome_spos = strtoull(tokens[1], &stop_string, base);
+			current_record[r_ind].mr->chr_r1 	= tokens[3];	
+			current_record[r_ind].mr->spos_r1	= strtoul(tokens[4], &stop_string, base);
+			current_record[r_ind].mr->epos_r1	= strtoul(tokens[5], &stop_string, base);
+			current_record[r_ind].mr->mlen_r1	= atoi(tokens[6]);
+			current_record[r_ind].mr->qspos_r1	= strtoul(tokens[7], &stop_string, base);
+			current_record[r_ind].mr->qepos_r1	= strtoul(tokens[8], &stop_string, base);
+			current_record[r_ind].mr->r1_forward	= (tokens[9][0] == '+');
+			current_record[r_ind].mr->ed_r1		= atoi(tokens[10]);
 
-			current_record[r_ind].mr->chr_r2	= tokens[10];
-			current_record[r_ind].mr->spos_r2	= strtoul(tokens[11], &stop_string, base);
-			current_record[r_ind].mr->epos_r2	= strtoul(tokens[12], &stop_string, base);
-			current_record[r_ind].mr->mlen_r2	= atoi(tokens[13]);
-			current_record[r_ind].mr->qspos_r2	= strtoul(tokens[14], &stop_string, base);
-			current_record[r_ind].mr->qepos_r2	= strtoul(tokens[15], &stop_string, base);
-			current_record[r_ind].mr->r2_forward	= (tokens[16][0] == '+');
-			current_record[r_ind].mr->ed_r2	= atoi(tokens[17]);
+			current_record[r_ind].mr->chr_r2	= tokens[11];
+			current_record[r_ind].mr->spos_r2	= strtoul(tokens[12], &stop_string, base);
+			current_record[r_ind].mr->epos_r2	= strtoul(tokens[13], &stop_string, base);
+			current_record[r_ind].mr->mlen_r2	= atoi(tokens[14]);
+			current_record[r_ind].mr->qspos_r2	= strtoul(tokens[15], &stop_string, base);
+			current_record[r_ind].mr->qepos_r2	= strtoul(tokens[16], &stop_string, base);
+			current_record[r_ind].mr->r2_forward	= (tokens[17][0] == '+');
+			current_record[r_ind].mr->ed_r2	= atoi(tokens[18]);
 			
-			current_record[r_ind].mr->tlen		= atoi(tokens[18]);
-			current_record[r_ind].mr->junc_num	= strtoul(tokens[19], &stop_string, base);
-			current_record[r_ind].mr->gm_compatible	= (tokens[20][0] == '1');
-			current_record[r_ind].mr->contig_num		= atoi(tokens[21]);
+			current_record[r_ind].mr->tlen		= atoi(tokens[19]);
+			current_record[r_ind].mr->junc_num	= strtoul(tokens[20], &stop_string, base);
+			current_record[r_ind].mr->gm_compatible	= (tokens[21][0] == '1');
+			current_record[r_ind].mr->contig_num		= atoi(tokens[22]);
 		}
 		else {
+			current_record[r_ind].mr->genome_spos = 0;
 			current_record[r_ind].mr->chr_r1	= "-";	
 			current_record[r_ind].mr->spos_r1	= 0;
 			current_record[r_ind].mr->epos_r1	= 0;

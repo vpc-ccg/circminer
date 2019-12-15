@@ -24,8 +24,24 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 	sprintf(fq_file1, "%s_%d_remain_R1.fastq", outputFilename, last_round_num);
 	sprintf(fq_file2, "%s_%d_remain_R2.fastq", outputFilename, last_round_num);
 
-	sort_fq_internal(fq_file1);
-	sort_fq_internal(fq_file2);
+	double cpu_time = get_cpu_time();
+	double real_time = get_real_time();
+
+	if (internalSort) {
+		sort_fq_internal(fq_file1);
+		sort_fq_internal(fq_file2);
+	}
+	else {
+		sort_fq(fq_file1);
+		sort_fq(fq_file2);
+	}
+
+	double final_cpu_time = get_cpu_time();
+	double final_real_time = get_real_time();
+
+	fprintf(stdout, "Finished sorting in %.2lf CPU sec (%.2lf real sec)\n", 
+			final_cpu_time - cpu_time, final_real_time - real_time);
+	fflush(stdout);
 
 	sprintf(fq_file1, "%s_%d_remain_R1.fastq.srt", outputFilename, last_round_num);
 	sprintf(fq_file2, "%s_%d_remain_R2.fastq.srt", outputFilename, last_round_num);
@@ -105,9 +121,6 @@ void ProcessCirc::sort_fq_internal(char* fqname) {
 	fprintf(stdout, "Sorting remaining read mappings internally... ");
 	fflush(stdout);
 
-	double cpu_time = get_cpu_time();
-	double real_time = get_real_time();
-
 	char* sorted_file = (char*) malloc(FILE_NAME_LENGTH);
 	char* wmode = (char*) malloc(FILE_NAME_LENGTH);
 
@@ -136,8 +149,9 @@ void ProcessCirc::sort_fq_internal(char* fqname) {
 		r1_dir = (mr->r1_forward) ? '+' : '-';
 		r2_dir = (mr->r2_forward) ? '+' : '-';
 
-		sprintf(comment, " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d",
-				mr->type, mr->chr_r1.c_str(), mr->spos_r1, mr->epos_r1, mr->mlen_r1,
+		sprintf(comment, " %" PRId64 " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d",
+				mr->genome_spos, mr->type, 
+				mr->chr_r1.c_str(), mr->spos_r1, mr->epos_r1, mr->mlen_r1,
 				mr->qspos_r1, mr->qepos_r1, r1_dir, mr->ed_r1,
 				mr->chr_r2.c_str(), mr->spos_r2, mr->epos_r2, mr->mlen_r2, 
 				mr->qspos_r2, mr->qepos_r2, r2_dir, mr->ed_r2,
@@ -149,30 +163,21 @@ void ProcessCirc::sort_fq_internal(char* fqname) {
 	
 	close_file(sorted_fout);
 
-	//for (unsigned int i = 0; i < all_records.size(); ++i) {
-	//	all_records[i]->finalize();
-	//	delete all_records[i];
-	//}
 	free(sorted_file);
 	free(wmode);
-
-	double final_cpu_time = get_cpu_time();
-	double final_real_time = get_real_time();
-
-	fprintf(stdout, "Finished sorting in %.2lf CPU sec (%.2lf real sec)\n", 
-			final_cpu_time - cpu_time, final_real_time - real_time);
-	fflush(stdout);
+	fprintf(stdout, "OK\n");
 }
 
 void ProcessCirc::sort_fq(char* fqname) {
-	fprintf(stdout, "Sorting remaining read mappings... ");
+	fprintf(stdout, "Sorting remaining read mappings using GNU sort... ");
+	fflush(stdout);
 	if (!system(NULL)) {
 		fprintf(stdout, "Error: Unable to run system call.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	char command [FILE_NAME_LENGTH];
-	sprintf(command, "cat %s | paste - - - - | sort --parallel=%d -S 8G -k22,22 -k3,3 -k4,4n | tr \"\t\" \"\n\" > %s.srt", fqname, threadCount, fqname);
+	sprintf(command, "cat %s | paste - - - - | sort --parallel=%d -S 8G -k2,2n | tr \"\t\" \"\n\" > %s.srt", fqname, threadCount, fqname);
 
 	int ret = system(command);
 	if (ret == 0)

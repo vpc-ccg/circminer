@@ -83,6 +83,7 @@ extern bool indexMode;
 extern bool compactIndex;
 extern bool pairedEnd;
 extern bool finalCleaning;
+extern bool internalSort;
 
 extern uint32_t seedLim;
 extern int kmer;
@@ -280,6 +281,8 @@ struct MatchedRead {
 	uint16_t 	junc_num;
 	bool		gm_compatible;
 	int 		contig_num;
+
+	uint64_t	genome_spos;
 	
 	string		chr_r1;
 	string		chr_r2;
@@ -397,8 +400,6 @@ struct RecordStr {
 	string seq;
 	string comment;
 	string qual;
-
-	uint64_t genome_pos;
 
 	MatchedRead mr;
 

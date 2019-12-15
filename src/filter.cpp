@@ -390,23 +390,41 @@ void FilterRead::write_read_category (Record* current_record1, Record* current_r
 	char r2_dir = (mr.r2_forward) ? '+' : '-';
 
 	//mutex_lock(&write_lock);
+	
+	fprintf(temp_fq_r1, "@%s", current_record1->rname);
+	fprintf(temp_fq_r2, "@%s", current_record2->rname);
 
-	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or mr.type == CHIBSJ or mr.type == CHI2BSJ or mr.type == CONGNM or mr.type == CONGEN) {
-		sprintf(comment, " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d", 
-						mr.type, 
+	if (mr.type == CONCRD or mr.type == DISCRD or mr.type == CHIORF or 
+		mr.type == CHIBSJ or mr.type == CHI2BSJ or mr.type == CONGNM or mr.type == CONGEN) {
+
+		string con = mr.chr_r1;
+		uint32_t con_spos = mr.spos_r1;
+		uint32_t con_epos = mr.epos_r1;
+		gtf_parser.chrloc2conloc(con, con_spos, con_epos);
+
+		uint64_t gspos = uint64_t(mr.contig_num) * DEF_CONTIG_SIZE + con_spos;
+
+		fprintf(temp_fq_r1, " %" PRId64 " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d", 
+						gspos, mr.type, 
+						mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1,
+						mr.chr_r2.c_str(), mr.spos_r2, mr.epos_r2, mr.mlen_r2, mr.qspos_r2, mr.qepos_r2, r2_dir, mr.ed_r2,
+						mr.tlen, mr.junc_num, mr.gm_compatible, mr.contig_num);
+		fprintf(temp_fq_r2, " %" PRId64 " %d %s %u %u %d %u %u %c %d %s %u %u %d %u %u %c %d %d %d %d %d", 
+						gspos, mr.type, 
 						mr.chr_r1.c_str(), mr.spos_r1, mr.epos_r1, mr.mlen_r1, mr.qspos_r1, mr.qepos_r1, r1_dir, mr.ed_r1,
 						mr.chr_r2.c_str(), mr.spos_r2, mr.epos_r2, mr.mlen_r2, mr.qspos_r2, mr.qepos_r2, r2_dir, mr.ed_r2,
 						mr.tlen, mr.junc_num, mr.gm_compatible, mr.contig_num);
 	}
 	else {
-		sprintf(comment, " %d * * * * * * * * * * * * * * * * * * * *", mr.type);
+		fprintf(temp_fq_r1, " * %d * * * * * * * * * * * * * * * * * * * *", mr.type);
+		fprintf(temp_fq_r2, " * %d * * * * * * * * * * * * * * * * * * * *", mr.type);
 	}
 
 	char sep = '\n';
-	fprintf(temp_fq_r1, "@%s%s%c%s%c%s%c%s\n", current_record1->rname, comment, sep,
-		current_record1->seq, sep, current_record1->comment, sep, current_record1->qual);
-	fprintf(temp_fq_r2, "@%s%s%c%s%c%s%c%s\n", current_record2->rname, comment, sep,
-		current_record2->seq, sep, current_record2->comment, sep, current_record2->qual);
+	fprintf(temp_fq_r1, "%c%s%c%s%c%s\n", sep, current_record1->seq, sep, 
+			current_record1->comment, sep, current_record1->qual);
+	fprintf(temp_fq_r2, "%c%s%c%s%c%s\n", sep, current_record2->seq, sep, 
+			current_record2->comment, sep, current_record2->qual);
 
 	//mutex_unlock(&write_lock);
 

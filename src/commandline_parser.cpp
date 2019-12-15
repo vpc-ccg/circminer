@@ -9,6 +9,7 @@ bool indexMode = false;
 bool compactIndex = false;
 bool pairedEnd = false;
 bool finalCleaning = true;
+bool internalSort = false;
 int kmer = 19;
 int maxReadLength = 120;
 int verboseMode = 0;
@@ -80,12 +81,13 @@ int parse_command( int argc, char *argv[] )
 		{"max-chain-list", required_argument, 0, 'C'},
 		{"stage", required_argument, 0, 'q'},
 		{"keep-intermediate", no_argument, 0, 'z'},
+		{"internal-sort", no_argument, 0, 'Z'},
 		{"sam", no_argument, 0, 'A'},
 		{"pam", no_argument, 0, 'P'},
 		{0,0,0,0},
 	};
 
-	while ( -1 !=  (opt = getopt_long( argc, argv, "hvims:1:2:r:g:k:l:o:t:d:a:e:c:w:S:T:I:C:q:zAP", long_opt, &opt_index )  ) ) 
+	while ( -1 !=  (opt = getopt_long( argc, argv, "hvims:1:2:r:g:k:l:o:t:d:a:e:c:w:S:T:I:C:q:zZAP", long_opt, &opt_index )  ) ) 
 	{
 		switch(opt)
 		{
@@ -196,6 +198,10 @@ int parse_command( int argc, char *argv[] )
 			}
 			case 'z': {
 				finalCleaning = false;
+				break;
+			}
+			case 'Z': {
+				internalSort = true;
 				break;
 			}
 			case 'A': {

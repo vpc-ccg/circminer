@@ -10,7 +10,7 @@
 #include "common.h"
 
 #define BLOCKSIZE 1000
-#define FQCOMMENTCNT 22
+#define FQCOMMENTCNT 23
 #define BUFFSIZE 10000000
 
 class FASTQParser {

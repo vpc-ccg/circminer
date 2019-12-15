@@ -255,7 +255,7 @@ void MatchedMate::operator = (const MatchedMate& mm) {
 MatchedRead::MatchedRead(void) : 
 		r1_forward(true), r2_forward(true), ed_r1(maxEd+1), ed_r2(maxEd+1), 
 		type(NOPROC_NOMATCH), tlen(INF), junc_num(0), gm_compatible(false), 
-		contig_num(0), chr_r1("-"), chr_r2("-") 
+		contig_num(0), genome_spos(0), chr_r1("-"), chr_r2("-") 
 { }
 
 MatchedRead::MatchedRead(MatchedRead* orig) : 
@@ -268,7 +268,7 @@ MatchedRead::MatchedRead(MatchedRead* orig) :
 		ed_r1(orig->ed_r1), ed_r2(orig->ed_r2), 
 		type(orig->type), tlen(orig->tlen), junc_num(orig->junc_num), 
 		gm_compatible(orig->gm_compatible), contig_num(orig->contig_num), 
-		chr_r1(orig->chr_r1), chr_r2(orig->chr_r2) 
+		genome_spos(orig->genome_spos), chr_r1(orig->chr_r1), chr_r2(orig->chr_r2) 
 { }
 // assuming r1 and r2 are on same chr
 bool MatchedRead::update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, int32_t tlen, 
@@ -543,11 +543,7 @@ void RecordStr::deep_copy(Record* orig) {
 }
 
 bool RecordStr::operator < (const RecordStr& r) const {
-	if (mr.contig_num != r.mr.contig_num) 
-		return mr.contig_num < r.mr.contig_num;
-	if (mr.chr_r1 != r.mr.chr_r1) 
-		return mr.chr_r1 < r.mr.chr_r1;
-	return mr.spos_r1 < r.mr.spos_r1;
+	return mr.genome_spos < r.mr.genome_spos;
 }
 
 /**************************************************************************************************/
