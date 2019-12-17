@@ -445,7 +445,7 @@ void FilterRead::print_pam (Record* rec1, Record* rec2) {
 void FilterRead::get_best_chains(char* read_seq, int seq_len, int kmer_size, chain_list& best_chain, GIMatchedKmer* frag_l, int& high_hits) {
 	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer_size)) - 1;	// considering both overlapping and non-overlapping kmers
 
-	split_match_hash(read_seq, seq_len, kmer_size, frag_l);
+	genome_seeder.split_match_hash(read_seq, seq_len, kmer_size, frag_l);
 	chain_seeds_sorted_kbest(seq_len, frag_l, best_chain);
 
 	high_hits = 0;

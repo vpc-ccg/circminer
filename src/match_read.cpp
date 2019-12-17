@@ -7,7 +7,34 @@ extern "C" {
 #include "mrsfast/HashTable.h"
 }
 
-void print_hits(GIMatchedKmer*, int);
+GenomeSeeder::GenomeSeeder (void) : mode(DONOTLOADCONTIG), genome_str(NULL)
+{ }
+
+GenomeSeeder::~GenomeSeeder (void) {
+}
+
+void GenomeSeeder::init(int mode) {
+	lookup[0] = 'A';
+	lookup[1] = 'C';
+	lookup[2] = 'G';
+	lookup[3] = 'T';
+	lookup[4] = 'N';
+	lookup[5] = 'N';
+	lookup[6] = 'N';
+	lookup[7] = 'N';
+
+	this->mode = mode;
+
+	if (mode == LOADCONTIGSTRINMEM) {
+		genome_str = (char*) malloc(DEF_CONTIG_SIZE);
+	}
+}
+
+void GenomeSeeder::finalize(void) {
+	if (genome_str != NULL)
+		free(genome_str);
+	genome_str = NULL;
+}
 
 // assumption: target is not less than list[0]
 // input interval: [, )
@@ -15,7 +42,7 @@ void print_hits(GIMatchedKmer*, int);
 // => 
 // closest Greater than: returned index
 // closest Less than or Equal: returned index - 1
-int frag_binary_search(const vector<fragment_t>& list, int beg, int end, uint32_t target) {
+int GenomeSeeder::frag_binary_search(const vector<fragment_t>& list, int beg, int end, uint32_t target) {
 	if (end - beg <= 1)
 		return end;
 	int mid = (beg + end) / 2;
@@ -25,7 +52,7 @@ int frag_binary_search(const vector<fragment_t>& list, int beg, int end, uint32_
 		return frag_binary_search(list, mid, end, target);
 }
 
-int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk) {
+int GenomeSeeder::get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk) {
 	mk->frag_count = 0;
 	mk->frags = NULL;
 	mk->qpos = qpos;
@@ -85,7 +112,7 @@ int get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk
 
 // reduce number of frags in LargeList (ll) using SmalList (sl)
 // ll locations should be smaller than sl
-bool reduce_hits_behind(GIMatchedKmer* sl, GIMatchedKmer* ll) {
+bool GenomeSeeder::reduce_hits_behind(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 	if (sl->frag_count == 0 or ll->frag_count == 0)
 		return false;
 
@@ -115,7 +142,7 @@ bool reduce_hits_behind(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 
 // reduce number of frags in LargeList (ll) using SmalList (sl)
 // ll locations should be greater than sl
-bool reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
+bool GenomeSeeder::reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 	if (sl->frag_count == 0 or ll->frag_count == 0)
 		return false;
 
@@ -151,7 +178,7 @@ bool reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
 // return:
 // # valid kmers
 // is valid if: #fragments > 0 and < seedLim
-int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int skip, int ll_step, GIMatchedKmer* mk_res, int& em_count) {
+int GenomeSeeder::kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int skip, int ll_step, GIMatchedKmer* mk_res, int& em_count) {
 	int i, j;
 	int occ;
 	int invalid_kmer = 0;
@@ -230,7 +257,7 @@ int kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int
 }
 
 // fragment results will be sorted
-int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* starting_node) {
+int GenomeSeeder::split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* starting_node) {
 	int valid_nonov_kmer = 0;
 	int valid_ov_kmer = 0;
 	int nonov_em_count;
@@ -248,15 +275,27 @@ int split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* sta
 	return valid_nonov_kmer + valid_ov_kmer;
 }
 
-bool pac2char(uint32_t start, int len, char* str) {
+bool GenomeSeeder::pac2char(uint32_t start, int len, char* str) {
+	int ref_len = getRefGenLength();
+	if (((int) (start) < 0) or ((int)(start) + len - 1 > ref_len))
+		return false;
+
+	//str = genome_str + start;
+	
+	strncpy(str, genome_str + start - 1, len);
+	str[len] = '\0';
+
+	return true;
+}
+
+bool GenomeSeeder::pac2char_otf(uint32_t start, int len, char* str) {
 	//fprintf(stderr, "extract pos: %d-%d\n", start, start+len-1);
 	int ref_len = getRefGenLength();
 	if (((int) (start) < 0) or ((int)(start) + len - 1 > ref_len))
 		return false;		// do not write ref seq if it goes out of the contig border
 
-	char lookup[8] = { 'A', 'C', 'G', 'T', 'N', 'N', 'N', 'N' };
-	
 	CompressedSeq* crnext = getCmpRefGenome();
+
 	uint32_t skip = (start - 1) / 21;
 	crnext += skip;
 	int pass = (start - 1) % 21;
@@ -281,6 +320,10 @@ bool pac2char(uint32_t start, int len, char* str) {
 	}
 	str[i] = '\0';
 	return true;
+}
+
+bool GenomeSeeder::pac2char_whole_contig(void) {
+	return pac2char_otf(1, getRefGenLength(), genome_str);
 }
 
 //void print_hits(GIMatchedKmer* frag_l, int cnt) {

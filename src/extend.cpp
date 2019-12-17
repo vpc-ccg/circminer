@@ -297,7 +297,7 @@ bool TransExtension::extend_right(const vector <uint32_t>& common_tid, char* seq
 	}
 	
 	// intron retention
-	if (!consecutive and pac2char(orig_pos + 1, ref_len, ref_seq)) {
+	if (!consecutive and genome_seeder.pac2char(orig_pos + 1, ref_len, ref_seq)) {
 		// Alignment alignment;
 		min_ed = alignment.local_alignment_right_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
 		
@@ -368,7 +368,7 @@ bool TransExtension::extend_left(const vector <uint32_t>& common_tid, char* seq,
 	}
 
 	// intron retention
-	if (!consecutive and pac2char(orig_pos - ref_len, ref_len, ref_seq)) {
+	if (!consecutive and genome_seeder.pac2char(orig_pos - ref_len, ref_len, ref_seq)) {
 		// Alignment alignment;
 		min_ed = alignment.local_alignment_left_sc(ref_seq, ref_len, seq, seq_len, sclen_best, indel);
 		
@@ -402,7 +402,7 @@ bool TransExtension::extend_right_middle(uint32_t pos, char* ref_seq, uint32_t e
 							int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res) {
 
 	vafprintf(2, stderr, "Middle Right Ext Going for %lu - %lu\n", pos + 1, pos + exon_len);
-	if (!pac2char(pos + 1, exon_len, ref_seq))
+	if (!genome_seeder.pac2char(pos + 1, exon_len, ref_seq))
 		return false;
 
 	int indel;
@@ -430,7 +430,7 @@ void TransExtension::extend_right_end(uint32_t pos, char* ref_seq, uint32_t ref_
 						int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res) {
 
 	vafprintf(2, stderr, "Final Right Ext Going for %lu - %lu\n", pos + 1, pos + ref_len);
-	if (!pac2char(pos + 1, ref_len, ref_seq))
+	if (!genome_seeder.pac2char(pos + 1, ref_len, ref_seq))
 		return;
 
 	int sclen, indel;
@@ -603,7 +603,7 @@ bool TransExtension::extend_left_middle(uint32_t pos, char* ref_seq, uint32_t ex
 							int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res) {
 
 	vafprintf(2, stderr, "Middle Left Ext Going for %lu - %lu\n", pos - exon_len, pos - 1);
-	if (!pac2char(pos - exon_len, exon_len, ref_seq))
+	if (!genome_seeder.pac2char(pos - exon_len, exon_len, ref_seq))
 		return false;
 
 	int indel;
@@ -631,7 +631,7 @@ void TransExtension::extend_left_end(uint32_t pos, char* ref_seq, uint32_t ref_l
 						int ed_th, AlignRes& best, AlignRes& curr, AlignRes& exon_res) {
 
 	vafprintf(2, stderr, "Final Left Ext Going for %lu - %lu\n", pos - ref_len, pos - 1);
-	if (!pac2char(pos - ref_len, ref_len, ref_seq))
+	if (!genome_seeder.pac2char(pos - ref_len, ref_len, ref_seq))
 		return;
 
 	int sclen, indel;
@@ -829,15 +829,17 @@ int TransExtension::calc_middle_ed(const chain_t& ch, int edth, char* qseq, int 
 			qlen = ch.frags[i+1].qpos - qspos;
 			rspos = ch.frags[i].rpos + ch.frags[i].len;
 			rlen = qlen + diff;
+			if (rlen < 0)
+				rlen = 0;
 
 			// fprintf(stderr, "Diff: %d\n", diff);
 			if (diff >= 0 and diff <= bandWidth) {
-				pac2char(rspos, rlen, rseq);
+				genome_seeder.pac2char(rspos, rlen, rseq);
 				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
 				mid_err += alignment.global_one_side_banded_alignment(qseq + qspos, qlen, rseq, rlen, diff);
 			}
 			else if (diff < 0 and diff >= (-1 * bandWidth)) {
-				pac2char(rspos, rlen, rseq);
+				genome_seeder.pac2char(rspos, rlen, rseq);
 				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
 				mid_err += alignment.global_one_side_banded_alignment(rseq, rlen, qseq + qspos, qlen, -1*diff);
 			}

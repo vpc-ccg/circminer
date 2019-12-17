@@ -215,6 +215,8 @@ void ProcessCirc::do_process (void) {
 	if (!initLoadingCompressedGenomeMeta(index_file, &orig_contig_len, &contig_cnt))
 		return;
 
+	genome_seeder.init(LOADCONTIGSTRINMEM);
+
 	/**********************/
 	/**Finised Loading HT**/
 	/**********************/
@@ -309,6 +311,7 @@ void ProcessCirc::do_process (void) {
 	fprintf(stdout, "[P] Mapping in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
 
 	finalizeLoadingCompressedGenome();
+	genome_seeder.finalize();
 }
 
 // PE
@@ -371,9 +374,6 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 	best_cr.type = NF;
 	for (unsigned int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
-		//char gene_seq[gene_len + 1];
-		//gene_seq[gene_len] = '\0';
-		//pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
 
 		regional_ht = get_hash_table(gene_info->seg_list[i]);
 		
@@ -464,9 +464,6 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 	best_cr.type = NF;
 	for (unsigned int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
-		//char gene_seq[gene_len + 1];
-		//gene_seq[gene_len] = '\0';
-		//pac2char(gene_info->seg_list[i].start, gene_len, gene_seq);
 
 		regional_ht = get_hash_table(gene_info->seg_list[i]);
 		
@@ -711,7 +708,8 @@ RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info) {
 	else {
 		char gene_seq[gene_len + 1];
 		gene_seq[gene_len] = '\0';
-		pac2char(gene_info.start, gene_len, gene_seq);
+		//genome_seeder.pac2char(gene_info.start, gene_len, gene_seq);
+		genome_seeder.pac2char_otf(gene_info.start, gene_len, gene_seq);
 
 		if (removables.size() == 0) {
 			new_ht = new RegionalHashTable(window_size, gene_info.start, gene_info.end);
@@ -1074,6 +1072,8 @@ void ProcessCirc::load_genome (void) {
 
 	pre_contig = atoi(getRefGenomeName()) - 1;
 	contigNum = pre_contig;
+
+	genome_seeder.pac2char_whole_contig();
 
 	cputime_curr = get_cpu_time();
 	realtime_curr = get_real_time();

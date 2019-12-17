@@ -33,6 +33,7 @@ FilterRead filter_read;
 ScoreMatrix score_mat;
 FASTQParser fq_parser1;
 FASTQParser fq_parser2;
+GenomeSeeder genome_seeder;
 
 int mapping(int& last_round_num);
 void circ_detect(int last_round_num);
@@ -163,6 +164,8 @@ int mapping(int& last_round_num) {
 	if (!initLoadingHashTableMeta(index_file, &orig_contig_len, &contig_cnt))
 		return 1;
 
+	genome_seeder.init(LOADCONTIGSTRINMEM);
+
 	/*******************/
 	/**GTF Parser Init**/
 	/*******************/
@@ -198,8 +201,26 @@ int mapping(int& last_round_num) {
 		cputime_curr = get_cpu_time();
 		realtime_curr = get_real_time();
 
-		fprintf(stdout, "[P] Loaded genome index successfully in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+		fprintf(stdout, "[P] Loaded genome index successfully in %.2lf CPU sec (%.2lf real sec)\n\n", 
+				cputime_curr - cputime_start, realtime_curr - realtime_start);
 		fprintf(stdout, "Winodw size: %d\nChecksum Len: %d\n", WINDOW_SIZE, checkSumLength);
+
+		// loading contig sequence from reference index
+		bool success_gload = genome_seeder.pac2char_whole_contig();
+
+		double cputime_loaded_gnome_str = get_cpu_time();
+		double realtime_loaded_gnome_str = get_real_time();
+		
+		if (!success_gload) {
+			fprintf(stderr, "Error: unable to load reference genome to memory\n");
+			exit(1);
+		}
+		fprintf(stdout, "[P] Loaded genome sequence successfully in %.2lf CPU sec (%.2lf real sec)\n\n", 
+				cputime_loaded_gnome_str - cputime_curr, realtime_loaded_gnome_str - realtime_curr);
+
+		cputime_curr = cputime_loaded_gnome_str;
+		realtime_curr = realtime_loaded_gnome_str;
+		// done loading contig sequence
 
 		cputime_start = cputime_curr;
 		realtime_start = realtime_curr;
@@ -254,6 +275,7 @@ int mapping(int& last_round_num) {
 	/*************************/
 
 	filter_read.finalize();
+	genome_seeder.finalize();
 
 	for (int i = 0; i < contig_cnt; i++) 
 		freeMem(orig_contig_len[i].name, strlen(orig_contig_len[i].name));
