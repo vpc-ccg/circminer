@@ -1,5 +1,6 @@
 all: OPTIMIZE_FLAGS build
-debug: DEBUG_FLAGS OPTIMIZE_FLAGS build
+debug: DEBUG_FLAGS build
+verbose: DEBUG_FLAGS OPTIMIZE_FLAGS build
 profile: PROFILE_FLAGS_GP DEBUG_FLAGS OPTIMIZE_FLAGS build
 valgrind: OPTIMIZE_FLAGS DEBUG_FLAGS build
 #build: cleanexe $(EDLIB_SRC_PATH) mrsfast circminer cleanobj
