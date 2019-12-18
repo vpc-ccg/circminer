@@ -532,7 +532,7 @@ int checkHashTable(char *fileName)
 }
 
 /**********************************************/
-int initLoadingCompressedGenomeMeta(char *fileName, ContigLen **contig_len, int *contig_cnt)
+int initLoadingCompressedGenomeMeta(char *fileName, ContigLen *contig_len, int *contig_cnt)
 {
 	// file header:
 	// 1 byte (magicNumber): Magic number of HashTable (0: <v3, 1: bisulfite <v1.26.4, 2: >v3, 3: Full HashTable on index)
@@ -570,7 +570,6 @@ int initLoadingCompressedGenomeMeta(char *fileName, ContigLen **contig_len, int 
 
 	//***//
 	*contig_cnt = _ih_chrCnt;
-	*contig_len = (ContigLen *) getMem(_ih_chrCnt * sizeof(ContigLen));
 	//***//
 
 	for (i = 0; i < _ih_chrCnt; i++)
@@ -578,17 +577,13 @@ int initLoadingCompressedGenomeMeta(char *fileName, ContigLen **contig_len, int 
 		_ih_chrNames[i] = getMem(CONTIG_NAME_SIZE);
 		tmp = fread(&nameLen, sizeof(int), 1, _ih_fp);
 
-		//***//
-		(*contig_len)[i].name = (char *) getMem((nameLen + 1) * sizeof(char));
-		//***//
-
 		tmp = fread(_ih_chrNames[i], sizeof(char), nameLen, _ih_fp);
 		_ih_chrNames[i][nameLen] = '\0';
 		tmp = fread(&_ih_refGenLen, sizeof(int), 1, _ih_fp);
 		
 		//***//
-		strcpy((*contig_len)[i].name, _ih_chrNames[i]);
-		(*contig_len)[i].len = _ih_refGenLen;
+		contig_len[i].name = _ih_chrNames[i];
+		contig_len[i].len = _ih_refGenLen;
 		//***//
 
 		if (_ih_refGenLen > _ih_maxChrLength)
@@ -621,7 +616,7 @@ int initLoadingCompressedGenomeMeta(char *fileName, ContigLen **contig_len, int 
 }
 
 /**********************************************/
-int initLoadingHashTableMeta(char *fileName, ContigLen **contig_len, int *contig_cnt)
+int initLoadingHashTableMeta(char *fileName, ContigLen *contig_len, int *contig_cnt)
 {
 	// file header:
 	// 1 byte (magicNumber): Magic number of HashTable (0: <v3, 1: bisulfite <v1.26.4, 2: >v3, 3: Full HashTable on index)
@@ -660,7 +655,6 @@ int initLoadingHashTableMeta(char *fileName, ContigLen **contig_len, int *contig
 
 	//***//
 	*contig_cnt = _ih_chrCnt;
-	*contig_len = (ContigLen *) getMem(_ih_chrCnt * sizeof(ContigLen));
 	//***//
 
 	for (i = 0; i < _ih_chrCnt; i++)
@@ -668,18 +662,14 @@ int initLoadingHashTableMeta(char *fileName, ContigLen **contig_len, int *contig
 		_ih_chrNames[i] = getMem(CONTIG_NAME_SIZE);
 		tmp = fread(&nameLen, sizeof(int), 1, _ih_fp);
 
-		//***//
-		(*contig_len)[i].name = (char *) getMem((nameLen + 1) * sizeof(char));
-		//***//
-
 		tmp = fread(_ih_chrNames[i], sizeof(char), nameLen, _ih_fp);
 		_ih_chrNames[i][nameLen] = '\0';
 		tmp = fread(&_ih_refGenLen, sizeof(int), 1, _ih_fp);
 		_ih_chrLens[i] = _ih_refGenLen;
 		
 		//***//
-		strcpy((*contig_len)[i].name, _ih_chrNames[i]);
-		(*contig_len)[i].len = _ih_refGenLen;
+		contig_len[i].name = _ih_chrNames[i];
+		contig_len[i].len = _ih_refGenLen;
 		//***//
 
 		if (_ih_refGenLen > _ih_maxChrLength)

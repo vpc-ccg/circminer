@@ -87,6 +87,8 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) {
 }
 
 ProcessCirc::~ProcessCirc (void) {
+	check_removables(MAXUB);
+
 	close_file(report_file);
 	close_file(candid_file);
 
@@ -210,7 +212,7 @@ void ProcessCirc::do_process (void) {
 	if (!checkHashTable(index_file))
 		return;
 
-	ContigLen* orig_contig_len;
+	ContigLen orig_contig_len;
 	int contig_cnt;
 	if (!initLoadingCompressedGenomeMeta(index_file, &orig_contig_len, &contig_cnt))
 		return;
@@ -226,7 +228,7 @@ void ProcessCirc::do_process (void) {
 	/*******************/
 
 	if (stage == 1) { 
-		gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
+		gtf_parser.init(gtfFilename, &orig_contig_len, contig_cnt);
 		if (! gtf_parser.load_gtf()) {
 			fprintf(stdout, "Error in reading GTF file.\n");
 			exit(1);
@@ -303,6 +305,8 @@ void ProcessCirc::do_process (void) {
 			call_circ(current_record1, current_record2);
 	}
 
+	refresh_hash_table_list();
+
 	report_events();
 
 	cputime_curr = get_cpu_time();
@@ -375,12 +379,13 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 	for (unsigned int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
 
-		regional_ht = get_hash_table(gene_info->seg_list[i]);
+		regional_ht = get_hash_table_smart(gene_info->seg_list[i]);
 		
 		vafprintf(2, stderr, "R%d partial: [%d-%d]\n", (int) (!r1_partial) + 1, qspos, qepos);
 		vafprintf(2, stderr, "%s\n", remain_seq);
 
 		chaining(qspos, qepos, regional_ht, remain_seq, gene_len, gene_info->seg_list[i].start, bc1);
+
 		if (bc1.best_chain_count <= 0)
 			continue;
 
@@ -465,13 +470,13 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 	for (unsigned int i = 0; i < gene_info->seg_list.size(); ++i) {
 		uint32_t gene_len = gene_info->seg_list[i].end - gene_info->seg_list[i].start + 1;
 
-		regional_ht = get_hash_table(gene_info->seg_list[i]);
+		regional_ht = get_hash_table_smart(gene_info->seg_list[i]);
 		
 		vafprintf(2, stderr, "R1 partial: [%d-%d]\nremain: %s\n", r1_qspos, r1_qepos, r1_remain_seq);
 		chaining(r1_qspos, r1_qepos, regional_ht, r1_remain_seq, gene_len, gene_info->seg_list[i].start, bc1);
 		vafprintf(2, stderr, "R2 partial: [%d-%d]\nremain: %s\n", r2_qspos, r2_qepos, r2_remain_seq);
 		chaining(r2_qspos, r2_qepos, regional_ht, r2_remain_seq, gene_len, gene_info->seg_list[i].start, bc2);
-		
+	
 		if (bc1.best_chain_count <= 0 or bc2.best_chain_count <= 0)
 			continue;
 
@@ -670,10 +675,11 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 } 
 
 void ProcessCirc::refresh_hash_table_list (void) {
-	//for (auto it = ind2ht.begin(); it != ind2ht.end(); ++it) {
+	for (auto it = ind2ht.begin(); it != ind2ht.end(); ++it) {
+		delete it->second;
 		//removables.insert(it->first);
 
-	//}
+	}
 	
 	removables.clear();
 	gids.clear();
@@ -692,6 +698,24 @@ void ProcessCirc::check_removables (uint32_t rspos) {
 }
 
 RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info) {
+	RegionalHashTable* regional_ht;
+	RegionalHashTable* new_ht;
+
+	int gene_len = gene_info.end - gene_info.start + 1;
+	
+	char gene_seq[gene_len + 1];
+	gene_seq[gene_len] = '\0';
+	genome_seeder.pac2char_otf(gene_info.start, gene_len, gene_seq);
+
+	new_ht = new RegionalHashTable(window_size, gene_info.start, gene_info.end);
+
+	new_ht->create_table(gene_seq, 0, gene_len);
+	regional_ht = new_ht;
+
+	return regional_ht;
+}
+
+RegionalHashTable* ProcessCirc::get_hash_table_smart (const GeneInfo& gene_info) {
 	uint32_t gid, removable_ind;
 	RegionalHashTable* regional_ht;
 	RegionalHashTable* new_ht;
@@ -733,6 +757,7 @@ RegionalHashTable* ProcessCirc::get_hash_table (const GeneInfo& gene_info) {
 			gids[removable_ind] = gid;
 
 			regional_ht = ind2ht[removable_ind];
+
 			regional_ht->gene_spos = gene_info.start;
 			regional_ht->gene_epos = gene_info.end;
 			regional_ht->create_table(gene_seq, 0, gene_len);

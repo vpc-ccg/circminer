@@ -14,7 +14,6 @@ private:
 	int size;
 	int window_size;
 	GIMatchedKmer* table;
-	int* kmer_count;
 
 	char nuc_hval[128];
 
@@ -27,6 +26,8 @@ public:
 	~RegionalHashTable (void);
 
 	void init(int ws, uint32_t gspos, uint32_t gepos);
+	void reset(void);
+
 	void create_table (char* seq, uint32_t start, int len);
 	int hash_val(char* seq) const;
 	void add_loc (int hv, uint32_t loc);

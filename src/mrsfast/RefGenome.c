@@ -47,7 +47,6 @@ char *_rg_gen;
 char *_rg_name;
 int _rg_offset;
 int _rg_contGen;		// false if this segment is the first contig
-unsigned int *_rg_chrLen;
 
 int getGenomeMetaInfo(char*, char*, int*);
 
@@ -55,7 +54,6 @@ int getGenomeMetaInfo(char*, char*, int*);
 int initLoadingRefGenome(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoLength)
 {
 	_rg_fp = fileOpen (fileName, "r");
-	_rg_chrLen = getMem(sizeof(unsigned int) * 10000);
 
 	char packedName[FILE_NAME_LENGTH];
 	sprintf(packedName, "%s.packed", fileName);
@@ -208,6 +206,8 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 	int charInLine = 0;
 	fprintf(_rg_fp_packed, ">%d\n", currContig);
 	
+	unsigned int* my_chrLen = getMem(sizeof(unsigned int) * 10000);
+
 	while( fscanf(_rg_fp, "%c", &ch) > 0 )
 	{
 		if (!isspace(ch))
@@ -251,7 +251,7 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 			{
 				(*genSize)++;
 	
-				_rg_chrLen[*numOfChrs-1] = *genSize;
+				my_chrLen[*numOfChrs-1] = *genSize;
 				fprintf(_rg_fp_packed, "%c", toupper(ch));
 				charInLine++;
 				if (charInLine == CHAR_IN_FASTA_LINE) {
@@ -266,8 +266,10 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 	*genomeMetaInfoLength = i;
 
 	for (i = 0; i < *numOfChrs; i++) {
-		fprintf(stderr, "Len: %lu\n", _rg_chrLen[i]);
+		fprintf(stderr, "Len: %lu\n", my_chrLen[i]);
 	}
+
+	freeMem(my_chrLen, sizeof(unsigned int) * 10000);
 
 	rewind(_rg_fp);
 	return 1;

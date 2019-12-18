@@ -159,7 +159,7 @@ int mapping(int& last_round_num) {
 	fprintf(stdout, "%s mode\n", pairedEnd ? "paired-end" : "single-end");
 	fprintf(stdout, "%s\n", loadFullHashTable ? "Load full hash table from index" : "Create hash table on the fly");
 
-	ContigLen* orig_contig_len;
+	ContigLen orig_contig_len;
 	int contig_cnt;
 	if (!initLoadingHashTableMeta(index_file, &orig_contig_len, &contig_cnt))
 		return 1;
@@ -170,7 +170,7 @@ int mapping(int& last_round_num) {
 	/**GTF Parser Init**/
 	/*******************/
 
-	gtf_parser.init(gtfFilename, orig_contig_len, contig_cnt);
+	gtf_parser.init(gtfFilename, &orig_contig_len, contig_cnt);
 	if (! gtf_parser.load_gtf()) {
 		fprintf(stdout, "Error in reading GTF file.\n");
 		exit(1);
@@ -276,10 +276,6 @@ int mapping(int& last_round_num) {
 
 	filter_read.finalize();
 	genome_seeder.finalize();
-
-	for (int i = 0; i < contig_cnt; i++) 
-		freeMem(orig_contig_len[i].name, strlen(orig_contig_len[i].name));
-	freeMem(orig_contig_len, contig_cnt * sizeof(ContigLen));
 
 	finalizeLoadingHashTable();
 

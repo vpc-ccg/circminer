@@ -14,8 +14,6 @@ RegionalHashTable::RegionalHashTable (int ws, uint32_t gspos, uint32_t gepos) {
 }
 
 RegionalHashTable::~RegionalHashTable (void) {
-	free(kmer_count);
-
 	for (int i = 0; i < size; i++) {
 		if (table[i].frags != NULL)
 			free(table[i].frags);
@@ -30,44 +28,52 @@ void RegionalHashTable::init(int ws, uint32_t gspos, uint32_t gepos) {
 	size = 1 << (2 * ws);	// HT size = 4^ws
 
 	table = (GIMatchedKmer*) malloc(size * sizeof(GIMatchedKmer));
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < size; i++) {
 		table[i].frags = (GeneralIndex*) malloc(MAXHIT * sizeof(GeneralIndex));
-	
-	kmer_count = (int*) malloc(size * sizeof(int));
+		memset(table[i].frags, 0, MAXHIT * sizeof(GeneralIndex));
+	}
 
+	
 	memset(nuc_hval, -1, 128);
+
+	nuc_hval['a'] = 0;
+	nuc_hval['c'] = 1;
+	nuc_hval['g'] = 2;
+	nuc_hval['t'] = 3;
+
 	nuc_hval['A'] = 0;
 	nuc_hval['C'] = 1;
 	nuc_hval['G'] = 2;
 	nuc_hval['T'] = 3;
 }
 
-void RegionalHashTable::create_table (char* seq, uint32_t start, int len) {
-	// memset(table, 0, size * sizeof(GIMatchedKmer));
-	memset(kmer_count, 0, size * sizeof(int));
-
-	if (len < window_size)
-		return;
-
-	// count kmers
-	for (int i = 0; i <= len - window_size; i++) {
-		++kmer_count[hash_val(seq + i)];
-	}
-
+void RegionalHashTable::reset (void) {
 	// initialize
 	for (int i = 0; i < size; i++) {
 		table[i].frag_count = 0;
 		table[i].qpos = 0;
 	}
+}
+
+void RegionalHashTable::create_table (char* seq, uint32_t start, int len) {
+	reset();
+
+	if (len < window_size)
+		return;
 
 	// fill hash table
 	uint32_t loc = start;
 	int hv;
 	for (int i = 0; i <= len - window_size; i++) {
 		hv = hash_val(seq + i);
-		if (kmer_count[hv] <= MAXHIT)
+		if (hv >= 0 and hv < size)
 			add_loc(hv, loc);
 		++loc;
+	}
+
+	for (int hv = 0; hv < size; ++hv) {
+		if (table[hv].frag_count > MAXHIT)
+			table[hv].frag_count = 0;
 	}
 }
 
@@ -101,6 +107,7 @@ int RegionalHashTable::hash_val (char* seq) const {
 
 void RegionalHashTable::add_loc (int hv, uint32_t loc) {
 	if (table[hv].frag_count < MAXHIT) {
-		table[hv].frags[table[hv].frag_count++].info = loc;
+		table[hv].frags[table[hv].frag_count].info = loc;
 	}
+	++table[hv].frag_count;
 }
