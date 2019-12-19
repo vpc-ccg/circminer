@@ -290,7 +290,7 @@ void SAMOutput::write_pam_rec_pe (Record* rec1, Record* rec2) {
 				mr->tlen, mr->junc_num, mr->gm_compatible, mr->type);
 	}
 	else {
-		fprintf(outsam, "%s\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\n", rec1->rname);
+		fprintf(outsam, "%s\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t*\t%d\n", rec1->rname, mr->type);
 	}
 
 	//mutex_unlock(&pmap_lock);
