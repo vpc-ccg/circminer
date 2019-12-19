@@ -10,6 +10,8 @@ using namespace std;
 
 #define DPTINF 1000000
 
+#define compBP(A,B) ((A ^ B) ? (1) : (0))
+
 Alignment::Alignment(void) {
 	init();
 }
@@ -252,10 +254,6 @@ void Alignment::global_banded_alignment(char* s, int n, char* t, int m, int w) {
 	}
 
 	int i, j;
-	//memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
-	// for (i = 0; i <= n; i++)
-	// 	for (j = 0; j <= m; j++)
-	// 		dp[i][j] = 1e6;
 
 	j = 0;
 	for (i = w+1; i <= n; i++) {
@@ -266,32 +264,52 @@ void Alignment::global_banded_alignment(char* s, int n, char* t, int m, int w) {
 	for (j = w+1; j <= m; j++)
 		dp[i++][j] = DPTINF;
 
-	// uint32_t dp[n+1][m+1];
-	// memset(dp, 127, (n+1) * (m+1) * sizeof(uint32_t));
-
-	for (i = 0; i <= w; i++)
+	for (i = 0; i <= w; i++) {
 		dp[i][0] = i;
-
-	for (j = 0; j <= w; j++)
-		dp[0][j] = j;
+		dp[0][i] = i;
+	}
 
 	for (j = 1; j <= w; j++) {
 		for (i = 1; i <= j + w; i++) {
-			dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[i-1])][uint8_t(t[j-1])];
-			dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+			//dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[i-1])][uint8_t(t[j-1])];
+			//dp[i][j] = dp[i-1][j-1] + compBP(s[i-1], t[j-1]);
+			//dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+			//dp[i][j] = minM3(dp[i-1][j-1] + compBP(s[i-1], t[j-1]), 
+			//				 dp[i-1][j] + 1, 
+			//				 dp[i][j-1] + 1);
+
+			dp[i][j] = minM3(dp[i-1][j-1] + diff_ch[s[i-1]] [t[j-1]], 
+							 dp[i-1][j] + 1, 
+							 dp[i][j-1] + 1);
 		}
 	}
 
 	for (j = w + 1; j <= n - w; j++) {
 		for (i = j - w; i <= j + w; i++) {
-			dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[i-1])][uint8_t(t[j-1])];
-			dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+			//dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[i-1])][uint8_t(t[j-1])];
+			//dp[i][j] = dp[i-1][j-1] + compBP(s[i-1], t[j-1]);
+			//dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+			//dp[i][j] = minM3(dp[i-1][j-1] + compBP(s[i-1], t[j-1]), 
+			//				 dp[i-1][j] + 1, 
+			//				 dp[i][j-1] + 1);
+
+			dp[i][j] = minM3(dp[i-1][j-1] + diff_ch[s[i-1]] [t[j-1]], 
+							 dp[i-1][j] + 1, 
+							 dp[i][j-1] + 1);
 		}	
 	}
 	for (j = n - w + 1; j <= m; j++) {
 		for (i = j - w; i <= n; i++) {
-			dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[i-1])][uint8_t(t[j-1])];
-			dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+			//dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[i-1])][uint8_t(t[j-1])];
+			//dp[i][j] = dp[i-1][j-1] + compBP(s[i-1], t[j-1]);
+			//dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+			//dp[i][j] = minM3(dp[i-1][j-1] + compBP(s[i-1], t[j-1]), 
+			//				 dp[i-1][j] + 1, 
+			//				 dp[i][j-1] + 1);
+
+			dp[i][j] = minM3(dp[i-1][j-1] + diff_ch[s[i-1]] [t[j-1]], 
+							 dp[i-1][j] + 1, 
+							 dp[i][j-1] + 1);
 		}	
 	}
 	
@@ -304,6 +322,104 @@ void Alignment::global_banded_alignment(char* s, int n, char* t, int m, int w) {
 
 }
 
+
+// w is the band size
+// w < 0 disables band
+// n >= m
+//void Alignment::global_banded_alignment(char* s, int n, char* t, int m, int w) {
+//	if (w < 0 or n <= 2 * w or m <= w) {
+//		global_alignment(s, n, t, m);
+//		return;
+//	}
+//
+//	int i, j;
+//
+//	char *ss = s;
+//	char *tt = t;
+//
+//	j = 0;
+//	for (i = w+1; i <= n; i++) {
+//		dp[i][j++] = DPTINF;
+//	}
+//
+//	i = 0;
+//	for (j = w+1; j <= m; j++)
+//		dp[i++][j] = DPTINF;
+//
+//	for (i = 0; i <= w; i++) {
+//		dp[i][0] = i;
+//		dp[0][i] = i;
+//	}
+//
+//	for (j = 1; j <= w; j++) {
+//		s = ss;
+//		for (i = 1; i <= j + w; i++) {
+//			//dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[i-1])][uint8_t(t[j-1])];
+//			//dp[i][j] = dp[i-1][j-1] + compBP(s[i-1], t[j-1]);
+//			//dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+//			//dp[i][j] = minM3(dp[i-1][j-1] + compBP(s[i-1], t[j-1]), 
+//			//				 dp[i-1][j] + 1, 
+//			//				 dp[i][j-1] + 1);
+//
+//			dp[i][j] = minM3(dp[i-1][j-1] + diff_ch[*s][*t], 
+//							 dp[i-1][j] + 1, 
+//							 dp[i][j-1] + 1);
+//			
+//			++s;
+//		}
+//		++t;
+//	}
+//
+//	// moving forward ...
+//	ss = ss - w - 1;
+//
+//	for (j = w + 1; j <= n - w; j++) {
+//		s = ss + j;
+//		for (i = j - w; i <= j + w; i++) {
+//			//dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[i-1])][uint8_t(t[j-1])];
+//			//dp[i][j] = dp[i-1][j-1] + compBP(s[i-1], t[j-1]);
+//			//dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+//			//dp[i][j] = minM3(dp[i-1][j-1] + compBP(s[i-1], t[j-1]), 
+//			//				 dp[i-1][j] + 1, 
+//			//				 dp[i][j-1] + 1);
+//
+//			dp[i][j] = minM3(dp[i-1][j-1] + diff_ch[*s][*t], 
+//							 dp[i-1][j] + 1, 
+//							 dp[i][j-1] + 1);
+//			
+//			++s;
+//		}
+//		++t;
+//	}
+//
+//	for (j = n - w + 1; j <= m; j++) {
+//		s = ss + j;
+//		for (i = j - w; i <= n; i++) {
+//			//dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[i-1])][uint8_t(t[j-1])];
+//			//dp[i][j] = dp[i-1][j-1] + compBP(s[i-1], t[j-1]);
+//			//dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+//			//dp[i][j] = minM3(dp[i-1][j-1] + compBP(s[i-1], t[j-1]), 
+//			//				 dp[i-1][j] + 1, 
+//			//				 dp[i][j-1] + 1);
+//
+//			dp[i][j] = minM3(dp[i-1][j-1] + diff_ch[*s][*t], 
+//							 dp[i-1][j] + 1, 
+//							 dp[i][j-1] + 1);
+//			
+//			++s;
+//		}
+//		++t;
+//	}
+//	
+//	// fprintf(stderr, "DP\n");
+//	// for (int j = 0; j <= m; j++) {
+//	// 	for (int i = 0; i <= n; i++)
+//	// 		fprintf(stderr, "%2d ", dp[i][j]);
+//	// 	fprintf(stderr, "\n");
+//	// }
+//
+//}
+
 // n >= m
 void Alignment::global_banded_alignment_reverse(char* s, int n, char* t, int m, int w) {
 	if (w < 0 or n <= 2 * w or m <= w) {
@@ -312,10 +428,6 @@ void Alignment::global_banded_alignment_reverse(char* s, int n, char* t, int m, 
 	}
 
 	int i, j;
-	//memset(dp, 127, MAXSTRSIZE * MAXSTRSIZE * sizeof(dp[0][0]));
-	// for (i = 0; i <= n; i++)
-	// 	for (j = 0; j <= m; j++)
-	// 		dp[i][j] = 1e6;
 
 	j = 0;
 	for (i = w+1; i <= n; i++) {
@@ -326,32 +438,40 @@ void Alignment::global_banded_alignment_reverse(char* s, int n, char* t, int m, 
 	for (j = w+1; j <= m; j++)
 		dp[i++][j] = DPTINF;
 
-	// uint32_t dp[n+1][m+1];
-	// memset(dp, 127, (n+1) * (m+1) * sizeof(uint32_t));
-
-	for (i = 0; i <= w; i++)
+	for (i = 0; i <= w; i++) {
 		dp[i][0] = i;
-
-	for (j = 0; j <= w; j++)
-		dp[0][j] = j;
+		dp[0][i] = i;
+	}
 
 	for (j = 1; j <= w; j++) {
 		for (i = 1; i <= j + w; i++) {
-			dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[n-i])][uint8_t(t[m-j])];
-			dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+			//dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[n-i])][uint8_t(t[m-j])];
+			//dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+
+			dp[i][j] = minM3(dp[i-1][j-1] + diff_ch[s[n-i]] [t[m-j]],
+							 dp[i-1][j] + 1,
+							 dp[i][j-1] + 1);
 		}
 	}
 
 	for (j = w + 1; j <= n - w; j++) {
 		for (i = j - w; i <= j + w; i++) {
-			dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[n-i])][uint8_t(t[m-j])];
-			dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+			//dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[n-i])][uint8_t(t[m-j])];
+			//dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+
+			dp[i][j] = minM3(dp[i-1][j-1] + diff_ch[s[n-i]] [t[m-j]],
+							 dp[i-1][j] + 1,
+							 dp[i][j-1] + 1);
 		}	
 	}
 	for (j = n - w + 1; j <= m; j++) {
 		for (i = j - w; i <= n; i++) {
-			dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[n-i])][uint8_t(t[m-j])];
-			dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+			//dp[i][j] = dp[i-1][j-1] + diff_ch[uint8_t(s[n-i])][uint8_t(t[m-j])];
+			//dp[i][j] = minM(minM(dp[i][j], dp[i-1][j] + 1), dp[i][j-1] + 1);
+
+			dp[i][j] = minM3(dp[i-1][j-1] + diff_ch[s[n-i]] [t[m-j]],
+							 dp[i-1][j] + 1,
+							 dp[i][j-1] + 1);
 		}	
 	}
 	
