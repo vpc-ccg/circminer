@@ -520,10 +520,10 @@ uint32_t GTFParser::get_upper_bound_lookup(uint32_t spos, uint32_t mlen, uint32_
 // remain lenght does not include loc itself (starting from next location)
 const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap(uint32_t loc, bool use_mask) {
 	// do not use mask if extending left
-	if (use_mask and !(near_border_bs[contigNum][loc])) {		// intronic
-		//fprintf(stderr, "skip lookup\n");
-		return NULL;
-	}
+	//if (use_mask and !(near_border_bs[contigNum][loc])) {		// intronic
+	//	//fprintf(stderr, "skip lookup\n");
+	//	return NULL;
+	//}
 	
 	IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigNum].find(loc);
 
@@ -537,10 +537,10 @@ const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap(uint32_t loc, bool 
 // remain lenght does not include loc itself (starting from next location)
 const IntervalInfo<UniqSeg>* GTFParser::get_location_overlap_ind(uint32_t loc, bool use_mask, int& ind) {
 	// do not use mask if extending left
-	if (use_mask and !(near_border_bs[contigNum][loc])) {		// intronic
-		//fprintf(stderr, "skip lookup\n");
-		return NULL;
-	}
+	//if (use_mask and !(near_border_bs[contigNum][loc])) {		// intronic
+	//	//fprintf(stderr, "skip lookup\n");
+	//	return NULL;
+	//}
 	
 	IntervalInfo<UniqSeg>* ov_res = exons_int_map[contigNum].find_ind(loc, ind);
 
