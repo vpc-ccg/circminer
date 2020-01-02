@@ -182,6 +182,9 @@ MatchedMate::MatchedMate(const MatchedRead& mr, int r1_2, int rlen, bool partial
 					exons_spos(NULL), exons_epos(NULL), gene_info(NULL) {
 
 	type = mr.type;
+	right_ed = 0;
+	left_ed = 0;
+
 	if (r1_2 == 1) {
 		spos = mr.spos_r1;
 		epos = mr.epos_r1;

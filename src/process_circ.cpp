@@ -399,10 +399,10 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 			con_shift = gtf_parser.get_shift(contigNum, mm_r1.spos);
 			vafprintf(2, stderr, "Coordinates: [%d-%d]\n", partial_mm.spos - con_shift.shift, partial_mm.epos - con_shift.shift);
 			
-			print_split_mapping(current_record1->rname, mm_r1, mm_r2, partial_mm, con_shift);
 			
 			CircRes cr;
 			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial, cr);
+			print_split_mapping(current_record1->rname, mm_r1, mm_r2, partial_mm, con_shift);
 			fprintf(candid_file, "%d\n", type);
 			if (type < CR) {
 				best_cr.type = type;
@@ -514,10 +514,9 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 			vafprintf(2, stderr, "R1 Partial Coordinates: [%d-%d]\n", r1_partial_mm.spos - con_shift.shift, r1_partial_mm.epos - con_shift.shift);
 			vafprintf(2, stderr, "R2 Partial Coordinates: [%d-%d]\n", r2_partial_mm.spos - con_shift.shift, r2_partial_mm.epos - con_shift.shift);
 			
-			print_split_mapping(current_record1->rname, mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, con_shift);
-			
 			CircRes cr;
 			int type = check_split_map(mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, cr);
+			print_split_mapping(current_record1->rname, mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, con_shift);
 			fprintf(candid_file, "%d\n", type);
 			if (type < CR) {
 				best_cr.type = type;
@@ -778,23 +777,46 @@ RegionalHashTable* ProcessCirc::get_hash_table_smart (const GeneInfo& gene_info)
 
 // for non-overlapping split mates
 int ProcessCirc::check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, bool r1_partial, CircRes& cr) {
+	int valid = UD;
+	int split_read_ed = 0;
+
 	if (r1_partial) {
+		split_read_ed = mm_r1.right_ed + mm_r1.left_ed + mm_r1.middle_ed + 
+						partial_mm.right_ed + partial_mm.left_ed + partial_mm.middle_ed;
+
 		if (mm_r1.qspos < partial_mm.qspos)
-			return final_check(mm_r2, mm_r1, partial_mm, cr);
+			valid = final_check(mm_r2, mm_r1, partial_mm, cr);
 		else 
-			return final_check(mm_r2, partial_mm, mm_r1, cr);
+			valid = final_check(mm_r2, partial_mm, mm_r1, cr);
 	}
 	else {
+		split_read_ed = mm_r2.right_ed + mm_r2.left_ed + mm_r2.middle_ed + 
+						partial_mm.right_ed + partial_mm.left_ed + partial_mm.middle_ed;
 		if (mm_r2.qspos < partial_mm.qspos)
-			return final_check(mm_r1, mm_r2, partial_mm, cr);
+			valid = final_check(mm_r1, mm_r2, partial_mm, cr);
 		else 
-			return final_check(mm_r1, partial_mm, mm_r2, cr);
+			valid = final_check(mm_r1, partial_mm, mm_r2, cr);
 	}
-	return UD;
+	if (split_read_ed > maxEd) {
+		//fprintf(stderr, "non-overlapping edit distance exceeded! ed: %d\n", split_read_ed);
+		valid = UD;
+	}
+	return valid;
 }
 
 // for overlapping split mates
 int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, MatchedMate& mm_r1_2, MatchedMate& mm_r2_2, CircRes& cr) {
+
+	int r1_ed = mm_r1_1.right_ed + mm_r1_1.left_ed + mm_r1_1.middle_ed +
+				mm_r1_2.right_ed + mm_r1_2.left_ed + mm_r1_2.middle_ed;
+	int r2_ed = mm_r2_1.right_ed + mm_r2_1.left_ed + mm_r2_1.middle_ed +
+				mm_r2_2.right_ed + mm_r2_2.left_ed + mm_r2_2.middle_ed;
+
+	if (r1_ed > maxEd or r2_ed > maxEd) {
+		//fprintf(stderr, "overlapping edit distance exceeded! ed1: %d, ed2: %d\n", r1_ed, r2_ed);
+		return UD;
+	}
+
 	MatchedMate mm_r1_l = (mm_r1_1.spos <= mm_r1_2.spos) ? mm_r1_1 : mm_r1_2;
 	MatchedMate mm_r1_r = (mm_r1_1.spos <= mm_r1_2.spos) ? mm_r1_2 : mm_r1_1;
 
@@ -923,7 +945,30 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 		}
 	}
 
-	else if (split_mm_right.epos < split_mm_left.spos) {
+	//else if (split_mm_right.epos < split_mm_left.spos) {
+	// allow detection of short circRNAs
+	else if (split_mm_right.spos <= split_mm_left.spos and split_mm_left.epos >= split_mm_right.epos) {
+		if (full_mm.spos < split_mm_right.spos) {
+			int off = split_mm_right.spos - full_mm.spos;
+			int sc_remained =  maxSc - full_mm.sclen_left;
+			if (off <= sc_remained) {
+				full_mm.spos = split_mm_right.spos;
+				full_mm.sclen_left += off;
+				full_mm.qspos += off;
+				full_mm.matched_len -= off;
+			}
+
+		}
+		if (full_mm.epos > split_mm_left.epos) {
+			int off = full_mm.epos - split_mm_left.epos;
+			int sc_remained =  maxSc - full_mm.sclen_right;
+			if (off <= sc_remained) {
+				full_mm.epos = split_mm_left.epos;
+				full_mm.sclen_right += off;
+				full_mm.qepos -= off;
+				full_mm.matched_len -= off;
+			}
+		}
 		if (full_mm.spos >= split_mm_right.spos and full_mm.epos <= split_mm_left.epos) {
 			// check splice site
 			overlap_to_spos(full_mm);
