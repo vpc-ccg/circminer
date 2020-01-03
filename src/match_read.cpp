@@ -193,21 +193,35 @@ int GenomeSeeder::kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, 
 	for (j = 0; j < max_seg_cnt; j++) {
 		(cur+j)->frag_count = 0;
 		(cur+j)->frags = NULL;
-		(cur+j)->qpos = skip*j;
+		//(cur+j)->qpos = skip*j;
+	}
+
+	vector <int32_t> starting_qpoints;
+	int32_t cut_start;
+	for (i = shift; i < rseq_len; i += skip) {
+		if (rseq_len - i < kmer_size)
+			break;
+
+		cut_start = i;
+		//if (rseq_len - i < 2 * kmer_size)
+		//	cut_start = rseq_len - kmer_size;
+		//else
+		//	cut_start = i;
+			
+		starting_qpoints.push_back(cut_start);
 	}
 
 	em_count = 0;
 	j = -1 * ll_step;
-	for (i = shift; i < rseq_len; i += skip) {
+	for (unsigned int k = 0; k < starting_qpoints.size(); ++k) {
+		i = starting_qpoints[k];
 		j += ll_step;
-
-		if (rseq_len - i < kmer_size)
-			match_len = rseq_len - i;
-		if (match_len < MINKMER) 
-			break;
 
 		if (i != shift)
 			cur += ll_step;
+
+		cur->qpos = i;
+
 		occ = get_exact_locs_hash(rseq + i, i, match_len, cur);
 		
 		vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
