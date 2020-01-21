@@ -176,6 +176,41 @@ inline ostream& operator<<(ostream& os, const GeneInfo& gi);
 
 /**************************************************************************************************/
 
+struct JunctionInfo {
+	uint32_t beg;
+	uint32_t end;
+	uint32_t bp_matched;
+};
+
+/**************************************************************************************************/
+
+struct JunctionInfoList {
+	uint32_t count;
+	vector <JunctionInfo> junc_info;
+
+	JunctionInfoList() : count(0), junc_info(maxReadLength) {}
+
+	void clear() { count = 0; }
+	void push_back(uint32_t b, uint32_t e, uint32_t m) {
+		if (b >= e)
+			return;
+		junc_info[count].beg = b;
+		junc_info[count].end = e;
+		junc_info[count].bp_matched = m;
+		++count;
+	}
+	void print() {
+		fprintf(stderr, "\n>>>\n");
+		fprintf(stderr, "Junctions count: %u\n", count);
+		for (uint32_t i = 0; i < count; ++i)
+			fprintf(stderr, "[%u - %u](%u), ", 
+					junc_info[i].beg, junc_info[i].end, junc_info[i].bp_matched);
+		fprintf(stderr, "\n<<<\n");
+	}
+};
+
+/**************************************************************************************************/
+
 struct UniqSeg {
 	uint32_t start;
 	uint32_t end;
@@ -243,6 +278,8 @@ struct MatchedMate {
 	const IntervalInfo<UniqSeg>* exons_epos;
 
 	const IntervalInfo<GeneInfo>* gene_info;
+
+	JunctionInfoList junc_info;
 
 	MatchedMate (void);
 	MatchedMate (const MatchedRead& mr, int r1_2, int rlen, bool partial);
@@ -358,7 +395,13 @@ struct CircRes {
 	uint32_t epos;
 	int type;
 
-	void set_bp (uint32_t sp, uint32_t ep);
+	string start_signal;
+	string end_signal;
+
+	string start_bp_ref;
+	string end_bp_ref;
+
+	void set_bp (uint32_t sp, uint32_t ep, const string& ssignal, const string& esignal, char* sbref, char* ebref);
 
 	bool operator < (const CircRes& r) const;
 	bool operator == (const CircRes& r) const;

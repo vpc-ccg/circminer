@@ -32,6 +32,16 @@ private:
 	int window_size;
 	int step;
 	
+	char* fullmap_seq;
+	char* remain_seq;
+	char* r1_seq;
+	char* r2_seq;
+	
+	uint32_t fullmap_seq_len;
+	uint32_t remain_seq_len;
+	uint32_t r1_seq_len;
+	uint32_t r2_seq_len;
+
 	MatchedRead mr;
 	chain_list bc1;
 	chain_list bc2;
@@ -80,6 +90,12 @@ public:
 	int check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, MatchedMate& mm_r1_2, MatchedMate& mm_r2_2, CircRes& cr);
 	int final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr);
 
+	int split_realignment(uint32_t qcutpos, uint32_t beg_bp, uint32_t end_bp, char* seq, uint32_t seq_len, const vector <uint32_t>& common_tid, MatchedMate& split_mm_left, MatchedMate& split_mm_right);
+	int split_realignment(uint32_t qcutpos, MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr);
+
+	int rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr);
+
+	void both_side_consensus(const vector <CircRes>& bsj_reads, string& ssignal, string& esignal);
 	void report_events (void);
 
 	void print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 

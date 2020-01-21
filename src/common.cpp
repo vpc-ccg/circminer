@@ -449,9 +449,15 @@ bool AllCoord::operator < (const AllCoord& r) const {
 
 /**************************************************************************************************/
 
-void CircRes::set_bp (uint32_t sp, uint32_t ep) {
+void CircRes::set_bp (uint32_t sp, uint32_t ep, const string& ssignal, const string& esignal, char* sbref, char* ebref) {
 	spos = sp;
 	epos = ep;
+
+	start_signal = ssignal;
+	end_signal = esignal;
+
+	start_bp_ref = sbref;
+	end_bp_ref = ebref;
 }
 
 bool CircRes::operator < (const CircRes& r) const {

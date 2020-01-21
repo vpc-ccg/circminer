@@ -187,6 +187,7 @@ void ProcessCirc::sort_fq(char* fqname) {
 }
 
 void ProcessCirc::do_process (void) {
+
 	/**********************/
 	/**Loading Hash Table**/
 	/**********************/
@@ -320,6 +321,16 @@ void ProcessCirc::do_process (void) {
 
 // PE
 void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
+	fullmap_seq	= NULL;
+	remain_seq	= NULL;
+	r1_seq		= NULL;
+	r2_seq		= NULL;
+
+	fullmap_seq_len	= 0;
+	remain_seq_len	= 0;
+	r1_seq_len		= 0;
+	r2_seq_len		= 0;
+
 	MatchedRead mr = *(current_record1->mr);
 	vafprintf(2, stderr, "%s\n%s\n", current_record1->seq, current_record2->seq);
 	vafprintf(2, stderr, "%s\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%s\t%u\t%u\t%d\t%u\t%u\t%d\t%d\t%d\t%d\t%d\n", 
@@ -339,8 +350,14 @@ void ProcessCirc::call_circ(Record* current_record1, Record* current_record2) {
 void ProcessCirc::call_circ_single_split(Record* current_record1, Record* current_record2) {
 	MatchedRead mr = *(current_record1->mr);
 	bool r1_partial = mr.mlen_r1 < mr.mlen_r2;
-	char* remain_seq = (r1_partial) ? ((mr.r1_forward) ? current_record1->seq : current_record1->rcseq) : 
+	remain_seq = (r1_partial) ? ((mr.r1_forward) ? current_record1->seq : current_record1->rcseq) : 
 									  ((mr.r2_forward) ? current_record2->seq : current_record2->rcseq) ;
+	fullmap_seq = (!r1_partial) ? ((mr.r1_forward) ? current_record1->seq : current_record1->rcseq) : 
+									  ((mr.r2_forward) ? current_record2->seq : current_record2->rcseq) ;
+
+	remain_seq_len = (r1_partial) ? current_record1->seq_len : current_record2->seq_len;
+	fullmap_seq_len = (!r1_partial) ? current_record1->seq_len : current_record2->seq_len;
+
 	uint32_t qspos = (r1_partial) ? (((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (1) : (mr.qepos_r1 + 1)) :
 									(((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (1) : (mr.qepos_r2 + 1)) ;
 
@@ -401,9 +418,16 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 			
 			
 			CircRes cr;
+
+			fprintf(stderr, "%s\t", current_record1->rname);
+
 			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial, cr);
 			print_split_mapping(current_record1->rname, mm_r1, mm_r2, partial_mm, con_shift);
+
+			fprintf(stderr, "\n");
+
 			fprintf(candid_file, "%d\n", type);
+
 			if (type < CR) {
 				best_cr.type = type;
 				break;
@@ -415,6 +439,11 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 				best_cr.spos = cr.spos - con_shift.shift;
 				best_cr.epos = cr.epos - con_shift.shift;
 				best_cr.type = type;
+				best_cr.start_signal = cr.start_signal;
+				best_cr.end_signal = cr.end_signal;
+				best_cr.start_bp_ref = cr.start_bp_ref;
+				best_cr.end_bp_ref = cr.end_bp_ref;
+
 				if (type == CR)
 					break;	// stop processing next genes
 			}
@@ -430,6 +459,11 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 	vafprintf(2, stderr, "Double split read...\n");
 	char* r1_remain_seq = (mr.r1_forward) ? current_record1->seq : current_record1->rcseq;
 	char* r2_remain_seq = (mr.r2_forward) ? current_record2->seq : current_record2->rcseq;
+
+	r1_seq = r1_remain_seq;
+	r2_seq = r2_remain_seq;
+	r1_seq_len = current_record1->seq_len;
+	r2_seq_len = current_record2->seq_len;
 
 	uint32_t r1_qspos = ((mr.qspos_r1 - 1) > (current_record1->seq_len - mr.qepos_r1)) ? (1) : (mr.qepos_r1 + 1);
 	uint32_t r2_qspos = ((mr.qspos_r2 - 1) > (current_record2->seq_len - mr.qepos_r2)) ? (1) : (mr.qepos_r2 + 1);
@@ -529,6 +563,11 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 				best_cr.spos = cr.spos - con_shift.shift;
 				best_cr.epos = cr.epos - con_shift.shift;
 				best_cr.type = type;
+				best_cr.start_signal = cr.start_signal;
+				best_cr.end_signal = cr.end_signal;
+				best_cr.start_bp_ref = cr.start_bp_ref;
+				best_cr.end_bp_ref = cr.end_bp_ref;
+
 				if (type == CR)
 					break;	// stop processing next genes
 			}
@@ -777,7 +816,7 @@ RegionalHashTable* ProcessCirc::get_hash_table_smart (const GeneInfo& gene_info)
 
 // for non-overlapping split mates
 int ProcessCirc::check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, bool r1_partial, CircRes& cr) {
-	int valid = UD;
+	int valid = NF;
 	int split_read_ed = 0;
 
 	if (r1_partial) {
@@ -797,6 +836,7 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, Matche
 		else 
 			valid = final_check(mm_r1, partial_mm, mm_r2, cr);
 	}
+
 	if (split_read_ed > maxEd) {
 		//fprintf(stderr, "non-overlapping edit distance exceeded! ed: %d\n", split_read_ed);
 		valid = UD;
@@ -825,6 +865,14 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 
 	bool r1_regular_bsj = (mm_r1_l.qspos < mm_r1_r.qspos);
 	bool r2_regular_bsj = (mm_r2_l.qspos < mm_r2_r.qspos);
+
+	string ssignal_final;
+	string esignal_final;
+
+	string ssignal1;
+	string esignal1;
+	string ssignal2;
+	string esignal2;
 
 	// RF or FR check
 	if (r1_regular_bsj and r2_regular_bsj) {
@@ -904,18 +952,94 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 			}
 
 			int sdiff, ediff;
+			int best_ed1 = maxEd + 1;
+			int best_ed2 = maxEd + 1;
+			uint32_t qcutpos;
+            uint32_t beg_bp;
+            uint32_t end_bp;
+			vector <uint32_t> common_tid;
 			for (unsigned int i = 0; i < start_tids.size(); ++i) {
 				for (unsigned int j = 0; j < end_tids.size(); ++j) {
 					sdiff = start_tids[i].second;
 					ediff = end_tids[j].second;
 					if (start_tids[i].first == end_tids[j].first and sdiff == ediff) {
-						cr.set_bp(mm_r1_l.spos - mm_r1_l.sclen_left - sdiff, mm_r1_r.epos + mm_r1_r.sclen_right - ediff);
-						return CR;
+						common_tid.clear();
+						common_tid.push_back(start_tids[i].first);
+						beg_bp = mm_r1_l.spos - mm_r1_l.sclen_left - sdiff;
+						end_bp = mm_r1_r.epos + mm_r1_r.sclen_right - ediff;
+
+						qcutpos = mm_r1_r.qepos + mm_r1_r.sclen_right - ediff;
+						int ed1 = split_realignment(qcutpos, beg_bp, end_bp, r1_seq, r1_seq_len, common_tid, mm_r1_r, mm_r1_l);
+						
+						if (qcutpos < 2 or qcutpos + 2 > r1_seq_len) {
+							esignal1 = "";
+							ssignal1 = "";
+						}
+						else {
+							esignal1 = string() + r1_seq[qcutpos-2] + r1_seq[qcutpos-1];
+							ssignal1 = string() + r1_seq[qcutpos] + r1_seq[qcutpos+1];
+						}
+
+						qcutpos = mm_r2_r.qepos + mm_r2_r.sclen_right - ediff;
+						int ed2 = split_realignment(qcutpos, beg_bp, end_bp, r2_seq, r2_seq_len, common_tid, mm_r2_r, mm_r2_l);
+
+						if (qcutpos < 2 or qcutpos + 2 > r2_seq_len) {
+							ssignal2 = "";
+							esignal2 = "";
+						}
+						else {
+							esignal2 = string() + r2_seq[qcutpos-2] + r2_seq[qcutpos-1];
+							ssignal2 = string() + r2_seq[qcutpos] + r2_seq[qcutpos+1];
+						}
+
+						if (ed1 < best_ed1 and ed2 < best_ed2) {
+							char near_start_bp[10];
+							genome_seeder.pac2char_otf(beg_bp, 2, near_start_bp);
+							
+							char near_end_bp[10];
+							genome_seeder.pac2char_otf(end_bp-1, 2, near_end_bp);
+
+							if (ssignal1 == "") {
+								cr.set_bp(beg_bp, end_bp, ssignal2, esignal2, near_start_bp, near_end_bp);
+							}
+							else if (ssignal2 == "") {
+								cr.set_bp(beg_bp, end_bp, ssignal1, esignal1, near_start_bp, near_end_bp);
+							}
+							else {
+								ssignal_final = get_consensus(ssignal1, ssignal2);
+								esignal_final = get_consensus(esignal1, esignal2);
+
+								cr.set_bp(beg_bp, end_bp, ssignal_final, esignal_final, near_start_bp, near_end_bp);
+							}
+							best_ed1 = ed1;
+							best_ed2 = ed2;
+						}
 					}
 				}
 			}
 
-			cr.set_bp(mm_r1_l.spos - mm_r1_l.sclen_left, mm_r1_r.epos + mm_r1_r.sclen_right);
+			if (best_ed1 <= maxEd and best_ed2 <= maxEd)
+				return CR;
+
+			qcutpos = mm_r1_r.qepos + mm_r1_r.sclen_right;
+			beg_bp = mm_r1_l.spos - mm_r1_l.sclen_left;
+			end_bp = mm_r1_r.epos + mm_r1_r.sclen_right;
+
+			esignal1 = string() + r1_seq[qcutpos-2] + r1_seq[qcutpos-1];
+			ssignal1 = string() + r1_seq[qcutpos] + r1_seq[qcutpos+1];
+			esignal2 = string() + r2_seq[qcutpos-2] + r2_seq[qcutpos-1];
+			ssignal2 = string() + r2_seq[qcutpos] + r2_seq[qcutpos+1];
+
+			ssignal_final = get_consensus(ssignal1, ssignal2);
+			esignal_final = get_consensus(esignal1, esignal2);
+
+			char near_start_bp[10];
+			genome_seeder.pac2char_otf(beg_bp, 2, near_start_bp);
+			
+			char near_end_bp[10];
+			genome_seeder.pac2char_otf(end_bp-1, 2, near_end_bp);
+
+			cr.set_bp(beg_bp, end_bp, ssignal_final, esignal_final, near_start_bp, near_end_bp);
 			if (start_tids.size() > 0 and end_tids.size() > 0)
 				return NCR;
 
@@ -929,6 +1053,9 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 // split_mm_left -> left hand side of the split read
 // split_mm_right -> right hand side of the split read
 int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr) {
+	string ssignal;
+	string esignal;
+
 	if (split_mm_left.epos < split_mm_right.spos) {
 		if (full_mm.dir == 1) {
 			if (full_mm.spos <= split_mm_left.spos)
@@ -1034,6 +1161,8 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 			}
 
 			int sdiff, ediff;
+			int best_ed = maxEd + 1;
+			vector <uint32_t> common_tid;
 			for (unsigned int i = 0; i < start_tids.size(); ++i) {
 				for (unsigned int j = 0; j < end_tids.size(); ++j) {
 					sdiff = start_tids[i].second;
@@ -1043,20 +1172,245 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 										// start_tids[i].first, gtf_parser.transcript_ids[contigNum][start_tids[i].first].c_str(), split_mm_right.spos, split_mm_right.sclen_left, sdiff, split_mm_left.epos, split_mm_left.sclen_right, ediff);
 					// if (start_tids[i].first == end_tids[j].first and sdiff + ediff == 0) {
 					if (start_tids[i].first == end_tids[j].first and sdiff == ediff) {
-						cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left - sdiff, split_mm_left.epos + split_mm_left.sclen_right - ediff);
-						return CR;
+						common_tid.clear();
+						common_tid.push_back(start_tids[i].first);
+						uint32_t qcutpos = split_mm_left.qepos + split_mm_left.sclen_right - ediff;
+						uint32_t beg_bp = split_mm_right.spos - split_mm_right.sclen_left - sdiff;
+						uint32_t end_bp = split_mm_left.epos + split_mm_left.sclen_right - ediff;
+						int ed = split_realignment(qcutpos, beg_bp, end_bp, remain_seq, remain_seq_len, common_tid, split_mm_left, split_mm_right);
+						
+						if (ed < best_ed) {
+							esignal = string() + remain_seq[qcutpos-2] + remain_seq[qcutpos-1];
+							ssignal = string() + remain_seq[qcutpos] + remain_seq[qcutpos+1];
+
+							char near_start_bp[10];
+							genome_seeder.pac2char_otf(beg_bp, 2, near_start_bp);
+							
+							char near_end_bp[10];
+							genome_seeder.pac2char_otf(end_bp-1, 2, near_end_bp);
+
+							cr.set_bp(beg_bp, end_bp, ssignal, esignal, near_start_bp, near_end_bp);
+							best_ed = ed;
+						}
 					}
 				}
 			}
 
-			cr.set_bp(split_mm_right.spos - split_mm_right.sclen_left, split_mm_left.epos + split_mm_left.sclen_right);
+			if (best_ed <= maxEd)
+				return CR;
+
+			uint32_t qcutpos = split_mm_left.qepos + split_mm_left.sclen_right;
+			uint32_t beg_bp = split_mm_right.spos - split_mm_right.sclen_left;
+			uint32_t end_bp = split_mm_left.epos + split_mm_left.sclen_right;
+
+			ssignal = string() + remain_seq[qcutpos-2] + remain_seq[qcutpos-1];
+			esignal = string() + remain_seq[qcutpos] + remain_seq[qcutpos+1];
+
+			char near_start_bp[10];
+			genome_seeder.pac2char_otf(beg_bp, 2, near_start_bp);
+			
+			char near_end_bp[10];
+			genome_seeder.pac2char_otf(end_bp-1, 2, near_end_bp);
+
+			cr.set_bp(beg_bp, end_bp, ssignal, esignal, near_start_bp, near_end_bp);
 			if (start_tids.size() > 0 and end_tids.size() > 0)
 				return NCR;
 
 			return MCR;
 		}
 	}
+	return rescue_overlapping_bsj(full_mm, split_mm_left, split_mm_right, cr);
+	//return UD;
+}
+
+int ProcessCirc::split_realignment(uint32_t qcutpos, uint32_t beg_bp, uint32_t end_bp, char* seq, uint32_t seq_len, 
+		const vector <uint32_t>& common_tid, MatchedMate& split_mm_left, MatchedMate& split_mm_right) {
+
+	fprintf(stderr, "Qcutpos: %u, seq_len: %u\n", qcutpos, seq_len);
+	if (qcutpos <= 0 or qcutpos >= seq_len) 
+		return maxEd+1;
+
+	fprintf(stderr, "beg_bp: %u, end_bp: %u\n", beg_bp, end_bp);
+
+	char single_bp[10];
+	genome_seeder.pac2char_otf(end_bp, 1, single_bp);
+	int last_bp_err = (seq[qcutpos-1] == single_bp[0]) ? 0 : 1;
+	fprintf(stderr, "last_on_read: %c, on_ref: %c\n", seq[qcutpos-1], single_bp[0]);
+
+	genome_seeder.pac2char_otf(beg_bp, 1, single_bp);
+	int first_bp_err = (seq[qcutpos] == single_bp[0]) ? 0 : 1;
+	fprintf(stderr, "last_on_read: %c, on_ref: %c\n", seq[qcutpos], single_bp[0]);
+
+	uint32_t lm_pos = end_bp;
+	uint32_t rm_pos = beg_bp;
+	
+	uint32_t lb = beg_bp;
+	uint32_t ub = end_bp;
+	
+	AlignRes best_alignment_left (lb);
+	AlignRes best_alignment_right(ub);
+
+	bool lok = extension.extend_left (common_tid, seq, lm_pos, qcutpos - 1, maxEd - last_bp_err, lb, best_alignment_left);
+	bool rok = extension.extend_right(common_tid, seq + qcutpos + 1, rm_pos, seq_len - qcutpos - 1, maxEd - first_bp_err, ub, best_alignment_right);
+
+	best_alignment_left.ed += last_bp_err;
+	best_alignment_right.ed += first_bp_err;
+
+	fprintf(stderr, "lok: %d, rok: %d\nleft ed: %d\nright ed: %d\n", lok, rok, best_alignment_left.ed, best_alignment_right.ed);
+
+
+	if (lok and rok and (best_alignment_left.ed + best_alignment_right.ed) <= maxEd)
+		return best_alignment_left.ed + best_alignment_right.ed;
+	else
+		return maxEd + 1;
+}
+
+int ProcessCirc::split_realignment(uint32_t qcutpos, MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr) {
+
+	if (qcutpos <= 0 or qcutpos >= fullmap_seq_len) 
+		return UD;
+
+	qcutpos += full_mm.qspos - 1;
+
+	overlap_to_spos(split_mm_left);
+	overlap_to_epos(split_mm_left);
+	overlap_to_spos(split_mm_right);
+	overlap_to_epos(split_mm_right);
+
+	vector <uint32_t> common_tid;
+	bool success = same_transcript(split_mm_left.exons_spos, split_mm_left.exons_epos, 
+					split_mm_right.exons_spos, split_mm_right.exons_epos, common_tid);
+	if (!success) 
+		return UD;
+
+	char single_bp[10];
+	genome_seeder.pac2char_otf(split_mm_left.epos, 1, single_bp);
+	int last_bp_err = (fullmap_seq[qcutpos-1] == single_bp[0]) ? 0 : 1;
+	genome_seeder.pac2char_otf(split_mm_right.spos, 1, single_bp);
+	int first_bp_err = (fullmap_seq[qcutpos] == single_bp[0]) ? 0 : 1;
+
+	uint32_t lm_pos = split_mm_left.epos;
+	uint32_t rm_pos = split_mm_right.spos;
+	
+	uint32_t lb = split_mm_right.spos;
+	uint32_t ub = split_mm_left.epos;
+	
+	AlignRes best_alignment_left (lb);
+	AlignRes best_alignment_right(ub);
+
+	bool lok = extension.extend_left (common_tid, fullmap_seq, lm_pos, qcutpos - 1, maxEd - last_bp_err, lb, best_alignment_left);
+	bool rok = extension.extend_right(common_tid, fullmap_seq + qcutpos + 1, rm_pos, fullmap_seq_len - qcutpos - 1, maxEd - first_bp_err, ub, best_alignment_right);
+
+	best_alignment_left.ed += last_bp_err;
+	best_alignment_right.ed += first_bp_err;
+
+	if (!lok or !rok or (best_alignment_left.ed + best_alignment_right.ed) > maxEd)
+		return UD;
+
+	MatchedMate new_split_left;
+	new_split_left.spos = lm_pos;
+	new_split_left.epos = split_mm_left.epos;
+	new_split_left.qspos = best_alignment_left.sclen;
+	new_split_left.qepos = qcutpos;
+	new_split_left.dir = full_mm.dir;
+	new_split_left.matched_len = qcutpos - best_alignment_left.sclen;
+	new_split_left.sclen_left = best_alignment_left.sclen;
+	new_split_left.sclen_right = 0;
+	new_split_left.left_ed = best_alignment_left.ed;
+	new_split_left.right_ed = 0;
+	new_split_left.middle_ed = 0;
+	new_split_left.left_ok = true;
+	new_split_left.right_ok = true;
+
+	MatchedMate new_split_right;
+	new_split_right.spos = split_mm_right.spos;
+	new_split_right.epos = rm_pos;
+	new_split_right.qspos = qcutpos + 1;
+	new_split_right.qepos = fullmap_seq_len - best_alignment_right.sclen;
+	new_split_right.dir = full_mm.dir;
+	new_split_right.matched_len = fullmap_seq_len - qcutpos - best_alignment_right.sclen;
+	new_split_right.sclen_left = 0;
+	new_split_right.sclen_right = best_alignment_right.sclen;
+	new_split_right.left_ed = 0;
+	new_split_right.right_ed = best_alignment_right.ed;
+	new_split_right.middle_ed = 0;
+	new_split_right.left_ok = true;
+	new_split_right.right_ok = true;
+	
+	r1_seq = remain_seq;
+	r2_seq = fullmap_seq;
+	r1_seq_len = remain_seq_len;
+	r2_seq_len = fullmap_seq_len;
+
+	return check_split_map(split_mm_right, new_split_right, split_mm_left, new_split_left, cr);
+}
+
+int ProcessCirc::rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr) {
+	ConShift con_shift = gtf_parser.get_shift(contigNum, full_mm.spos);
+
+	// start of BP
+	if (split_mm_right.spos <= full_mm.epos and split_mm_right.spos > full_mm.spos) {
+		fprintf(stderr, "On the start BP:\n%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
+					con_shift.contig.c_str(), 
+					full_mm.spos - con_shift.shift, full_mm.epos - con_shift.shift, 
+					full_mm.qspos, full_mm.matched_len, full_mm.dir,
+					split_mm_right.spos - con_shift.shift, split_mm_right.epos - con_shift.shift, 
+					split_mm_right.qspos, split_mm_right.matched_len, split_mm_right.dir,
+					split_mm_left.spos - con_shift.shift, split_mm_left.epos - con_shift.shift, 
+					split_mm_left.qspos, split_mm_left.matched_len, split_mm_left.dir);
+
+		get_junctions(full_mm);
+		full_mm.junc_info.print();
+
+		uint32_t qcutpos = 0;
+		for (unsigned int i = 0; i < full_mm.junc_info.count; ++i) {
+			if (full_mm.junc_info.junc_info[i].end == split_mm_right.spos)
+				qcutpos = full_mm.junc_info.junc_info[i].bp_matched;
+		}
+		if (split_realignment(qcutpos, full_mm, split_mm_left, split_mm_right, cr) == CR)
+			return CR;
+	}
+
+	// end of BP
+	if (split_mm_left.epos >= full_mm.spos and split_mm_left.epos < full_mm.epos) {
+		fprintf(stderr, "On the end BP:\n%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
+					con_shift.contig.c_str(), 
+					full_mm.spos - con_shift.shift, full_mm.epos - con_shift.shift, 
+					full_mm.qspos, full_mm.matched_len, full_mm.dir,
+					split_mm_right.spos - con_shift.shift, split_mm_right.epos - con_shift.shift, 
+					split_mm_right.qspos, split_mm_right.matched_len, split_mm_right.dir,
+					split_mm_left.spos - con_shift.shift, split_mm_left.epos - con_shift.shift, 
+					split_mm_left.qspos, split_mm_left.matched_len, split_mm_left.dir);
+
+		get_junctions(full_mm);
+		full_mm.junc_info.print();
+
+		uint32_t qcutpos = 0;
+		for (unsigned int i = 0; i < full_mm.junc_info.count; ++i) {
+			if (full_mm.junc_info.junc_info[i].beg == split_mm_left.epos)
+				qcutpos = full_mm.junc_info.junc_info[i].bp_matched;
+		}
+		if (split_realignment(qcutpos, full_mm, split_mm_left, split_mm_right, cr) == CR)
+			return CR;
+	}
+
 	return UD;
+}
+
+void ProcessCirc::both_side_consensus(const vector <CircRes>& bsj_reads, string& ssignal, string& esignal) {
+	ssignal = "";
+	esignal = "";
+
+	vector <string> ss;
+	vector <string> es;
+
+	for (unsigned int i = 0; i < bsj_reads.size(); ++i) {
+		ss.push_back(bsj_reads[i].start_signal);
+		es.push_back(bsj_reads[i].end_signal);
+	}
+
+	ssignal = get_consensus(ss);
+	esignal = get_consensus(es);
 }
 
 void ProcessCirc::report_events (void) {
@@ -1073,33 +1427,51 @@ void ProcessCirc::report_events (void) {
 	sort(circ_res.begin(), circ_res.end());
 	int cnt = 1;
 	CircRes last = circ_res[0];
-	vector <string> rnames;
-	rnames.push_back(circ_res[0].rname);
+	vector <CircRes> bsj_reads;
+	bsj_reads.push_back(circ_res[0]);
+	string ss_con;
+	string es_con;
 	for (unsigned int i = 1; i < circ_res.size(); ++i) {
 		if (circ_res[i] == last) {
 			cnt++;
-			rnames.push_back(circ_res[i].rname);
+			bsj_reads.push_back(circ_res[i]);
 		}
 		else {
 			//if (last.type == CR or cnt > 1) {	// won't print novel events with single read support
 			if (last.type == CR) {	// won't print novel events
-				fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t", last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str());
-				for (unsigned int j = 0; j < rnames.size() - 1; ++j)
-					fprintf(report_file, "%s,", rnames[j].c_str());
-				fprintf(report_file, "%s\n", rnames[rnames.size() - 1].c_str());
+				both_side_consensus(bsj_reads, ss_con, es_con);
+
+				string correct_bp = ((ss_con.compare(last.start_bp_ref) == 0) and (es_con.compare(last.end_bp_ref) == 0)) ? 
+									"Correct" : "Wrong";
+
+				fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t%s-%s\t%s-%s\t%s\t", 
+						last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str(), 
+						ss_con.c_str(), es_con.c_str(), last.start_bp_ref.c_str(), last.end_bp_ref.c_str(), correct_bp.c_str());
+
+				for (unsigned int j = 0; j < bsj_reads.size() - 1; ++j)
+					fprintf(report_file, "%s,", bsj_reads[j].rname.c_str());
+				fprintf(report_file, "%s\n", bsj_reads[bsj_reads.size() - 1].rname.c_str());
 			}
 			cnt = 1;
 			last = circ_res[i];
-			rnames.clear();
-			rnames.push_back(circ_res[i].rname);
+			bsj_reads.clear();
+			bsj_reads.push_back(circ_res[i]);
 		}
 	}
 	//if (last.type == CR or cnt > 1) {
 	if (last.type == CR) {
-		fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t", last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str());
-		for (unsigned int j = 0; j < rnames.size() - 1; ++j)
-			fprintf(report_file, "%s,", rnames[j].c_str());
-		fprintf(report_file, "%s\n", rnames[rnames.size() - 1].c_str());
+		both_side_consensus(bsj_reads, ss_con, es_con);
+
+		string correct_bp = ((ss_con.compare(last.start_bp_ref) == 0) and (es_con.compare(last.end_bp_ref) == 0)) ? 
+							"Correct" : "Wrong";
+
+		fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t%s-%s\t%s-%s\t%s\t", 
+						last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str(), 
+						ss_con.c_str(), es_con.c_str(), last.start_bp_ref.c_str(), last.end_bp_ref.c_str(), correct_bp.c_str());
+
+		for (unsigned int j = 0; j < bsj_reads.size() - 1; ++j)
+			fprintf(report_file, "%s,", bsj_reads[j].rname.c_str());
+		fprintf(report_file, "%s\n", bsj_reads[bsj_reads.size() - 1].rname.c_str());
 	}
 }
 

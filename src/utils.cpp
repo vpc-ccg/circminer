@@ -489,3 +489,125 @@ void gene_overlap(MatchedMate& mr) {
 	mr.gene_info = gtf_parser.get_gene_overlap(mr.spos, false);
 	mr.looked_up_gene = true;
 }
+
+void get_junctions(MatchedMate& mm) {
+	overlap_to_spos(mm);
+	overlap_to_epos(mm);
+
+	mm.junc_info.clear();
+
+	if (mm.exons_spos == NULL or mm.exons_epos == NULL)
+		return;
+
+	for (unsigned int i = 0; i < mm.exons_spos->seg_list.size(); ++i) {
+		for (unsigned int j = 0; j < mm.exons_spos->seg_list[i].trans_id.size(); ++j) {
+			uint32_t covered = 0;
+			uint32_t tid = mm.exons_spos->seg_list[i].trans_id[j];
+			int start_ind = gtf_parser.get_trans_start_ind(contigNum, tid);
+			uint32_t start_table_ind = mm.exon_ind_spos - start_ind;
+			if (start_table_ind < 0)    // assert
+				continue;
+
+			uint32_t end_table_ind = mm.exon_ind_epos - start_ind;
+
+			// transcript does not contain lm exon
+			if (mm.exon_ind_epos < start_ind or 
+				end_table_ind >= gtf_parser.trans2seg[contigNum][tid].size() or 
+				gtf_parser.trans2seg[contigNum][tid][end_table_ind] == 0)	
+
+				continue;
+
+			// no junction
+			if (start_table_ind == end_table_ind) {
+				return;
+			}
+
+			uint32_t junc_start = mm.exons_spos->epos;
+			const IntervalInfo<UniqSeg>* this_region;
+			covered = mm.exons_spos->epos - mm.spos + 1;
+			int this_it_ind = mm.exon_ind_spos;
+			for (uint32_t k = start_table_ind + 1; k < end_table_ind; k++) {
+				this_it_ind++;
+				if (gtf_parser.trans2seg[contigNum][tid][k] != 0) {
+					this_region = gtf_parser.get_interval(this_it_ind);
+					
+					fprintf(stderr, "[%u-%u]\n", junc_start, this_region->spos);
+
+					mm.junc_info.push_back(junc_start, this_region->spos, covered);
+					covered += this_region->epos - this_region->spos + 1;
+					junc_start = this_region->epos;
+				}
+			}
+			mm.junc_info.push_back(junc_start, mm.exons_epos->spos, covered);
+			covered += mm.epos - mm.exons_epos->spos + 1;
+
+			fprintf(stderr, "While building: Covered = %d\n", covered);
+			fprintf(stderr, "on read: [%d-%d] matched_len: %d\n", mm.qspos, mm.qepos, mm.matched_len);
+			mm.junc_info.print();
+			if (covered == mm.matched_len)
+				return;
+			else
+				mm.junc_info.clear();
+		}
+	}
+}
+
+string get_consensus(const string& s1, const string& s2) {
+	string res = "";
+	if (s1.length() != s2.length())
+		return res;
+
+	for (unsigned int i = 0; i < s1.length(); ++i) {
+		res += (s1[i] == s2[i]) ? s1[i] : 'N';
+	}
+
+	return res;
+}
+
+string get_consensus(const vector <string>& vseq) {
+	string res = "";
+
+	if (vseq.size() == 0)
+		return res;
+
+	for (unsigned int i = 1; i < vseq.size(); ++i) {
+		if (vseq[i].length() != vseq[i-1].length())
+			return res;
+	}
+
+	unsigned int counts[ASCISIZE];
+	char nuc[4] = {'A', 'C', 'G', 'T'};
+	for (unsigned int i = 0; i < vseq[0].length(); ++i) {
+		memset(counts, 0, sizeof(int) * ASCISIZE);
+		for (unsigned int j = 0; j < vseq.size(); ++j)
+			++counts[ static_cast<uint8_t> (vseq[j][i]) ];
+
+		counts[ static_cast<uint8_t> ('A') ] += counts[ static_cast<uint8_t> ('a') ];
+		counts[ static_cast<uint8_t> ('C') ] += counts[ static_cast<uint8_t> ('c') ];
+		counts[ static_cast<uint8_t> ('G') ] += counts[ static_cast<uint8_t> ('g') ];
+		counts[ static_cast<uint8_t> ('T') ] += counts[ static_cast<uint8_t> ('t') ];
+		counts[ static_cast<uint8_t> ('N') ] += counts[ static_cast<uint8_t> ('n') ];
+
+		counts[ static_cast<uint8_t> ('a') ] = 0;
+		counts[ static_cast<uint8_t> ('c') ] = 0;
+		counts[ static_cast<uint8_t> ('g') ] = 0;
+		counts[ static_cast<uint8_t> ('t') ] = 0;
+		counts[ static_cast<uint8_t> ('n') ] = 0;
+
+		unsigned int max_cnt = 0;
+		char ch = 'N';
+		for (int k = 0; k < 4; ++k) {
+			if (counts[ static_cast<uint8_t> (nuc[k]) ] > max_cnt) {
+				max_cnt = counts[ static_cast<uint8_t> (nuc[k]) ];
+				ch = nuc[k];
+			}
+		}
+		
+		if (max_cnt >= (vseq.size() / 2))
+			res += ch;
+		else
+			res += 'N';
+	}
+
+	return res;
+}

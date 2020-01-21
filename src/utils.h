@@ -10,6 +10,7 @@ void update_match_mate_info(bool lok, bool rok, int err, MatchedMate& mm);
 int estimate_middle_error(const chain_t& ch);
 
 int calc_tlen(const MatchedMate& sm, const MatchedMate& lm, int& intron_num);
+void get_junctions(MatchedMate& mm);
 
 bool is_concord(const chain_t& a, uint32_t seq_len, MatchedMate& mr);
 bool is_concord2(const chain_t& a, uint32_t seq_len, MatchedMate& mr);
@@ -33,5 +34,8 @@ bool same_gene(uint32_t sme, const IntervalInfo<GeneInfo>* smg, uint32_t lms, co
 void overlap_to_epos(MatchedMate& mr);
 void overlap_to_spos(MatchedMate& mr);
 void gene_overlap(MatchedMate& mr);
+
+string get_consensus(const string& s1, const string& s2);
+string get_consensus(const vector <string>& vseq);
 
 #endif	// __UTILS_H__
