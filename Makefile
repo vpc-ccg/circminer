@@ -1,6 +1,6 @@
 all: OPTIMIZE_FLAGS build
 debug: DEBUG_FLAGS build
-verbose: DEBUG_FLAGS OPTIMIZE_FLAGS build
+verbose: VERBOSE_FLAGS OPTIMIZE_FLAGS build
 profile: PROFILE_FLAGS_GP DEBUG_FLAGS OPTIMIZE_FLAGS build
 valgrind: OPTIMIZE_FLAGS DEBUG_FLAGS build
 #build: cleanexe $(EDLIB_SRC_PATH) mrsfast circminer cleanobj
@@ -75,8 +75,12 @@ OPTIMIZE_FLAGS:
 	$(eval CXXFLAGS = $(CXXFLAGS) -O3)
 
 DEBUG_FLAGS:
-	$(eval CFLAGS = $(CFLAGS) -g -DDEBUG=1)
-	$(eval CXXFLAGS = $(CXXFLAGS) -g -DDEBUG=1)
+	$(eval CFLAGS = $(CFLAGS) -g)
+	$(eval CXXFLAGS = $(CXXFLAGS) -g)
+
+VERBOSE_FLAGS:
+	$(eval CFLAGS = $(CFLAGS) -DDEBUG=1)
+	$(eval CXXFLAGS = $(CXXFLAGS) -DDEBUG=1)
 
 PROFILE_FLAGS:
 	$(eval LIBS = $(LIBS) -lprofiler)
