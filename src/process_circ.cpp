@@ -15,6 +15,7 @@
 
 #define BINSIZE 5000
 #define MAXHTLISTSIZE 0
+#define TOPCHAIN 5
 
 typedef pair<uint32_t, int> pu32i;
 
@@ -409,43 +410,48 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 		// find rspos and repos for the best chain
 		bool forward = (r1_partial) ? (mr.r1_forward) : (mr.r2_forward);
 		int dir = (forward) ? 1 : -1;
-		MatchedMate partial_mm;
-		find_exact_coord(mm_r1, mm_r2, partial_mm, dir, qspos, remain_seq, remain_len, whole_seq_len, bc1.chains[0]);
 
-		if (partial_mm.type == CONCRD) {
-			con_shift = gtf_parser.get_shift(contigNum, mm_r1.spos);
-			vafprintf(2, stderr, "Coordinates: [%d-%d]\n", partial_mm.spos - con_shift.shift, partial_mm.epos - con_shift.shift);
-			
-			
-			CircRes cr;
+		for (int j = 0; j < minM(bc1.best_chain_count, TOPCHAIN); ++j) {
+			MatchedMate partial_mm;
+			find_exact_coord(mm_r1, mm_r2, partial_mm, dir, qspos, remain_seq, remain_len, whole_seq_len, bc1.chains[j]);
 
-			fprintf(stderr, "%s\t", current_record1->rname);
+			if (partial_mm.type == CONCRD) {
+				con_shift = gtf_parser.get_shift(contigNum, mm_r1.spos);
+				vafprintf(2, stderr, "Coordinates: [%d-%d]\n", partial_mm.spos - con_shift.shift, partial_mm.epos - con_shift.shift);
+				
+				
+				CircRes cr;
 
-			int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial, cr);
-			print_split_mapping(current_record1->rname, mm_r1, mm_r2, partial_mm, con_shift);
+				fprintf(stderr, "%s\t", current_record1->rname);
 
-			fprintf(stderr, "\n");
+				int type = check_split_map(mm_r1, mm_r2, partial_mm, r1_partial, cr);
+				print_split_mapping(current_record1->rname, mm_r1, mm_r2, partial_mm, con_shift);
 
-			fprintf(candid_file, "%d\n", type);
+				fprintf(stderr, "\n");
 
-			if (type < CR) {
-				best_cr.type = type;
-				break;
-			}
-			
-			if (type >= CR and type <= MCR and type < best_cr.type) {
-				best_cr.chr = con_shift.contig;
-				best_cr.rname = current_record1->rname;
-				best_cr.spos = cr.spos - con_shift.shift;
-				best_cr.epos = cr.epos - con_shift.shift;
-				best_cr.type = type;
-				best_cr.start_signal = cr.start_signal;
-				best_cr.end_signal = cr.end_signal;
-				best_cr.start_bp_ref = cr.start_bp_ref;
-				best_cr.end_bp_ref = cr.end_bp_ref;
+				fprintf(candid_file, "%d\n", type);
 
-				if (type == CR)
-					break;	// stop processing next genes
+				if (type < CR) {
+					best_cr.type = type;
+					return;
+				}
+				
+				if (type >= CR and type <= MCR and type < best_cr.type) {
+					best_cr.chr = con_shift.contig;
+					best_cr.rname = current_record1->rname;
+					best_cr.spos = cr.spos - con_shift.shift;
+					best_cr.epos = cr.epos - con_shift.shift;
+					best_cr.type = type;
+					best_cr.start_signal = cr.start_signal;
+					best_cr.end_signal = cr.end_signal;
+					best_cr.start_bp_ref = cr.start_bp_ref;
+					best_cr.end_bp_ref = cr.end_bp_ref;
+
+					if (type == CR) {
+						circ_res.push_back(best_cr);
+						return;
+					}
+				}
 			}
 		}
 	}
@@ -475,9 +481,15 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 	int r1_remain_len = r1_qepos - r1_qspos + 1;
 	int r2_remain_len = r2_qepos - r2_qspos + 1;
 	
-	// if (qepos < qspos or remain_len < window_size) {	// it was fully mapped
-	// 	return;
-	// }
+	// it was fully mapped
+	if (r1_remain_len < window_size and r2_remain_len < window_size) {	
+		return;
+	}
+
+	// single split
+	if (r1_remain_len < window_size or r2_remain_len < window_size) { 
+		call_circ_single_split(current_record1, current_record2);
+	}
 
 	// convert to position on contig
 	gtf_parser.chrloc2conloc(mr.chr_r1, mr.spos_r1, mr.epos_r1);
@@ -514,62 +526,68 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 		if (bc1.best_chain_count <= 0 or bc2.best_chain_count <= 0)
 			continue;
 
-		// find rspos and repos for the best chain
-		MatchedMate r1_partial_mm;
-		MatchedMate r2_partial_mm;
+		for (int j = 0; j < minM(bc1.best_chain_count, TOPCHAIN); ++j) {
+			for (int k = 0; k < minM(bc2.best_chain_count, TOPCHAIN); ++k) {
+				// find rspos and repos for the best chain
+				MatchedMate r1_partial_mm;
+				MatchedMate r2_partial_mm;
 
-		set_mm(bc1.chains[0], r1_qspos, r1_remain_len, mm_r1.dir, r1_partial_mm);
-		set_mm(bc2.chains[0], r2_qspos, r2_remain_len, mm_r2.dir, r2_partial_mm);
+				set_mm(bc1.chains[j], r1_qspos, r1_remain_len, mm_r1.dir, r1_partial_mm);
+				set_mm(bc2.chains[k], r2_qspos, r2_remain_len, mm_r2.dir, r2_partial_mm);
 
-		overlap_to_spos(mm_r1);
-		overlap_to_spos(mm_r2);
-		overlap_to_spos(r1_partial_mm);
-		overlap_to_spos(r2_partial_mm);
+				overlap_to_spos(mm_r1);
+				overlap_to_spos(mm_r2);
+				overlap_to_spos(r1_partial_mm);
+				overlap_to_spos(r2_partial_mm);
 
-		vector <uint32_t> common_tid;
-		if (! same_transcript(mm_r1.exons_spos, mm_r2.exons_spos, r1_partial_mm.exons_spos, r2_partial_mm.exons_spos, common_tid))
-			continue;
+				vector <uint32_t> common_tid;
+				if (! same_transcript(mm_r1.exons_spos, mm_r2.exons_spos, r1_partial_mm.exons_spos, r2_partial_mm.exons_spos, common_tid))
+					continue;
 
-		bool success = false;
-		if (bc1.chains[0].frags[0].rpos <= bc2.chains[0].frags[0].rpos) {
-			success = extension.extend_both_mates(bc1.chains[0], bc2.chains[0], common_tid, r1_remain_seq, r2_remain_seq, 
-						r1_qspos, r2_qspos, r1_qepos, r2_qepos, r1_partial_mm, r2_partial_mm);
-		}
-		else {
-			success = extension.extend_both_mates(bc2.chains[0], bc1.chains[0], common_tid, r2_remain_seq, r1_remain_seq, 
-						r2_qspos, r1_qspos, r2_qepos, r1_qepos, r2_partial_mm, r1_partial_mm);
-		}
+				bool success = false;
+				if (bc1.chains[j].frags[0].rpos <= bc2.chains[k].frags[0].rpos) {
+					success = extension.extend_both_mates(bc1.chains[j], bc2.chains[k], common_tid, r1_remain_seq, r2_remain_seq, 
+								r1_qspos, r2_qspos, r1_qepos, r2_qepos, r1_partial_mm, r2_partial_mm);
+				}
+				else {
+					success = extension.extend_both_mates(bc2.chains[k], bc1.chains[j], common_tid, r2_remain_seq, r1_remain_seq, 
+								r2_qspos, r1_qspos, r2_qepos, r1_qepos, r2_partial_mm, r1_partial_mm);
+				}
 
-		if (! success)
-			continue;
+				if (! success)
+					continue;
 
-		if (r1_partial_mm.type == CONCRD and r2_partial_mm.type == CONCRD) {
-			con_shift = gtf_parser.get_shift(contigNum, mm_r1.spos);
-			vafprintf(2, stderr, "R1 Partial Coordinates: [%d-%d]\n", r1_partial_mm.spos - con_shift.shift, r1_partial_mm.epos - con_shift.shift);
-			vafprintf(2, stderr, "R2 Partial Coordinates: [%d-%d]\n", r2_partial_mm.spos - con_shift.shift, r2_partial_mm.epos - con_shift.shift);
-			
-			CircRes cr;
-			int type = check_split_map(mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, cr);
-			print_split_mapping(current_record1->rname, mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, con_shift);
-			fprintf(candid_file, "%d\n", type);
-			if (type < CR) {
-				best_cr.type = type;
-				break;
-			}
+				if (r1_partial_mm.type == CONCRD and r2_partial_mm.type == CONCRD) {
+					con_shift = gtf_parser.get_shift(contigNum, mm_r1.spos);
+					vafprintf(2, stderr, "R1 Partial Coordinates: [%d-%d]\n", r1_partial_mm.spos - con_shift.shift, r1_partial_mm.epos - con_shift.shift);
+					vafprintf(2, stderr, "R2 Partial Coordinates: [%d-%d]\n", r2_partial_mm.spos - con_shift.shift, r2_partial_mm.epos - con_shift.shift);
+					
+					CircRes cr;
+					int type = check_split_map(mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, cr);
+					print_split_mapping(current_record1->rname, mm_r1, mm_r2, r1_partial_mm, r2_partial_mm, con_shift);
+					fprintf(candid_file, "%d\n", type);
+					if (type < CR) {
+						best_cr.type = type;
+						return;
+					}
 
-			if (type >= CR and type <= MCR and type < best_cr.type) {
-				best_cr.chr = con_shift.contig;
-				best_cr.rname = current_record1->rname;
-				best_cr.spos = cr.spos - con_shift.shift;
-				best_cr.epos = cr.epos - con_shift.shift;
-				best_cr.type = type;
-				best_cr.start_signal = cr.start_signal;
-				best_cr.end_signal = cr.end_signal;
-				best_cr.start_bp_ref = cr.start_bp_ref;
-				best_cr.end_bp_ref = cr.end_bp_ref;
+					if (type >= CR and type <= MCR and type < best_cr.type) {
+						best_cr.chr = con_shift.contig;
+						best_cr.rname = current_record1->rname;
+						best_cr.spos = cr.spos - con_shift.shift;
+						best_cr.epos = cr.epos - con_shift.shift;
+						best_cr.type = type;
+						best_cr.start_signal = cr.start_signal;
+						best_cr.end_signal = cr.end_signal;
+						best_cr.start_bp_ref = cr.start_bp_ref;
+						best_cr.end_bp_ref = cr.end_bp_ref;
 
-				if (type == CR)
-					break;	// stop processing next genes
+						if (type == CR) {
+							circ_res.push_back(best_cr);
+							return;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -895,6 +913,8 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 		MatchedMate full_mm = mm_r1_l;
 		if (!full_mm.merge_to_right(mm_r1_r))
 			return UD;
+		remain_seq = r2_seq;
+		remain_seq_len = r2_seq_len;
 		return final_check(full_mm, mm_r2_l, mm_r2_r, cr);
 	}
 
@@ -903,6 +923,8 @@ int ProcessCirc::check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, Ma
 		MatchedMate full_mm = mm_r2_l;
 		if (!full_mm.merge_to_right(mm_r2_r))
 			return UD;
+		remain_seq = r1_seq;
+		remain_seq_len = r1_seq_len;
 		return final_check(full_mm, mm_r1_l, mm_r1_r, cr);
 	}
 
@@ -1272,6 +1294,9 @@ int ProcessCirc::split_realignment(uint32_t qcutpos, MatchedMate& full_mm, Match
 
 	qcutpos += full_mm.qspos - 1;
 
+	if (qcutpos <= 0 or qcutpos >= fullmap_seq_len) 
+		return UD;
+
 	overlap_to_spos(split_mm_left);
 	overlap_to_epos(split_mm_left);
 	overlap_to_spos(split_mm_right);
@@ -1367,6 +1392,10 @@ int ProcessCirc::rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split
 			if (full_mm.junc_info.junc_info[i].end == split_mm_right.spos)
 				qcutpos = full_mm.junc_info.junc_info[i].bp_matched;
 		}
+		// check for intron retention
+		if (qcutpos == 0) {
+			qcutpos = split_mm_right.spos - full_mm.spos;
+		}
 		if (split_realignment(qcutpos, full_mm, split_mm_left, split_mm_right, cr) == CR)
 			return CR;
 	}
@@ -1389,6 +1418,10 @@ int ProcessCirc::rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split
 		for (unsigned int i = 0; i < full_mm.junc_info.count; ++i) {
 			if (full_mm.junc_info.junc_info[i].beg == split_mm_left.epos)
 				qcutpos = full_mm.junc_info.junc_info[i].bp_matched;
+		}
+		// check for intron retention
+		if (qcutpos == 0) {
+			qcutpos = full_mm.epos - split_mm_left.epos;
 		}
 		if (split_realignment(qcutpos, full_mm, split_mm_left, split_mm_right, cr) == CR)
 			return CR;
