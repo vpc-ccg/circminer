@@ -20,9 +20,9 @@ void get_mate_name(char* fq1, char* fq2) {
 }
 
 void update_match_mate_info(bool lok, bool rok, int err, MatchedMate& mm) {
-	mm.left_ok = lok;
-	mm.right_ok = rok;
-	if (lok and rok and (err <= maxEd)) {
+	mm.left_ok = lok and (mm.sclen_left <= maxSc);
+	mm.right_ok = rok and (mm.sclen_right <= maxSc);
+	if (lok and rok and (err <= maxEd) and (mm.sclen_right <= maxSc) and (mm.sclen_left <= maxSc)) {
 		mm.is_concord = true;
 		mm.type = CONCRD;
 	}
@@ -544,7 +544,7 @@ void get_junctions(MatchedMate& mm) {
 			fprintf(stderr, "While building: Covered = %d\n", covered);
 			fprintf(stderr, "on read: [%d-%d] matched_len: %d\n", mm.qspos, mm.qepos, mm.matched_len);
 			mm.junc_info.print();
-			if (covered == mm.matched_len)
+			if (abs(covered - mm.matched_len) <= INDELTH)
 				return;
 			else
 				mm.junc_info.clear();
@@ -610,4 +610,11 @@ string get_consensus(const vector <string>& vseq) {
 	}
 
 	return res;
+}
+
+void reverse_str(char* s, int n, char* revs) {
+	for (int i = 0; i < n; ++i)
+		revs[i] = s[n-i-1];
+
+	revs[n] = '\0';
 }

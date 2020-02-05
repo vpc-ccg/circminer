@@ -15,13 +15,13 @@
 
 #define BINSIZE 5000
 #define MAXHTLISTSIZE 0
-#define TOPCHAIN 5
+#define TOPCHAIN 10
 
 typedef pair<uint32_t, int> pu32i;
 
 void set_mm(const chain_t& ch, uint32_t qspos, int rlen, int dir, MatchedMate& mm);
 
-ProcessCirc::ProcessCirc (int last_round_num, int ws) {
+ProcessCirc::ProcessCirc (int last_round_num, int ws) : extension(0, EDIT_ALIGNMENT) {
 	sprintf(fq_file1, "%s_%d_remain_R1.fastq", outputFilename, last_round_num);
 	sprintf(fq_file2, "%s_%d_remain_R2.fastq", outputFilename, last_round_num);
 
@@ -412,6 +412,7 @@ void ProcessCirc::call_circ_single_split(Record* current_record1, Record* curren
 		int dir = (forward) ? 1 : -1;
 
 		for (int j = 0; j < minM(bc1.best_chain_count, TOPCHAIN); ++j) {
+// 			fprintf(stderr, "Trying chain #%d\n\n\n", j);
 			MatchedMate partial_mm;
 			find_exact_coord(mm_r1, mm_r2, partial_mm, dir, qspos, remain_seq, remain_len, whole_seq_len, bc1.chains[j]);
 
@@ -671,8 +672,11 @@ void ProcessCirc::chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable* re
 	for (int j = 0; j < bc.best_chain_count; j++) {
 		missing = kmer_cnt - bc.chains[j].chain_len;
 		vafprintf(2, stderr, "Actual missing: %d\n", missing);
-		if (missing > least_miss)
+		if (missing > least_miss) {
+			// this one does not count
+			bc.best_chain_count = j;
 			break;
+		}
 
 		least_miss = missing;
 
@@ -1272,7 +1276,13 @@ int ProcessCirc::split_realignment(uint32_t qcutpos, uint32_t beg_bp, uint32_t e
 	AlignRes best_alignment_left (lb);
 	AlignRes best_alignment_right(ub);
 
+	extension.set_query_seq(seq);
+	extension.set_query_seq_len(seq_len);
+	extension.set_query_spos(0);
+
 	bool lok = extension.extend_left (common_tid, seq, lm_pos, qcutpos - 1, maxEd - last_bp_err, lb, best_alignment_left);
+	
+	extension.set_query_spos(qcutpos + 1);
 	bool rok = extension.extend_right(common_tid, seq + qcutpos + 1, rm_pos, seq_len - qcutpos - 1, maxEd - first_bp_err, ub, best_alignment_right);
 
 	best_alignment_left.ed += last_bp_err;
@@ -1323,7 +1333,13 @@ int ProcessCirc::split_realignment(uint32_t qcutpos, MatchedMate& full_mm, Match
 	AlignRes best_alignment_left (lb);
 	AlignRes best_alignment_right(ub);
 
+	extension.set_query_seq(fullmap_seq);
+	extension.set_query_seq_len(fullmap_seq_len);
+	extension.set_query_spos(0);
+
 	bool lok = extension.extend_left (common_tid, fullmap_seq, lm_pos, qcutpos - 1, maxEd - last_bp_err, lb, best_alignment_left);
+	
+	extension.set_query_spos(qcutpos + 1);
 	bool rok = extension.extend_right(common_tid, fullmap_seq + qcutpos + 1, rm_pos, fullmap_seq_len - qcutpos - 1, maxEd - first_bp_err, ub, best_alignment_right);
 
 	best_alignment_left.ed += last_bp_err;
@@ -1375,14 +1391,14 @@ int ProcessCirc::rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split
 
 	// start of BP
 	if (split_mm_right.spos <= full_mm.epos and split_mm_right.spos > full_mm.spos) {
-		fprintf(stderr, "On the start BP:\n%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
-					con_shift.contig.c_str(), 
-					full_mm.spos - con_shift.shift, full_mm.epos - con_shift.shift, 
-					full_mm.qspos, full_mm.matched_len, full_mm.dir,
-					split_mm_right.spos - con_shift.shift, split_mm_right.epos - con_shift.shift, 
-					split_mm_right.qspos, split_mm_right.matched_len, split_mm_right.dir,
-					split_mm_left.spos - con_shift.shift, split_mm_left.epos - con_shift.shift, 
-					split_mm_left.qspos, split_mm_left.matched_len, split_mm_left.dir);
+		//fprintf(stderr, "On the start BP:\n%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
+		//			con_shift.contig.c_str(), 
+		//			full_mm.spos - con_shift.shift, full_mm.epos - con_shift.shift, 
+		//			full_mm.qspos, full_mm.matched_len, full_mm.dir,
+		//			split_mm_right.spos - con_shift.shift, split_mm_right.epos - con_shift.shift, 
+		//			split_mm_right.qspos, split_mm_right.matched_len, split_mm_right.dir,
+		//			split_mm_left.spos - con_shift.shift, split_mm_left.epos - con_shift.shift, 
+		//			split_mm_left.qspos, split_mm_left.matched_len, split_mm_left.dir);
 
 		get_junctions(full_mm);
 		full_mm.junc_info.print();
@@ -1402,14 +1418,14 @@ int ProcessCirc::rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split
 
 	// end of BP
 	if (split_mm_left.epos >= full_mm.spos and split_mm_left.epos < full_mm.epos) {
-		fprintf(stderr, "On the end BP:\n%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
-					con_shift.contig.c_str(), 
-					full_mm.spos - con_shift.shift, full_mm.epos - con_shift.shift, 
-					full_mm.qspos, full_mm.matched_len, full_mm.dir,
-					split_mm_right.spos - con_shift.shift, split_mm_right.epos - con_shift.shift, 
-					split_mm_right.qspos, split_mm_right.matched_len, split_mm_right.dir,
-					split_mm_left.spos - con_shift.shift, split_mm_left.epos - con_shift.shift, 
-					split_mm_left.qspos, split_mm_left.matched_len, split_mm_left.dir);
+		//fprintf(stderr, "On the end BP:\n%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
+		//			con_shift.contig.c_str(), 
+		//			full_mm.spos - con_shift.shift, full_mm.epos - con_shift.shift, 
+		//			full_mm.qspos, full_mm.matched_len, full_mm.dir,
+		//			split_mm_right.spos - con_shift.shift, split_mm_right.epos - con_shift.shift, 
+		//			split_mm_right.qspos, split_mm_right.matched_len, split_mm_right.dir,
+		//			split_mm_left.spos - con_shift.shift, split_mm_left.epos - con_shift.shift, 
+		//			split_mm_left.qspos, split_mm_left.matched_len, split_mm_left.dir);
 
 		get_junctions(full_mm);
 		full_mm.junc_info.print();

@@ -28,6 +28,7 @@ using namespace std;
 #define maxM(A,B) (((A) > (B)) ? (A) : (B))
 #define minM(A,B) (((A) < (B)) ? (A) : (B))
 #define minM3(A,B,C) minM(minM(A, B), C)
+#define maxM3(A,B,C) maxM(maxM(A, B), C)
 
 #define MAXLINESIZE 600
 // #define FILE_NAME_LENGTH 1000

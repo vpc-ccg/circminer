@@ -38,4 +38,6 @@ void gene_overlap(MatchedMate& mr);
 string get_consensus(const string& s1, const string& s2);
 string get_consensus(const vector <string>& vseq);
 
+void reverse_str(char* s, int n, char* revs);
+
 #endif	// __UTILS_H__

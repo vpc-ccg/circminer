@@ -31,6 +31,7 @@ pthread_mutex_t read_lock;
 GTFParser gtf_parser;
 FilterRead filter_read;
 ScoreMatrix score_mat;
+ScoreMatrix edit_mat;
 FASTQParser fq_parser1;
 FASTQParser fq_parser2;
 GenomeSeeder genome_seeder;
@@ -63,7 +64,8 @@ int main(int argc, char **argv) {
 	 * SEARCHING
 	 ***************************************************/
 	else {
-		score_mat.init();
+		score_mat.init(1, -3, -3, 8);
+		edit_mat.init(0, 1, 1, 10000);
 		if (pairedEnd)
 			fq_parser1.set_mate(&fq_parser2);
 

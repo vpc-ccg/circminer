@@ -38,10 +38,10 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 	sprintf(mode, "%s", (first_round) ? "w" : "a");
 
 	sam_output.init(save_fname, mode);
-	extension  = new TransExtension[threadCount];
+	extension = new TransExtension[threadCount];
 
 	for (int i = 0; i < threadCount; ++i)
-		extension[i].init(i);
+		extension[i].init(i, DROP_ALIGNMENT);
 
 	this->is_pe = pe;
 	this->first_round = first_round;

@@ -10,7 +10,11 @@
 class TransExtension {
 private:
 	int thid;
-	Alignment alignment;
+	Alignment* alignment;
+
+	char* query_orig_seq;
+	int query_orig_seq_len;
+	int query_spos;
 
 	void extend_right_trans(uint32_t tid, uint32_t pos, char* ref_seq, int ref_len, char* qseq, int qseq_len, 
 							int ed_th, uint32_t ub,  AlignRes& best, bool& consecutive, map <AllCoord, AlignRes>& align_res);
@@ -31,9 +35,22 @@ private:
 
 public:
 	TransExtension(void);
-	TransExtension(int id);
+	TransExtension(int id, int align_type);
 	~TransExtension(void);
-	void init(int id);
+	void init(int id, int align_type);
+
+	// setters
+	void set_query_seq(char* seq) {
+		query_orig_seq = seq;
+	}
+
+	void set_query_seq_len (int slen) {
+		query_orig_seq_len = slen;
+	}
+
+	void set_query_spos (int spos) {
+		query_spos = spos;
+	}
 
 	bool extend_both_mates(const chain_t& lch, const chain_t& rch, const vector<uint32_t>& common_tid, char* lseq, char* rseq, 
 							int lqspos, int rqspos, int lseq_len, int rseq_len, MatchedMate& lmm, MatchedMate& rmm);
