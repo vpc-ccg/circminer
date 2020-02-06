@@ -618,3 +618,45 @@ void reverse_str(char* s, int n, char* revs) {
 
 	revs[n] = '\0';
 }
+
+// is a on the left side?
+bool is_left_chain(chain_t a, chain_t b) {
+	uint32_t a_beg = a.frags[0].rpos;
+	uint32_t b_beg = b.frags[0].rpos;
+	uint32_t a_end = a.frags[a.chain_len-1].rpos + a.frags[a.chain_len-1].len - 1;
+	uint32_t b_end = b.frags[b.chain_len-1].rpos + b.frags[b.chain_len-1].len - 1;
+
+	// check whether they are overlapping
+	bool non_overlaping = (b_beg > a_end) or (a_beg > b_end);
+
+	if (non_overlaping) {
+		fprintf(stderr, "NOV\n");
+		return a_beg < b_beg;
+	}
+
+	else {
+		uint32_t i = 0, j = 0;
+		while (i < a.chain_len and j < b.chain_len) {
+			uint32_t bj_beg = b.frags[j].rpos;
+			uint32_t ai_end = a.frags[i].rpos + a.frags[i].len - 1;
+			if (ai_end < bj_beg)
+				++i;
+			
+			uint32_t ai_beg = a.frags[i].rpos;
+			uint32_t bj_end = b.frags[j].rpos + b.frags[j].len - 1;
+			if (bj_end < ai_beg)
+				++j;
+			
+			uint32_t common_bp = maxM(ai_beg, bj_beg);
+			int32_t a_ov_qpos = a.frags[i].qpos + (common_bp - a.frags[i].rpos);
+			int32_t b_ov_qpos = b.frags[j].qpos + (common_bp - b.frags[j].rpos);
+			
+			fprintf(stderr, "OV -> Decision made\n");
+			return a_ov_qpos >= b_ov_qpos;
+		}
+		fprintf(stderr, "OV -> Ambiguous\n");
+
+		return a_beg < b_beg;
+	}
+}
+

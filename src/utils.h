@@ -40,4 +40,6 @@ string get_consensus(const vector <string>& vseq);
 
 void reverse_str(char* s, int n, char* revs);
 
+bool is_left_chain(chain_t a, chain_t b);
+
 #endif	// __UTILS_H__

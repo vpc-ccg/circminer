@@ -258,9 +258,11 @@ int FilterRead::process_mates(int thid, const chain_list& forward_chain, const R
 		uint32_t forward_start = mate_pairs[i].forward.frags[0].rpos;
 		uint32_t reverse_start = mate_pairs[i].reverse.frags[0].rpos;
 		uint32_t reverse_end   = mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].rpos + mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].len - 1;
+
+		bool is_forward_left = is_left_chain(mate_pairs[i].forward, mate_pairs[i].reverse);
 		
-		if (forward_start <= reverse_end) {
-			//extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, forward_rec->seq, backward_rec->rcseq, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
+// 		if (forward_start <= reverse_end) {
+		if (is_forward_left) {
 			success = extension[thid].extend_both_mates(mate_pairs[i].forward, mate_pairs[i].reverse, mate_pairs[i].common_tid, forward_rec->seq, 
 								backward_rec->rcseq, 1, 1, forward_rec->seq_len, backward_rec->seq_len, r1_mm, r2_mm);
 			
@@ -290,8 +292,8 @@ int FilterRead::process_mates(int thid, const chain_list& forward_chain, const R
 			}
 		}
 
-		if (forward_start > reverse_start) {
-			//extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, backward_rec->rcseq, forward_rec->seq, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
+// 		if (forward_start > reverse_start) {
+		else {
 			success = extension[thid].extend_both_mates(mate_pairs[i].reverse, mate_pairs[i].forward, mate_pairs[i].common_tid, backward_rec->rcseq, 
 								forward_rec->seq, 1, 1, backward_rec->seq_len, forward_rec->seq_len, r2_mm, r1_mm);
 			

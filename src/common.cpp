@@ -352,6 +352,7 @@ bool MatchedRead::update_type(int type) {
 
 
 inline bool MatchedRead::go_for_update(const MatchedMate& r1, const MatchedMate& r2, int32_t tlen, bool gm_compatible, int type) {
+// 	if (! ((type == CHIBSJ and this->type == CHI2BSJ) or (type == CHI2BSJ and this->type == CHIBSJ)) ) {
 	if (type < this->type)
 		return true;
 	if (type > this->type)
@@ -361,6 +362,7 @@ inline bool MatchedRead::go_for_update(const MatchedMate& r1, const MatchedMate&
 		return true;
 	if (!gm_compatible and this->gm_compatible)
 		return false;
+// 	}
 
 	if (type < CHIBSJ) {
 		int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed + r2.left_ed + r2.middle_ed + r2.right_ed;
