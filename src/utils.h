@@ -26,6 +26,9 @@ bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>
 bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r, 
 					 const IntervalInfo<UniqSeg>* q, const IntervalInfo<UniqSeg>* p, vector<uint32_t>& common_tid);
 
+bool same_transcript(vector<MatchedMate>& segments, vector<uint32_t>& common_tid);
+bool same_transcript(vector<MatchedMate>& segments, int size, vector<uint32_t>& common_tid);
+
 bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r);
 bool same_gene(const IntervalInfo<UniqSeg>* mate, uint32_t s, uint32_t e);
 bool same_gene(const MatchedMate& mm, const MatchedMate& other);
@@ -33,6 +36,7 @@ bool same_gene(uint32_t sme, const IntervalInfo<GeneInfo>* smg, uint32_t lms, co
 
 void overlap_to_epos(MatchedMate& mr);
 void overlap_to_spos(MatchedMate& mr);
+const IntervalInfo<UniqSeg>* overlap_to_mpos(MatchedMate& mr);
 void gene_overlap(MatchedMate& mr);
 
 string get_consensus(const string& s1, const string& s2);

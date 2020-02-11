@@ -403,6 +403,195 @@ bool same_transcript(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>
 	return common_tid.size() != 0;
 }
 
+bool same_transcript(vector<MatchedMate>& segments, vector<uint32_t>& common_tid) {
+	common_tid.clear();
+
+	vector < const IntervalInfo<UniqSeg>* > mpos_ol; // mid_pos_overlap
+	for (unsigned int i = 0; i < segments.size(); ++i) {
+		const IntervalInfo<UniqSeg>* s = overlap_to_mpos(segments[i]);
+		mpos_ol.push_back(s);
+	}
+
+	if (segments.size() == 4)
+		return same_transcript(mpos_ol[0], mpos_ol[1], mpos_ol[2], mpos_ol[3], common_tid);
+	else if (segments.size() == 3)
+		return same_transcript(mpos_ol[0], mpos_ol[1], mpos_ol[2], common_tid);
+	else if (segments.size() == 2)
+		return same_transcript(mpos_ol[0], mpos_ol[1], common_tid);
+	return false;
+
+}
+
+bool same_transcript(vector<MatchedMate>& segments, int size, vector<uint32_t>& common_tid) {
+	bool success;
+	if (size == 2) {
+		overlap_to_spos(segments[0]);
+		overlap_to_spos(segments[1]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		overlap_to_epos(segments[1]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_epos, common_tid);
+		if (success)
+			return success;
+
+		overlap_to_epos(segments[0]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_spos, common_tid);
+		if (success)
+			return success;
+
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_epos, common_tid);
+		if (success)
+			return success;
+	}
+
+	if (size == 3) {
+		overlap_to_spos(segments[0]);
+		overlap_to_spos(segments[1]);
+		overlap_to_spos(segments[2]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_spos, segments[2].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		overlap_to_epos(segments[2]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_spos, segments[2].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+		overlap_to_epos(segments[1]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_epos, segments[2].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_epos, segments[2].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+		overlap_to_epos(segments[0]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_spos, segments[2].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_spos, segments[2].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_epos, segments[2].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_epos, segments[2].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+	}
+
+	if (size == 4) {
+		overlap_to_spos(segments[0]);
+		overlap_to_spos(segments[1]);
+		overlap_to_spos(segments[2]);
+		overlap_to_spos(segments[3]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_spos, segments[2].exons_spos, segments[3].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		overlap_to_epos(segments[2]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_spos, segments[2].exons_epos, segments[3].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		overlap_to_epos(segments[1]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_epos, segments[2].exons_spos, segments[3].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_epos, segments[2].exons_epos, segments[3].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		overlap_to_epos(segments[0]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_spos, segments[2].exons_spos, segments[3].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_spos, segments[2].exons_epos, segments[3].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_epos, segments[2].exons_spos, segments[3].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_epos, segments[2].exons_epos, segments[3].exons_spos, common_tid);
+		if (success)
+			return success;
+		
+		overlap_to_epos(segments[3]);
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_spos, segments[2].exons_spos, segments[3].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_spos, segments[2].exons_epos, segments[3].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_epos, segments[2].exons_spos, segments[3].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_spos, segments[1].exons_epos, segments[2].exons_epos, segments[3].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_spos, segments[2].exons_spos, segments[3].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_spos, segments[2].exons_epos, segments[3].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_epos, segments[2].exons_spos, segments[3].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+		common_tid.clear();
+		success = same_transcript(segments[0].exons_epos, segments[1].exons_epos, segments[2].exons_epos, segments[3].exons_epos, common_tid);
+		if (success)
+			return success;
+		
+	}
+	return false;
+}
+
 bool same_gene(const IntervalInfo<UniqSeg>* s, const IntervalInfo<UniqSeg>* r) {
 	if (s == NULL or r == NULL)
 		return false;
@@ -481,6 +670,11 @@ void overlap_to_spos(MatchedMate& mr) {
 	mr.exons_spos = gtf_parser.get_location_overlap_ind(mr.spos, false, mr.exon_ind_spos);
 	mr.looked_up_spos = true;
 	//fprintf(stdout, "Start Seg list size: %d\n", mr.exons_spos->seg_list.size());
+}
+
+const IntervalInfo<UniqSeg>* overlap_to_mpos(MatchedMate& mr) {
+	int ind;
+	return gtf_parser.get_location_overlap_ind((mr.spos + mr.epos) / 2, false, ind);
 }
 
 void gene_overlap(MatchedMate& mr) {

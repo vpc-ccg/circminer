@@ -255,9 +255,9 @@ int FilterRead::process_mates(int thid, const chain_list& forward_chain, const R
 		r2_mm.dir = -1;
 
 		bool success;
-		uint32_t forward_start = mate_pairs[i].forward.frags[0].rpos;
-		uint32_t reverse_start = mate_pairs[i].reverse.frags[0].rpos;
-		uint32_t reverse_end   = mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].rpos + mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].len - 1;
+// 		uint32_t forward_start = mate_pairs[i].forward.frags[0].rpos;
+// 		uint32_t reverse_start = mate_pairs[i].reverse.frags[0].rpos;
+// 		uint32_t reverse_end   = mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].rpos + mate_pairs[i].reverse.frags[mate_pairs[i].reverse.chain_len-1].len - 1;
 
 		bool is_forward_left = is_left_chain(mate_pairs[i].forward, mate_pairs[i].reverse);
 		

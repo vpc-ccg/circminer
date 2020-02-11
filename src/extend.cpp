@@ -297,7 +297,7 @@ bool TransExtension::extend_right(const vector <uint32_t>& common_tid, char* seq
 	map <AllCoord, AlignRes> align_res; 
 	
 	for (unsigned int i = 0; i < common_tid.size(); i++) {
-		// fprintf(stderr, "common_tid[%d] = %d -> %s\n", i, common_tid[i], gtf_parser.transcript_ids[contigNum][common_tid[i]].c_str());
+		fprintf(stderr, "common_tid[%d] = %d -> %s\n", i, common_tid[i], gtf_parser.transcript_ids[contigNum][common_tid[i]].c_str());
 		extend_right_trans(common_tid[i], pos, ref_seq, ref_len, seq, seq_len, ed_th, ub, best_alignment, consecutive, align_res);
 		//best_alignment.print();
 		// if (best_alignment.qcovlen >= seq_len and best_alignment.ed == 0 and best_alignment.sclen == 0) {
@@ -370,6 +370,7 @@ bool TransExtension::extend_left(const vector <uint32_t>& common_tid, char* seq,
 	map <AllCoord, AlignRes> align_res;
 
 	for (unsigned int i = 0; i < common_tid.size(); i++) {
+		fprintf(stderr, "common_tid[%d] = %d -> %s\n", i, common_tid[i], gtf_parser.transcript_ids[contigNum][common_tid[i]].c_str());
 		extend_left_trans(common_tid[i], pos, ref_seq, ref_len, seq, seq_len, ed_th, lb, best_alignment, consecutive, align_res);
 		//best_alignment.print();
 		// if (best_alignment.qcovlen >= seq_len and best_alignment.ed == 0 and best_alignment.sclen == 0) {
@@ -400,10 +401,11 @@ bool TransExtension::extend_left(const vector <uint32_t>& common_tid, char* seq,
 		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d, sclen: %d\n", ref_seq, seq, min_ed, sclen_best);
 		if (min_ed <= ed_th and sclen_best <= maxSc) {
 			curr_alignment.set(orig_pos - seq_len + indel, min_ed, sclen_best, indel, seq_len, alignment->get_score());
-			best_alignment.update_by_score(curr_alignment);
-			pos = orig_pos - seq_len + indel + sclen_best;
-			vafprintf(2, stderr, "Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
-			return true;
+			if (best_alignment.update_by_score(curr_alignment)) {
+				pos = orig_pos - seq_len + indel + sclen_best;
+				vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
+				return true;
+			}
 		}
 	}
 

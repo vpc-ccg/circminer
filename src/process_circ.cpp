@@ -524,8 +524,15 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 		vafprintf(2, stderr, "R2 partial: [%d-%d]\nremain: %s\n", r2_qspos, r2_qepos, r2_remain_seq);
 		chaining(r2_qspos, r2_qepos, regional_ht, r2_remain_seq, gene_len, gene_info->seg_list[i].start, bc2);
 	
-		if (bc1.best_chain_count <= 0 or bc2.best_chain_count <= 0)
+		if (bc1.best_chain_count <= 0 and bc2.best_chain_count <= 0) {
+			fprintf(stderr, "LostRead: Not chained!\n");
 			continue;
+		}
+
+		if (bc1.best_chain_count <= 0 or bc2.best_chain_count <= 0) {
+			fprintf(stderr, "Doing one single split check instead of double!\n");
+			call_circ_single_split(current_record1, current_record2);
+		}
 
 		for (int j = 0; j < minM(bc1.best_chain_count, TOPCHAIN); ++j) {
 			for (int k = 0; k < minM(bc2.best_chain_count, TOPCHAIN); ++k) {
@@ -542,7 +549,15 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 				overlap_to_spos(r2_partial_mm);
 
 				vector <uint32_t> common_tid;
-				if (! same_transcript(mm_r1.exons_spos, mm_r2.exons_spos, r1_partial_mm.exons_spos, r2_partial_mm.exons_spos, common_tid))
+// 				if (! same_transcript(mm_r1.exons_spos, mm_r2.exons_spos, r1_partial_mm.exons_spos, r2_partial_mm.exons_spos, common_tid))
+// 					continue;
+				
+				vector <MatchedMate> segments;
+				segments.push_back(mm_r1);
+				segments.push_back(mm_r2);
+				segments.push_back(r1_partial_mm);
+				segments.push_back(r2_partial_mm);
+				if (! same_transcript(segments, 4, common_tid))
 					continue;
 
 				bool success = false;
@@ -555,8 +570,10 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 								r2_qspos, r1_qspos, r2_qepos, r1_qepos, r2_partial_mm, r1_partial_mm);
 				}
 
-				if (! success)
+				if (! success) {
+					fprintf(stderr, "LostRead: Not extended!\n");
 					continue;
+				}
 
 				if (r1_partial_mm.type == CONCRD and r2_partial_mm.type == CONCRD) {
 					con_shift = gtf_parser.get_shift(contigNum, mm_r1.spos);
@@ -697,14 +714,20 @@ bool ProcessCirc::find_exact_coord(MatchedMate& mm_r1, MatchedMate& mm_r2, Match
 	overlap_to_spos(partial_mm);
 
 	vector<uint32_t> common_tid;
-	bool success = same_transcript(mm_r1.exons_spos, mm_r2.exons_spos, partial_mm.exons_spos, common_tid);
+// 	bool success = same_transcript(mm_r1.exons_spos, mm_r2.exons_spos, partial_mm.exons_spos, common_tid);
+	
+	vector <MatchedMate> segments;
+	segments.push_back(mm_r1);
+	segments.push_back(mm_r2);
+	segments.push_back(partial_mm);
+ 	bool success = same_transcript(segments, 3, common_tid);
 	if (!success) {
-		// fprintf(stderr, "No common transcript!\n");
+		fprintf(stderr, "No common transcript!\n");
 		return false;
 	}
 
 	partial_mm.middle_ed = extension.calc_middle_ed(bc, maxEd, rseq, rlen);
-	// fprintf(stderr, "Middle ed: %d\n", partial_mm.middle_ed);
+	fprintf(stderr, "Middle ed: %d\n", partial_mm.middle_ed);
 	if (partial_mm.middle_ed > maxEd)
 		return false;
 
@@ -1313,8 +1336,13 @@ int ProcessCirc::split_realignment(uint32_t qcutpos, MatchedMate& full_mm, Match
 	overlap_to_epos(split_mm_right);
 
 	vector <uint32_t> common_tid;
-	bool success = same_transcript(split_mm_left.exons_spos, split_mm_left.exons_epos, 
-					split_mm_right.exons_spos, split_mm_right.exons_epos, common_tid);
+// 	bool success = same_transcript(split_mm_left.exons_spos, split_mm_left.exons_epos, 
+// 					split_mm_right.exons_spos, split_mm_right.exons_epos, common_tid);
+	
+	vector <MatchedMate> segments;
+	segments.push_back(split_mm_left);
+	segments.push_back(split_mm_right);
+	bool success = same_transcript(segments, 2, common_tid);
 	if (!success) 
 		return UD;
 
@@ -1391,14 +1419,14 @@ int ProcessCirc::rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split
 
 	// start of BP
 	if (split_mm_right.spos <= full_mm.epos and split_mm_right.spos > full_mm.spos) {
-		//fprintf(stderr, "On the start BP:\n%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
-		//			con_shift.contig.c_str(), 
-		//			full_mm.spos - con_shift.shift, full_mm.epos - con_shift.shift, 
-		//			full_mm.qspos, full_mm.matched_len, full_mm.dir,
-		//			split_mm_right.spos - con_shift.shift, split_mm_right.epos - con_shift.shift, 
-		//			split_mm_right.qspos, split_mm_right.matched_len, split_mm_right.dir,
-		//			split_mm_left.spos - con_shift.shift, split_mm_left.epos - con_shift.shift, 
-		//			split_mm_left.qspos, split_mm_left.matched_len, split_mm_left.dir);
+		fprintf(stderr, "On the start BP:\n%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
+					con_shift.contig.c_str(), 
+					full_mm.spos - con_shift.shift, full_mm.epos - con_shift.shift, 
+					full_mm.qspos, full_mm.matched_len, full_mm.dir,
+					split_mm_right.spos - con_shift.shift, split_mm_right.epos - con_shift.shift, 
+					split_mm_right.qspos, split_mm_right.matched_len, split_mm_right.dir,
+					split_mm_left.spos - con_shift.shift, split_mm_left.epos - con_shift.shift, 
+					split_mm_left.qspos, split_mm_left.matched_len, split_mm_left.dir);
 
 		get_junctions(full_mm);
 		full_mm.junc_info.print();
@@ -1411,6 +1439,7 @@ int ProcessCirc::rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split
 		// check for intron retention
 		if (qcutpos == 0) {
 			qcutpos = split_mm_right.spos - full_mm.spos;
+			fprintf(stderr, "Rescue intron retention: qcutpos: %d\n", qcutpos);
 		}
 		if (split_realignment(qcutpos, full_mm, split_mm_left, split_mm_right, cr) == CR)
 			return CR;
@@ -1418,14 +1447,14 @@ int ProcessCirc::rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split
 
 	// end of BP
 	if (split_mm_left.epos >= full_mm.spos and split_mm_left.epos < full_mm.epos) {
-		//fprintf(stderr, "On the end BP:\n%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
-		//			con_shift.contig.c_str(), 
-		//			full_mm.spos - con_shift.shift, full_mm.epos - con_shift.shift, 
-		//			full_mm.qspos, full_mm.matched_len, full_mm.dir,
-		//			split_mm_right.spos - con_shift.shift, split_mm_right.epos - con_shift.shift, 
-		//			split_mm_right.qspos, split_mm_right.matched_len, split_mm_right.dir,
-		//			split_mm_left.spos - con_shift.shift, split_mm_left.epos - con_shift.shift, 
-		//			split_mm_left.qspos, split_mm_left.matched_len, split_mm_left.dir);
+		fprintf(stderr, "On the end BP:\n%s\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t%u\t%u\t%d\t%d\t%d\t", 
+					con_shift.contig.c_str(), 
+					full_mm.spos - con_shift.shift, full_mm.epos - con_shift.shift, 
+					full_mm.qspos, full_mm.matched_len, full_mm.dir,
+					split_mm_right.spos - con_shift.shift, split_mm_right.epos - con_shift.shift, 
+					split_mm_right.qspos, split_mm_right.matched_len, split_mm_right.dir,
+					split_mm_left.spos - con_shift.shift, split_mm_left.epos - con_shift.shift, 
+					split_mm_left.qspos, split_mm_left.matched_len, split_mm_left.dir);
 
 		get_junctions(full_mm);
 		full_mm.junc_info.print();
@@ -1437,7 +1466,8 @@ int ProcessCirc::rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split
 		}
 		// check for intron retention
 		if (qcutpos == 0) {
-			qcutpos = full_mm.epos - split_mm_left.epos;
+			qcutpos = full_mm.matched_len - (full_mm.epos - split_mm_left.epos);
+			fprintf(stderr, "Rescue intron retention: qcutpos: %d\n", qcutpos);
 		}
 		if (split_realignment(qcutpos, full_mm, split_mm_left, split_mm_right, cr) == CR)
 			return CR;
