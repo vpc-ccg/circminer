@@ -595,7 +595,7 @@ int Alignment::local_alignment_left(char* s, int n, char* t, int m, int& indel) 
 int EditDistAlignment::local_alignment_right_sc(char* s, int n, char* t, int m, int& sc_len, int& indel) {
 	int max_sclen = minM(maxSc, m);
 	int max_indel = bandWidth;
-	uint32_t max_edit  = maxEd;
+	uint32_t max_edit = maxEd;
 
 	global_banded_alignment(s, n, t, m, bandWidth);
 	//hamming_distance_bottom(s, n, t, m, max_sclen);
@@ -604,13 +604,20 @@ int EditDistAlignment::local_alignment_right_sc(char* s, int n, char* t, int m, 
 
 	for (int j = m; j >= m - max_sclen; j--) {
 		for (int i = maxM(0, j - max_indel); i <= minM(j + max_indel, n); i++) {
-			if (dp[i][j] <= max_edit and 3*dp[i][j] < static_cast<uint32_t> (j))
+			//if (dp[i][j] <= max_edit and 3*dp[i][j] < static_cast<uint32_t> (j)) {
+			if (dp[i][j] <= max_edit) {
 				//best = minM(best, AlignCandid(dp[i][j], m - j, j - i));
 				best.update(AlignCandid(dp[i][j], m - j, j - i));
+			}
 		}
 	}
 
 // 	fprintf(stderr, "EDIT ALIGNMENT Right: Best: ed = %d\tsclen = %d\t indel = %d\n", best.ed, best.sclen, best.indel);
+
+	// very small seq with mismatch that is not going to go over edit dist threshold
+	if (m <= maxEd) {
+		best.update(AlignCandid(m, 0, 0));
+	}
 
 	align_score = m - best.sclen - 2 * best.ed;
 	sc_len = best.sclen;
@@ -621,7 +628,7 @@ int EditDistAlignment::local_alignment_right_sc(char* s, int n, char* t, int m, 
 int EditDistAlignment::local_alignment_left_sc(char* s, int n, char* t, int m, int& sc_len, int& indel) {
 	int max_sclen = minM(maxSc, m);
 	int max_indel = bandWidth;
-	uint32_t max_edit  = maxEd;
+	uint32_t max_edit = maxEd;
 
 	global_banded_alignment_reverse(s, n, t, m, bandWidth);
 	//hamming_distance_top(s, n, t, m, max_sclen);
@@ -630,7 +637,8 @@ int EditDistAlignment::local_alignment_left_sc(char* s, int n, char* t, int m, i
 
 	for (int j = m; j >= m - max_sclen; j--) {
 		for (int i = maxM(0, j - max_indel); i <= minM(j + max_indel, n); i++) {
-			if (dp[i][j] <= max_edit and 3*dp[i][j] < static_cast<uint32_t> (j)) {
+			//if (dp[i][j] <= max_edit and 3*dp[i][j] < static_cast<uint32_t> (j)) {
+			if (dp[i][j] <= max_edit) {
 				// fprintf(stderr, "[%d][%d] -> (%d, %d, %d)\n", i, j, dp[i][j], m-j, j-i);
 				//best = minM(best, AlignCandid(dp[i][j], m - j, j - i));
 				best.update(AlignCandid(dp[i][j], m - j, j - i));
@@ -639,6 +647,11 @@ int EditDistAlignment::local_alignment_left_sc(char* s, int n, char* t, int m, i
 	}
 
 // 	fprintf(stderr, "EDIT ALIGNMENT Left: Best: ed = %d\tsclen = %d\t indel = %d\n", best.ed, best.sclen, best.indel);
+
+	// very small seq with mismatch that is not going to go over edit dist threshold
+	if (m <= maxEd) {
+		best.update(AlignCandid(m, 0, 0));
+	}
 
 	align_score = m - best.sclen - 2 * best.ed;
 	sc_len = best.sclen;

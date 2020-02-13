@@ -612,6 +612,10 @@ void ProcessCirc::call_circ_double_split(Record* current_record1, Record* curren
 
 	if (best_cr.type >= CR and best_cr.type <= MCR)
 		circ_res.push_back(best_cr);
+	
+	else {
+		call_circ_single_split(current_record1, current_record2);
+	}
 }
 
 void ProcessCirc::binning(uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len) {
@@ -1226,6 +1230,34 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 						uint32_t qcutpos = split_mm_left.qepos + split_mm_left.sclen_right - ediff;
 						uint32_t beg_bp = split_mm_right.spos - split_mm_right.sclen_left - sdiff;
 						uint32_t end_bp = split_mm_left.epos + split_mm_left.sclen_right - ediff;
+
+						if (full_mm.sclen_right > 0) {
+							if (full_mm.epos + full_mm.sclen_right > end_bp) {
+								// other mate is crossing end_bp hence split realignment
+								uint32_t fm_qcutpos = full_mm.qepos + (end_bp - full_mm.epos);
+								MatchedMate full_mm_right;
+								int fm_ed = split_realignment(fm_qcutpos, beg_bp, end_bp, fullmap_seq, fullmap_seq_len, common_tid, full_mm, full_mm_right);
+								if (fm_ed > maxEd)
+									continue;
+							}
+							else if (full_mm.sclen_right > maxSc)
+								continue;
+						}
+
+						if (full_mm.sclen_left > 0) {
+							if (full_mm.spos - full_mm.sclen_left < beg_bp) {
+								// other mate is crossing end_bp hence split realignment
+								uint32_t fm_qcutpos = full_mm.sclen_left + (full_mm.spos - beg_bp);
+								MatchedMate full_mm_left;
+								int fm_ed = split_realignment(fm_qcutpos, beg_bp, end_bp, fullmap_seq, fullmap_seq_len, common_tid, full_mm_left, full_mm);
+								if (fm_ed > maxEd)
+									continue;
+							}
+							else if (full_mm.sclen_left > maxSc)
+								continue;
+						}
+
+
 						int ed = split_realignment(qcutpos, beg_bp, end_bp, remain_seq, remain_seq_len, common_tid, split_mm_left, split_mm_right);
 						
 						if (ed < best_ed) {
@@ -1239,6 +1271,10 @@ int ProcessCirc::final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, 
 							genome_seeder.pac2char_otf(end_bp-1, 2, near_end_bp);
 
 							cr.set_bp(beg_bp, end_bp, ssignal, esignal, near_start_bp, near_end_bp);
+
+							if (ed == 0)
+								return CR;
+
 							best_ed = ed;
 						}
 					}
