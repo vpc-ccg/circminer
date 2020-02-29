@@ -60,6 +60,9 @@ The information regarding the detected circRNAs is reported in `output.circ_repo
 
 The mapping results are stored in .pam files. If the scan level parameter (`-a, --scan-lev`) is set to 2 while running the tool, the mapping with the smallest error and soft-clip values is reported.
 
+## Simulation Data
+The simulated RNA-Seq reads used in this project can be accessed [here](https://figshare.com/projects/CircMiner/76488).
+
 ## Contact & Support
 
 Feel free to drop any inquiry to Hossein Asghari [hasghari at sfu dot ca].
