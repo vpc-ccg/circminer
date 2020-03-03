@@ -20,7 +20,7 @@ The source code can be downloaded from [GitHub](https://github.com/vpc-ccg/circm
 ### Compilation and Configuration
 To install, you need to first fetch the repository [git repository](https://github.com/vpc-ccg/circminer) or download the corresponding compressed files. 
 ```
-git clone https://github.com/vpc-ccg/circminer.git
+git clone --recursive https://github.com/vpc-ccg/circminer.git
 cd circminer
 make -j
 ```
