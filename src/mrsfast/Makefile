@@ -1,7 +1,7 @@
 MRSFAST_VERSION := "3.4.0"
 BUILD_DATE := "$(shell date)"
 
-objects= Sort.o Common.o CommandLineParser.o RefGenome.o HashTable.o Output.o Reads.o 
+objects= Sort.o Common.o RefGenome.o HashTable.o 
 
 all: OPTIMIZE_FLAGS build
 debug: DEBUG_FLAGS build

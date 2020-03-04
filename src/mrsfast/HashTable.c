@@ -41,7 +41,6 @@
 #include "Common.h"
 #include "RefGenome.h"
 #include "HashTable.h"
-#include "Output.h"
 #include "Sort.h"
 
 /**********************************************/

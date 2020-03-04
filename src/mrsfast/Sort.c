@@ -36,7 +36,7 @@
 
 #include <stdio.h>
 #include "Common.h"
-#include "Reads.h"
+#include "Sort.h"
 /**********************************************/
 static inline int lg( int x ) {
 	// floor( log2( x ) )

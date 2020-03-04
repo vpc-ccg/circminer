@@ -37,7 +37,14 @@
 #ifndef __SORT__
 #define __SORT__
 #include "Common.h"
-#include "Reads.h"
+
+typedef struct
+{
+	int32_t hv;
+	CheckSumType checksum;
+	int32_t seqInfo;
+
+} Pair;
 
 void introSortGI (GeneralIndex *, const int, const int);
 void introSortPair (Pair *, const int, const int);
