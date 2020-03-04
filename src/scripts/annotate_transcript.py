@@ -61,7 +61,7 @@ def annotate(crfilename, exons_tr_beg, exons_tr_end, outfilename):
 		for l in fin:
 			ltok = l.strip().split()
 			if ltok[0] == 'chr':
-				fout.write('{}\ttranscripts\n'.format(l))
+				fout.write('{}\ttranscripts\n'.format(l.strip()))
 				continue
 			
 			ch = ltok[0]
