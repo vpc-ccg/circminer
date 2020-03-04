@@ -64,12 +64,20 @@ def prepare_for_simul(typ=1, font_scale=1.6):
 	# sns.set_palette("Set2")
 	# sns.set_palette(sns.hls_palette(7, h=.4), desat=1.0)
 	# sns.set_palette(sns.color_palette("bright", n_colors=7))
-	col_list = ["green", "magenta", "blue", "red", "orange", "turquoise"]
+	col_list = ["green", "magenta", "blue", "red", "turquoise", "brown", "orange"]
 	sns.set_palette(sns.xkcd_palette(col_list))
 	if typ == 1:
-		tool_order = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'SEGEMEHL (C)', 'CircMarker']
-	else:
-		tool_order = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'SEGEMEHL', 'CircMarker']
+		tool_order = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'CircMarker', 'CIRCexplorer2', 'SEGEMEHL (C)' ]
+	elif typ == 3:
+		tool_order = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'CircMarker', 'CIRCexplorer2']
+	elif typ == 2:
+		tool_order = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'CircMarker', 'CIRCexplorer2', 'SEGEMEHL']
+	elif typ == 4:
+		tool_order = ['CircMiner', 'CIRCexplorer', 'CIRCexplorer2', 'KNIFE', 'CIRI', 'CircMarker', 'SEGEMEHL', 'circRNA_finder', 'DCC', 'find_circ', 'PTESFinder']
+		col_list = ["green", "magenta", "brown", "blue", "red", "turquoise", "orange", "navy" , "maroon", "pink", "violet"]
+	elif typ == 5:
+		tool_order = ['CircMiner', 'CIRCexplorer', 'CIRCexplorer2', 'KNIFE', 'CIRI', 'CircMarker', 'SEGEMEHL (C)', 'circRNA_finder', 'DCC', 'find_circ', 'PTESFinder']
+		col_list = ["green", "magenta", "brown", "blue", "red", "turquoise", "orange", "navy" , "maroon", "pink", "violet"]
 
 	return ax, tool_order, col_list
 
@@ -104,8 +112,8 @@ def circarrowdraw(x0, y0, kw, radius=1, aspect=1, direction=270, closingangle=-3
 	plt.gca().add_patch(arc_arrow_head)
 
 def positive_mixed_plot(df, total_circ_cnt, pname, dist_ratio=100, rot_head=-0.0003):
-	mydf = df[:6]
-	mydf2 = df[6:12]
+	mydf = df[:11]
+	mydf2 = df[11:22]
 	print(mydf)
 	print('-------')
 	print(mydf2)
@@ -118,21 +126,33 @@ def positive_mixed_plot(df, total_circ_cnt, pname, dist_ratio=100, rot_head=-0.0
 	mydf2['Recall'] = mydf2['TP'] / total_circ_cnt
 	mydf2['Precision'] = mydf2['TP'] / mydf2['#Detected']
 
+
+	#mydf.drop(mydf[mydf.Tools == "SEGEMEHL (C)"].index, inplace=True)
+	#mydf2.drop(mydf2[mydf2.Tools == "SEGEMEHL (C)"].index, inplace=True)
+
 	print(mydf)
 	print('------')
 	print(mydf2)
 
-	ax, tool_order, col_list = prepare_for_simul()
+	ax, tool_order, col_list = prepare_for_simul(5)
+
+	print(tool_order)
+	print(col_list)
+
+	#markers = [ 'o', 'x', 's', '+', 'd', '^', 'v', '>', '<', 'p', 'h' ]
+	markers = [ "o", "x", "s", "+", "d", "^", "v", ">", "<", "p", "h" ]
 
 	# plot points
 	light_col_list = [ "light " + x for x in col_list]
 	sns.set_palette(sns.xkcd_palette(light_col_list))
-	ax = sns.scatterplot(x="Recall", y="Precision", style="Tools", style_order=tool_order, hue="Tools", hue_order=tool_order,
-							s=120, alpha=1.0, legend=False, data=mydf2)
+	#ax = sns.scatterplot(x="Recall", y="Precision", marker=markers, style="Tools", style_order=tool_order, hue="Tools", hue_order=tool_order,
+	ax = sns.scatterplot(x="Recall", y="Precision", marker="X", style_order=tool_order, hue="Tools", hue_order=tool_order,
+							s=100, alpha=1.0, legend=False, data=mydf2)
 
 	sns.set_palette(sns.xkcd_palette(col_list))
-	ax = sns.scatterplot(x="Recall", y="Precision", style="Tools", style_order=tool_order, hue="Tools", hue_order=tool_order,
-							s=50, alpha=1.0, data=mydf)
+	#ax = sns.scatterplot(x="Recall", y="Precision", marker=markers, style="Tools", style_order=tool_order, hue="Tools", hue_order=tool_order,
+	ax = sns.scatterplot(x="Recall", y="Precision", markers=markers, style_order=tool_order, hue="Tools", hue_order=tool_order,
+							s=20, alpha=1.0, data=mydf)
 
 	# plotting arrows
 	ax2 = plt.gca()
@@ -149,12 +169,14 @@ def positive_mixed_plot(df, total_circ_cnt, pname, dist_ratio=100, rot_head=-0.0
 		px1 = (x[1], y[1])
 		dist = math.sqrt((x[0] - x[1])**2 + (y[0] - y[1])**2)
 		print(t, dist)
+		#if dist * dist_ratio < 0.1**4 or t == 'CIRCexplorer2':
 		if dist * dist_ratio < 0.1**4:
 			bb = plt.gca().axis()
 			asp = (bb[3] - bb[2]) / (bb[1] - bb[0])
-			circarrowdraw(x[0], y[0], kw, radius=.01, aspect=asp, direction=-90, closingangle=-345, rotate_head=rot_head)
+			radius = .01 if t != 'CIRCexplorer2' else .0075
+			circarrowdraw(x[0], y[0], kw, radius=radius, aspect=asp, direction=-90, closingangle=-345, rotate_head=rot_head)
 
-		elif dist < 0.1**3:
+		elif dist * dist_ratio < 0.1**3 or t in ['find_circ']:
 			bb = plt.gca().axis()
 			# asp = (bb[3] - bb[2]) / (bb[1] - bb[0])
 			# circarrowdraw(x[0], y[0], kw, radius=.01, aspect=asp, direction=-90, closingangle=-345, rotate_head=rot_head)
@@ -164,8 +186,24 @@ def positive_mixed_plot(df, total_circ_cnt, pname, dist_ratio=100, rot_head=-0.0
 
 			tmp0 = [x[1] - .00001, y[1] + .0000001]
 
-			pa1 = matplotlib.patches.FancyArrowPatch(tmp0, px1, connectionstyle="arc3,rad=0.", **kw)
-			pa2 = matplotlib.patches.FancyArrowPatch(px0, px1, connectionstyle="arc3,rad=6.4", **kw2)
+			if t in ['CIRCexplorer2', 'DCC'] and total_circ_cnt == 1000:
+				pa1 = matplotlib.patches.FancyArrowPatch(tmp0, px1, connectionstyle="arc3,rad=-0.2", **kw)
+				pa2 = matplotlib.patches.FancyArrowPatch(px0, px1, connectionstyle="arc3,rad=10.4", **kw2)
+			elif t in ['CIRCexplorer2', 'DCC'] and total_circ_cnt > 1000:
+				tmp0 = [x[0] - .00001, y[0] + .0000001]
+				pa1 = matplotlib.patches.FancyArrowPatch(tmp0, px0, connectionstyle="arc3,rad=-0.15", **kw)
+				pa2 = matplotlib.patches.FancyArrowPatch(px1, px0, connectionstyle="arc3,rad=10.4", **kw2)
+			elif t in ['find_circ']:
+				if total_circ_cnt == 1000:
+					pa1 = matplotlib.patches.FancyArrowPatch(tmp0, px1, connectionstyle="arc3,rad=-0.3", **kw)
+					pa2 = matplotlib.patches.FancyArrowPatch(px0, px1, connectionstyle="arc3,rad=.9", **kw2)
+				else:
+					pa1 = matplotlib.patches.FancyArrowPatch(tmp0, px1, connectionstyle="arc3,rad=0.0", **kw)
+					pa2 = matplotlib.patches.FancyArrowPatch(px0, px1, connectionstyle="arc3,rad=2.9", **kw2)
+
+			else:
+				pa1 = matplotlib.patches.FancyArrowPatch(tmp0, px1, connectionstyle="arc3,rad=0.", **kw)
+				pa2 = matplotlib.patches.FancyArrowPatch(px0, px1, connectionstyle="arc3,rad=6.4", **kw2)
 			plt.gca().add_patch(pa1)
 			plt.gca().add_patch(pa2)
 		else:
@@ -174,11 +212,11 @@ def positive_mixed_plot(df, total_circ_cnt, pname, dist_ratio=100, rot_head=-0.0
 
 
 	plt.gca().set_ylim(top=1.003)
-	plt.gca().set_xlim(left=0.65)
+	plt.gca().set_xlim(left=0.57)
 
 	# Create first legend and add artist manually
 	handles, labels = ax.get_legend_handles_labels()
-	labels[5] = 'SEGEMEHL'
+	labels[7] = 'SEGEMEHL'
 	leg = plt.legend(handles=handles[1:], labels=labels[1:], loc='lower left', bbox_to_anchor=(1.0, 0.0), title='Methods')
 	leg._legend_box.align = "left"
 	ax.add_artist(leg)
@@ -187,9 +225,10 @@ def positive_mixed_plot(df, total_circ_cnt, pname, dist_ratio=100, rot_head=-0.0
 	# from matplotlib.legend import Legend
 	# leg = Legend(ax, lgnd.legendHandles, tool_order, loc='lower right', frameon=False)
 
-	h = [plt.plot([],[], color='k', marker="o", ms=i, ls="")[0] for i in range(5, 9, 3)]
+	mk = [ "o","o","o","o","o","o", "X", "X", "X"]
+	h = [plt.plot([],[], color='k', marker=mk[i], ms=i, ls="")[0] for i in range(5, 9, 3)]
 	# lgd = plt.legend(handles=h, labels=['Positive', 'Mixed'], loc='lower left', title="Dataset", bbox_to_anchor=(1.0, 0.4))
-	lgd = plt.legend(handles=h, labels=['Positive Control', 'Diluted'], loc='lower left', title="Dataset", bbox_to_anchor=(1.0, 0.4))
+	lgd = plt.legend(handles=h, labels=['Positive Control', 'Diluted'], loc='lower left', title="Dataset", bbox_to_anchor=(1.0, 0.7))
 	lgd._legend_box.align = "left"
 
 
@@ -217,23 +256,23 @@ def false_pos_plot(df, pname, col):
 def simul1_plot(args):
 	xl = args[0]
 	df = pd.read_excel(xl, skiprows=1)
-	mydf = df.dropna()[:6]
-	mydf2 = df.dropna()[14:20]
+	mydf = df.dropna()[:11]
+	mydf2 = df.dropna()[24:35]
 
 	final_df1 = pd.concat([mydf, mydf2])
-	positive_mixed_plot(final_df1, 1000, 'pos-mix-1k', dist_ratio=.01, rot_head=-0.0003)
+	positive_mixed_plot(final_df1, 1000, 'pos-mix-1k', dist_ratio=.1, rot_head=-0.0003)
 
-	mydf3 = df.dropna()[7:13]
-	mydf4 = df.dropna()[21:27]
+	mydf3 = df.dropna()[12:23]
+	mydf4 = df.dropna()[36:47]
 
 	final_df2 = pd.concat([mydf3, mydf4])
-	positive_mixed_plot(final_df2, 110128, 'pos-mix-110k', dist_ratio=0.2, rot_head=-0.0001)
+	positive_mixed_plot(final_df2, 110128, 'pos-mix-110k', dist_ratio=1.0, rot_head=-0.0001)
 
 	mydf2['FP'] = mydf2['#Detected'] - mydf2['TP']
 	mydf4['FP'] = mydf4['#Detected'] - mydf4['TP']
 
-	false_pos_plot(mydf2, 'fp_rate1k', 'FP')
-	false_pos_plot(mydf4, 'fp_rate110k', 'FP')
+	#false_pos_plot(mydf2, 'fp_rate1k', 'FP')
+	#false_pos_plot(mydf4, 'fp_rate110k', 'FP')
 
 	#false_pos_plot(df[18:24], 'background1k', '#Detected')
 	#false_pos_plot(df[27:33], 'background110k', '#Detected')
@@ -363,7 +402,7 @@ def resource_real_plot(args, sample):
 	xl = pd.ExcelFile(args[0])
 	print(xl.sheet_names)
 	df = pd.io.excel.ExcelFile.parse(xl, "real(1_thread)")
-	df = df.iloc[:,:-3]
+	#df = df.iloc[:,:-3]
 	print(df)
 
 	if sample == 'hela':
@@ -402,10 +441,12 @@ def resource_real_plot(args, sample):
 	print(df_mem)
 
 	#ax, tool_order, col_list = prepare_for_simul(2)
+	#fig, axes = plt.subplots(nrows=1, ncols=4, sharex=False, squeeze=False, figsize=(10,5))
 
+	ax_id = 0
 	for t in ['time', 'mem']:
-		ax, tool_order, col_list = prepare_for_simul(2)
-		x = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'SEGEMEHL', 'CircMarker']
+		ax, tool_order, col_list = prepare_for_simul(4)
+		x = tool_order
 		
 		ax = sns.catplot(x = 'Tool', y = '{}'.format(t), hue = 'dataset', alpha=1.0, data=df_cput if (t == 'time') else df_mem, order=tool_order, kind='bar', legend=False)
 
@@ -431,10 +472,9 @@ def resource_real_plot(args, sample):
 		#	ax.fig.get_axes()[0].legend(loc='lower left', bbox_to_anchor=(1,0.5), title='dataset')
 
 		#plt.savefig('{}_{}_{}.pdf'.format(sample, s, typ), bbox_inches='tight')
-		#plt.savefig('{}_{}_combined.png'.format(sample, typ), bbox_inches='tight', dpi=600)
 		plt.savefig('{}_{}_combined.pdf'.format(sample, t), bbox_inches='tight')
 
-		#ax_id += 1
+		ax_id += 1
 		
 	#plt.savefig('real_time_mem.pdf', bbox_inches='tight')
 
@@ -479,7 +519,8 @@ def resource_plot_single(args):
 			#fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, squeeze=False)
 			fig, axes = plt.subplots(nrows=1, ncols=1, sharex=True, squeeze=False, figsize=(10,5))
 
-			x = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'SEGEMEHL', 'CircMarker']
+			#x = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'SEGEMEHL', 'CircMarker']
+			x = tool_order
 
 			ax = sns.barplot(x = 'Tool', y = '{}-{}'.format(s, r), alpha=1.0, data=df_cput if (r == 'hr') else df_mem, order=tool_order, ax=axes[0,0])
 
@@ -549,17 +590,18 @@ def resource_plot(args):
 	print(df_mem)
 
 
-	ax, tool_order, col_list = prepare_for_simul(2)
+	ax, tool_order, col_list = prepare_for_simul(4)
 
 	#fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, squeeze=False)
 	fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, squeeze=False, figsize=(10,5))
 
-	x = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'SEGEMEHL', 'CircMarker']
+	#x = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'SEGEMEHL', 'CircMarker']
+	x = tool_order
 
-	ax = sns.barplot(x = 'Tool', y = '110k-hr', alpha=1.0, data=df_cput, order=tool_order, ax=axes[0,0])
-	ax = sns.barplot(x = 'Tool', y = '1k-hr', alpha=1.0, data=df_cput, order=tool_order, ax=axes[0,1])
-	ax = sns.barplot(x = 'Tool', y = '110k-gb', alpha=1.0, data=df_mem, order=tool_order, ax=axes[1,0])
-	ax = sns.barplot(x = 'Tool', y = '1k-gb', alpha=1.0, data=df_mem, order=tool_order, ax=axes[1,1])
+	ax = sns.barplot(x = 'Tool', y = '110k-hr', alpha=1.0, data=df_cput, order=tool_order, palette=col_list, ax=axes[0,0])
+	ax = sns.barplot(x = 'Tool', y = '1k-hr', alpha=1.0, data=df_cput, order=tool_order, palette=col_list, ax=axes[0,1])
+	ax = sns.barplot(x = 'Tool', y = '110k-gb', alpha=1.0, data=df_mem, order=tool_order, palette=col_list, ax=axes[1,0])
+	ax = sns.barplot(x = 'Tool', y = '1k-gb', alpha=1.0, data=df_mem, order=tool_order, palette=col_list, ax=axes[1,1])
 
 	#ax.set_yscale('log')
 
