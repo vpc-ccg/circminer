@@ -79,7 +79,7 @@ public:
 	void chaining (uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift, chain_list& bc);
 
 	bool find_exact_coord (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, 
-							int dir, uint32_t qspos, char* rseq, int rlen, int whole_len, const chain_t& bc);
+							int dir, uint32_t qspos, char* rseq, int rlen, int whole_len, chain_t& bc);
 
 	void refresh_hash_table_list (void);
 	void check_removables (uint32_t rspos);

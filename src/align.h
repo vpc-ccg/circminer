@@ -41,11 +41,24 @@ struct AlignRes {
 		this->score = scr;
 	}
 
-	bool update_by_score (AlignRes& r) {
+	bool update_by_score_right (AlignRes& r) {
 // 		print();
 // 		r.print();
 		
-		if (score < r.score) {
+		if (score < r.score or (score == r.score and r.pos < pos)) {
+// 			fprintf(stderr, "Updated\n");
+			this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen, r.score);
+			return true;
+		}
+
+		return false;
+	}
+		
+	bool update_by_score_left (AlignRes& r) {
+// 		print();
+// 		r.print();
+		
+		if (score < r.score or (score == r.score and r.pos > pos)) {
 // 			fprintf(stderr, "Updated\n");
 			this->set(r.pos, r.ed, r.sclen, r.indel, r.qcovlen, r.score);
 			return true;

@@ -725,7 +725,7 @@ void get_junctions(MatchedMate& mm) {
 				if (gtf_parser.trans2seg[contigNum][tid][k] != 0) {
 					this_region = gtf_parser.get_interval(this_it_ind);
 					
-					fprintf(stderr, "[%u-%u]\n", junc_start, this_region->spos);
+					//fprintf(stderr, "[%u-%u]\n", junc_start, this_region->spos);
 
 					mm.junc_info.push_back(junc_start, this_region->spos, covered);
 					covered += this_region->epos - this_region->spos + 1;
@@ -735,9 +735,9 @@ void get_junctions(MatchedMate& mm) {
 			mm.junc_info.push_back(junc_start, mm.exons_epos->spos, covered);
 			covered += mm.epos - mm.exons_epos->spos + 1;
 
-			fprintf(stderr, "While building: Covered = %d\n", covered);
-			fprintf(stderr, "on read: [%d-%d] matched_len: %d\n", mm.qspos, mm.qepos, mm.matched_len);
-			mm.junc_info.print();
+			//fprintf(stderr, "While building: Covered = %d\n", covered);
+			//fprintf(stderr, "on read: [%d-%d] matched_len: %d\n", mm.qspos, mm.qepos, mm.matched_len);
+			//mm.junc_info.print();
 			if (abs(covered - mm.matched_len) <= INDELTH)
 				return;
 			else
@@ -824,7 +824,7 @@ bool is_left_chain(chain_t a, chain_t b) {
 	bool non_overlaping = (b_beg > a_end) or (a_beg > b_end);
 
 	if (non_overlaping) {
-		fprintf(stderr, "NOV\n");
+// 		fprintf(stderr, "NOV\n");
 		return a_beg < b_beg;
 	}
 
@@ -845,12 +845,64 @@ bool is_left_chain(chain_t a, chain_t b) {
 			int32_t a_ov_qpos = a.frags[i].qpos + (common_bp - a.frags[i].rpos);
 			int32_t b_ov_qpos = b.frags[j].qpos + (common_bp - b.frags[j].rpos);
 			
-			fprintf(stderr, "OV -> Decision made\n");
+// 			fprintf(stderr, "OV -> Decision made\n");
 			return a_ov_qpos >= b_ov_qpos;
 		}
-		fprintf(stderr, "OV -> Ambiguous\n");
+// 		fprintf(stderr, "OV -> Ambiguous\n");
 
 		return a_beg < b_beg;
+	}
+}
+
+void remove_side_introns(MatchedMate& mm, int rlen) {
+	overlap_to_spos(mm);
+	if (mm.exons_spos == NULL) {
+		const IntervalInfo<UniqSeg>* it_seg = gtf_parser.get_interval(mm.exon_ind_spos + 1);
+		if (it_seg == NULL) {
+// 			fprintf(stderr, "Failed to remove intron left\n");
+			return;
+		}
+
+		int diff = it_seg->spos - mm.spos;
+// 		fprintf(stderr, "left intron retention: %d bp\n", diff);
+		if (diff > 0 and (static_cast<uint32_t> (diff)) < mm.matched_len) {
+			// update mm
+			mm.spos = it_seg->spos;
+			mm.qspos += diff;
+			mm.matched_len -= diff;
+
+			if ((mm.qspos - 1) < (rlen - mm.qepos)) // left-side matched
+				mm.sclen_left += diff;
+
+			mm.looked_up_spos = false;
+			mm.exons_spos = NULL;
+// 			fprintf(stderr, "Removed left intron retention: %d bp\n", diff);
+		}
+	}
+
+	overlap_to_epos(mm);
+	if (mm.exons_epos == NULL) {
+		const IntervalInfo<UniqSeg>* it_seg = gtf_parser.get_interval(mm.exon_ind_epos);
+		if (it_seg == NULL) {
+// 			fprintf(stderr, "Failed to remove intron right\n");
+			return;
+		}
+
+		int diff = mm.epos - it_seg->epos;
+// 		fprintf(stderr, "right intron retention: %d bp\n", diff);
+		if (diff > 0 and (static_cast<uint32_t> (diff)) < mm.matched_len) {
+			// update mm
+			mm.epos = it_seg->epos;
+			mm.qepos -= diff;
+			mm.matched_len -= diff;
+			
+			if ((mm.qspos - 1) > (rlen - mm.qepos)) // right-side matched
+				mm.sclen_right += diff;
+
+			mm.looked_up_epos = false;
+			mm.exons_epos = NULL;
+// 			fprintf(stderr, "Removed right intron retention: %d bp\n", diff);
+		}
 	}
 }
 

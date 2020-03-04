@@ -46,4 +46,6 @@ void reverse_str(char* s, int n, char* revs);
 
 bool is_left_chain(chain_t a, chain_t b);
 
+void remove_side_introns(MatchedMate& mm, int rlen);
+
 #endif	// __UTILS_H__

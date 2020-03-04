@@ -297,7 +297,7 @@ bool TransExtension::extend_right(const vector <uint32_t>& common_tid, char* seq
 	map <AllCoord, AlignRes> align_res; 
 	
 	for (unsigned int i = 0; i < common_tid.size(); i++) {
-		fprintf(stderr, "common_tid[%d] = %d -> %s\n", i, common_tid[i], gtf_parser.transcript_ids[contigNum][common_tid[i]].c_str());
+// 		fprintf(stderr, "common_tid[%d] = %d -> %s\n", i, common_tid[i], gtf_parser.transcript_ids[contigNum][common_tid[i]].c_str());
 		extend_right_trans(common_tid[i], pos, ref_seq, ref_len, seq, seq_len, ed_th, ub, best_alignment, consecutive, align_res);
 		//best_alignment.print();
 		// if (best_alignment.qcovlen >= seq_len and best_alignment.ed == 0 and best_alignment.sclen == 0) {
@@ -328,7 +328,7 @@ bool TransExtension::extend_right(const vector <uint32_t>& common_tid, char* seq
 		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d, sclen: %d\n", ref_seq, seq, min_ed, sclen_best);
 		if (min_ed <= ed_th and sclen_best <= maxSc) {
 			curr_alignment.set(orig_pos + seq_len - indel, min_ed, sclen_best, indel, seq_len, alignment->get_score());
-			if (best_alignment.update_by_score(curr_alignment)) {
+			if (best_alignment.update_by_score_right(curr_alignment)) {
 				pos = orig_pos + seq_len - indel - sclen_best;
 				vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew RM POS: %u\n", min_ed, pos);
 				return true;
@@ -370,7 +370,7 @@ bool TransExtension::extend_left(const vector <uint32_t>& common_tid, char* seq,
 	map <AllCoord, AlignRes> align_res;
 
 	for (unsigned int i = 0; i < common_tid.size(); i++) {
-		fprintf(stderr, "common_tid[%d] = %d -> %s\n", i, common_tid[i], gtf_parser.transcript_ids[contigNum][common_tid[i]].c_str());
+// 		fprintf(stderr, "common_tid[%d] = %d -> %s\n", i, common_tid[i], gtf_parser.transcript_ids[contigNum][common_tid[i]].c_str());
 		extend_left_trans(common_tid[i], pos, ref_seq, ref_len, seq, seq_len, ed_th, lb, best_alignment, consecutive, align_res);
 		//best_alignment.print();
 		// if (best_alignment.qcovlen >= seq_len and best_alignment.ed == 0 and best_alignment.sclen == 0) {
@@ -401,7 +401,7 @@ bool TransExtension::extend_left(const vector <uint32_t>& common_tid, char* seq,
 		vafprintf(2, stderr, "str beg str:  %s\nread beg str: %s\nedit dist: %d, sclen: %d\n", ref_seq, seq, min_ed, sclen_best);
 		if (min_ed <= ed_th and sclen_best <= maxSc) {
 			curr_alignment.set(orig_pos - seq_len + indel, min_ed, sclen_best, indel, seq_len, alignment->get_score());
-			if (best_alignment.update_by_score(curr_alignment)) {
+			if (best_alignment.update_by_score_left(curr_alignment)) {
 				pos = orig_pos - seq_len + indel + sclen_best;
 				vafprintf(2, stderr, "Intron Retention: Min Edit Dist: %d\tNew LM POS: %u\n", min_ed, pos);
 				return true;
@@ -474,7 +474,7 @@ void TransExtension::extend_right_end(uint32_t pos, char* ref_seq, uint32_t ref_
 
 	if ((curr.ed + edit_dist <= ed_th) and (sclen <= maxSc) and (actual_mapped_bp >= sclen)) {
 		curr.update(edit_dist, sclen, new_rmpos, indel, qseq_len, alignment->get_score());
-		best.update_by_score(curr);
+		best.update_by_score_right(curr);
 	}
 }
 
@@ -628,7 +628,7 @@ void TransExtension::extend_right_trans(uint32_t tid, uint32_t pos, char* ref_se
 			return;
 		else {
 			curr.update(it->second.ed, it->second.sclen, it->second.pos, it->second.indel, it->second.qcovlen, it->second.score);
-			best.update_by_score(curr);
+			best.update_by_score_right(curr);
 		}
 	}
 	else {
@@ -688,7 +688,7 @@ void TransExtension::extend_left_end(uint32_t pos, char* ref_seq, uint32_t ref_l
 
 	if ((curr.ed + edit_dist <= ed_th) and (sclen <= maxSc) and (actual_mapped_bp >= sclen)) {
 		curr.update(edit_dist, sclen, new_lmpos, indel, qseq_len, alignment->get_score());
-		best.update_by_score(curr);
+		best.update_by_score_left(curr);
 	}
 }
 
@@ -850,7 +850,7 @@ void TransExtension::extend_left_trans (uint32_t tid, uint32_t pos, char* ref_se
 			return;
 		else {
 			curr.update(it->second.ed, it->second.sclen, it->second.pos, it->second.indel, it->second.qcovlen, it->second.score);
-			best.update_by_score(curr);
+			best.update_by_score_left(curr);
 		}
 	}
 	else {
@@ -884,8 +884,12 @@ int TransExtension::calc_middle_ed(const chain_t& ch, int edth, char* qseq, int 
 				rlen = 0;
 
 			// fprintf(stderr, "Diff: %d\n", diff);
+			// fprintf(stderr, "rspos: %u - rlen: %u\n", rspos, rlen);
 			if (diff >= 0 and diff <= bandWidth) {
 				genome_seeder.pac2char(rspos, rlen, rseq);
+				// bool success = genome_seeder.pac2char(rspos, rlen, rseq);
+				// fprintf(stderr, "successful pac2char? %d\n", success);
+				// fprintf(stderr, "rseq: %s\n", rseq);
 				// fprintf(stderr, "qlen: %d\nrlen: %d\nQ str: %s\nT str: %s\n", qlen, rlen, qseq+qspos, rseq);
 				mid_err += alignment->global_one_side_banded_alignment(qseq + qspos, qlen, rseq, rlen, diff);
 			}

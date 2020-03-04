@@ -366,9 +366,9 @@ inline bool MatchedRead::go_for_update(const MatchedMate& r1, const MatchedMate&
 
 	if (type < CHIBSJ) {
 		int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed + r2.left_ed + r2.middle_ed + r2.right_ed;
-		if (this->ed_r1 + this->ed_r2 > edit_dist)
+		if ((this->ed_r1 + this->ed_r2) > edit_dist)
 			return true;
-		if (this->ed_r1 + this->ed_r2 < edit_dist)
+		if ((this->ed_r1 + this->ed_r2) < edit_dist)
 			return false;
 
 		if (this->tlen > tlen)
@@ -376,23 +376,29 @@ inline bool MatchedRead::go_for_update(const MatchedMate& r1, const MatchedMate&
 		if (this->tlen < tlen)
 			return false;
 
-		if (this->mlen_r1 + this->mlen_r2 < r1.matched_len + r2.matched_len)
+		if ((this->mlen_r1 + this->mlen_r2) < (r1.matched_len + r2.matched_len))
 			return true;
-		if (this->mlen_r1 + this->mlen_r2 > r1.matched_len + r2.matched_len)
+		if ((this->mlen_r1 + this->mlen_r2) > (r1.matched_len + r2.matched_len))
 			return false;
 	}
 
 	else {
-		if (this->mlen_r1 + this->mlen_r2 < r1.matched_len + r2.matched_len)
+		if ((this->mlen_r1 + this->mlen_r2) < (r1.matched_len + r2.matched_len))
 			return true;
-		if (this->mlen_r1 + this->mlen_r2 > r1.matched_len + r2.matched_len)
+		if ((this->mlen_r1 + this->mlen_r2) > (r1.matched_len + r2.matched_len))
 			return false;
 
 		int edit_dist = r1.left_ed + r1.middle_ed + r1.right_ed + r2.left_ed + r2.middle_ed + r2.right_ed;
-		if (this->ed_r1 + this->ed_r2 > edit_dist)
+		if ((this->ed_r1 + this->ed_r2) > edit_dist)
 			return true;
-		if (this->ed_r1 + this->ed_r2 < edit_dist)
+		if ((this->ed_r1 + this->ed_r2) < edit_dist)
 			return false;
+
+		//if (this->tlen > tlen)
+		//	return true;
+		//if (this->tlen < tlen)
+		//	return false;
+
 	}
 	return false;
 }
