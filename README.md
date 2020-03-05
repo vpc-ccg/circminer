@@ -56,9 +56,39 @@ The information regarding the detected circRNAs is reported in `output.circ_repo
 |3     |int   |End genomic position of circRNA                                          |
 |4     |int   |Number of supporting back-splice junction reads                          |
 |5     |string|Type of circRNA                                                          |
-|6     |string|Read names of the supproting back-splice junction reads (comma-separated)|
+|6     |string|Consensus of splice signal on supporting back-splice junction reads      |
+|7     |string|Splice signal on reference                                               |
+|8     |string|Pass/Fail (based on matching splice signal to reference)                 |
+|9     |string|Supproting back-splice junction read names (comma-separated)|
 
-The mapping results are stored in .pam files. If the scan level parameter (`-a, --scan-lev`) is set to 2 while running the tool, the mapping with the smallest error and soft-clip values is reported.
+The back-splice juntion read mappings are stored in output.candidates.pam. If --pam/--sam is specified in the input arguments, the mapping results will be available in output.mapping.pam/output.mapping.sam file. 
+Note: If the scan level parameter (`-a, --scan-lev`) is set to 2 while running the tool, the mapping with the smallest error and soft-clip values is reported.
+
+PAM mapping format:
+
+|Column|Type  |Description                                                |
+|-----:|:----:|:----------------------------------------------------------|
+|1     |string|Read name                                                  |
+|2     |string|Chromosome name (R1)                                       |
+|3     |int   |Start genomic position (R1)                                |
+|4     |int   |End genomic position (R1)                                  |
+|5     |int   |Number of aligned basepairs (R1)                           |
+|6     |int   |Start of aligned position on read (R1)                     |
+|7     |int   |End of aligned position on read (R1)                       |
+|8     |Char  |Relative strand: "+" or "-" (R1)                           |
+|9     |int   |Edit distance (R1)                                         |
+|10    |string|Chromosome name (R2)                                       |
+|11    |int   |Start genomic position (R2)                                |
+|12    |int   |End genomic position (R2)                                  |
+|13    |int   |Number of aligned basepairs (R2)                           |
+|14    |int   |Start of aligned position on read (R2)                     |
+|15    |int   |End of aligned position on read (R2)                       |
+|16    |Char  |Relative strand: "+" or "-" (R2)                           |
+|17    |int   |Edit distance (R2)                                         |
+|18    |int   |Insert length                                              |
+|19    |int   |Number of junctions happening between two mates            |
+|20    |int   |Transcriptomic mapping: 1. Genomic mapping: 0              |
+
 
 ## Simulation Data
 The simulated RNA-Seq reads used in this project can be accessed [here](https://figshare.com/projects/CircMiner/76488).
