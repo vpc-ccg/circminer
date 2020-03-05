@@ -75,7 +75,7 @@ PAM mapping format:
 |5     |int   |Number of aligned basepairs (R1)                           |
 |6     |int   |Start of aligned position on read (R1)                     |
 |7     |int   |End of aligned position on read (R1)                       |
-|8     |Char  |Relative strand: "+" or "-" (R1)                           |
+|8     |char  |Relative strand: "+" or "-" (R1)                           |
 |9     |int   |Edit distance (R1)                                         |
 |10    |string|Chromosome name (R2)                                       |
 |11    |int   |Start genomic position (R2)                                |
@@ -83,7 +83,7 @@ PAM mapping format:
 |13    |int   |Number of aligned basepairs (R2)                           |
 |14    |int   |Start of aligned position on read (R2)                     |
 |15    |int   |End of aligned position on read (R2)                       |
-|16    |Char  |Relative strand: "+" or "-" (R2)                           |
+|16    |char  |Relative strand: "+" or "-" (R2)                           |
 |17    |int   |Edit distance (R2)                                         |
 |18    |int   |Insert length                                              |
 |19    |int   |Number of junctions happening between two mates            |
