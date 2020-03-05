@@ -22,7 +22,7 @@ extern "C" {
 using namespace std;
 
 char versionNumberMajor[10] = "0";
-char versionNumberMinor[10] = "1";
+char versionNumberMinor[10] = "2b";
 
 pthread_mutex_t write_lock;
 pthread_mutex_t pmap_lock;
