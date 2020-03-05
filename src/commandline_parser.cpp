@@ -11,7 +11,7 @@ bool pairedEnd = false;
 bool finalCleaning = true;
 bool internalSort = false;
 int kmer = 19;
-int maxReadLength = 120;
+int maxReadLength = 300;
 int verboseMode = 0;
 int scanLevel = 0;
 int maxEd = EDTH;
@@ -293,7 +293,7 @@ void printHELP(void)
 	fprintf(stdout, "\nAdvanced options:\n");
 	fprintf(stdout, "\t-m, --compact-index:\tUse this option only while building the index to enable compact version of the index.\n");
 	fprintf(stdout, "\t-k, --kmer:\t\tKmer size [%d..%d] (default = 19).\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen);
-	fprintf(stdout, "\t-l, --rlen:\t\tMax read length (default = 120).\n");
+	fprintf(stdout, "\t-l, --rlen:\t\tMax read length (default = 300).\n");
 	fprintf(stdout, "\t-e, --max-ed:\t\tMax allowed edit distance on each mate (default = %d).\n", EDTH);
 	fprintf(stdout, "\t-c, --max-sc:\t\tMax allowed soft clipping on each mate (default = %d).\n", SOFTCLIPTH);
 	fprintf(stdout, "\t-w, --band:\t\tBand width for banded alignment (default = %d).\n", INDELTH);
