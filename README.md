@@ -62,6 +62,7 @@ The information regarding the detected circRNAs is reported in `output.circ_repo
 |9     |string|Supproting back-splice junction read names (comma-separated)|
 
 The back-splice juntion read mappings are stored in output.candidates.pam. If --pam/--sam is specified in the input arguments, the mapping results will be available in output.mapping.pam/output.mapping.sam file. 
+
 Note: If the scan level parameter (`-a, --scan-lev`) is set to 2 while running the tool, the mapping with the smallest error and soft-clip values is reported.
 
 PAM mapping format:
