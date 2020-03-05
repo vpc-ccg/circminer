@@ -1571,7 +1571,7 @@ void ProcessCirc::report_events (void) {
 				both_side_consensus(bsj_reads, ss_con, es_con);
 
 				string correct_bp = ((ss_con.compare(last.start_bp_ref) == 0) and (es_con.compare(last.end_bp_ref) == 0)) ? 
-									"Correct" : "Wrong";
+									"Pass" : "Fail";
 
 				fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t%s-%s\t%s-%s\t%s\t", 
 						last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str(), 
@@ -1592,7 +1592,7 @@ void ProcessCirc::report_events (void) {
 		both_side_consensus(bsj_reads, ss_con, es_con);
 
 		string correct_bp = ((ss_con.compare(last.start_bp_ref) == 0) and (es_con.compare(last.end_bp_ref) == 0)) ? 
-							"Correct" : "Wrong";
+							"Pass" : "Fail";
 
 		fprintf(report_file, "%s\t%u\t%u\t%d\t%s\t%s-%s\t%s-%s\t%s\t", 
 						last.chr.c_str(), last.spos, last.epos, cnt, circ_type[last.type-CR].c_str(), 
