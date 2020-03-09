@@ -32,7 +32,7 @@ Now you are ready to go!
 ### Synopsis
 	
 	circminer --index -r FASTA_FILE -k KMER_SIZE [OPTIONS]
-	circminer -r FASTA_FILE -g GTF_FILE -f FASTQ_FILE -k KMER_SIZE [OPTIONS]
+	circminer -r FASTA_FILE -g GTF_FILE -1 FASTQ_FILE_R1 -2 FASTQ_FILE_R2 -k KMER_SIZE [OPTIONS]
 
 ### OPTIONS
 Run `circminer -h` to see available options.
@@ -44,7 +44,7 @@ Run `circminer -h` to see available options.
 
 #### Mapping to reference genome and circRNA calling:
 	
-	$ ./circminer -r genome.fasta -g ga.gtf -f reads.fastq -k 20 -o output [--pe] 
+	$ ./circminer -r genome.fasta -g ga.gtf -1 reads_R1.fastq -2 reads_R2.fastq -k 20 -o output
 
 ## Output Format
 The information regarding the detected circRNAs is reported in `output.circ_report` file. It includes the exact breakpoint location, number of supporting back-splice junctions and their read names.
