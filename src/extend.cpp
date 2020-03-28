@@ -191,8 +191,8 @@ int TransExtension::extend_chain_both_sides(const chain_t& ch, char* seq, int se
 	mr.matched_len -= (left_ok) ? sclen_left : remain_beg;
 	mr.matched_len -= (right_ok) ? sclen_right: remain_end;
 
-	mr.qspos = 1 + (left_ok) ? sclen_left : remain_beg;
-	mr.qepos = seq_len - (right_ok) ? sclen_right: remain_end;
+	mr.qspos = 1 + ((left_ok) ? sclen_left : remain_beg);
+	mr.qepos = seq_len - ((right_ok) ? sclen_right: remain_end);
 
 	mr.right_ed = best_alignment.ed;
 	mr.left_ed  = best_alignment_left.ed;

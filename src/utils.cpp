@@ -738,7 +738,7 @@ void get_junctions(MatchedMate& mm) {
 			//fprintf(stderr, "While building: Covered = %d\n", covered);
 			//fprintf(stderr, "on read: [%d-%d] matched_len: %d\n", mm.qspos, mm.qepos, mm.matched_len);
 			//mm.junc_info.print();
-			if (abs(covered - mm.matched_len) <= INDELTH)
+			if (abs(static_cast<int32_t> (covered - mm.matched_len)) <= INDELTH)
 				return;
 			else
 				mm.junc_info.clear();
