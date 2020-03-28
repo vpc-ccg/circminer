@@ -73,11 +73,11 @@ def prepare_for_simul(typ=1, font_scale=1.6):
 	elif typ == 2:
 		tool_order = ['CircMiner', 'CIRCexplorer', 'KNIFE', 'CIRI', 'CircMarker', 'CIRCexplorer2', 'SEGEMEHL']
 	elif typ == 4:
-		tool_order = ['CircMiner', 'CIRCexplorer', 'CIRCexplorer2', 'KNIFE', 'CIRI', 'CircMarker', 'SEGEMEHL', 'circRNA_finder', 'DCC', 'find_circ', 'PTESFinder']
-		col_list = ["green", "magenta", "brown", "blue", "red", "turquoise", "orange", "navy" , "maroon", "pink", "violet"]
+		tool_order = ['CircMiner', 'CIRCexplorer', 'CIRCexplorer2', 'KNIFE', 'CIRI', 'CircMarker', 'SEGEMEHL', 'circRNA_finder', 'DCC', 'find_circ', 'PTESFinder', 'NCLscan']
+		col_list = ["green", "magenta", "brown", "blue", "red", "turquoise", "orange", "navy" , "maroon", "pink", "violet", "gold"]
 	elif typ == 5:
-		tool_order = ['CircMiner', 'CIRCexplorer', 'CIRCexplorer2', 'KNIFE', 'CIRI', 'CircMarker', 'SEGEMEHL (C)', 'circRNA_finder', 'DCC', 'find_circ', 'PTESFinder']
-		col_list = ["green", "magenta", "brown", "blue", "red", "turquoise", "orange", "navy" , "maroon", "pink", "violet"]
+		tool_order = ['CircMiner', 'CIRCexplorer', 'CIRCexplorer2', 'KNIFE', 'CIRI', 'CircMarker', 'SEGEMEHL (C)', 'circRNA_finder', 'DCC', 'find_circ', 'PTESFinder', 'NCLscan']
+		col_list = ["green", "magenta", "brown", "blue", "red", "turquoise", "orange", "navy" , "maroon", "pink", "violet", "gold"]
 
 	return ax, tool_order, col_list
 
@@ -112,8 +112,8 @@ def circarrowdraw(x0, y0, kw, radius=1, aspect=1, direction=270, closingangle=-3
 	plt.gca().add_patch(arc_arrow_head)
 
 def positive_mixed_plot(df, total_circ_cnt, pname, dist_ratio=100, rot_head=-0.0003):
-	mydf = df[:11]
-	mydf2 = df[11:22]
+	mydf = df[:12]
+	mydf2 = df[12:24]
 	print(mydf)
 	print('-------')
 	print(mydf2)
@@ -140,7 +140,7 @@ def positive_mixed_plot(df, total_circ_cnt, pname, dist_ratio=100, rot_head=-0.0
 	print(col_list)
 
 	#markers = [ 'o', 'x', 's', '+', 'd', '^', 'v', '>', '<', 'p', 'h' ]
-	markers = [ "o", "x", "s", "+", "d", "^", "v", ">", "<", "p", "h" ]
+	markers = [ "o", "x", "s", "+", "d", "^", "v", ">", "<", "p", "h", "D" ]
 
 	# plot points
 	light_col_list = [ "light " + x for x in col_list]
@@ -211,8 +211,8 @@ def positive_mixed_plot(df, total_circ_cnt, pname, dist_ratio=100, rot_head=-0.0
 			plt.gca().add_patch(pa)
 
 
-	plt.gca().set_ylim(top=1.003)
-	plt.gca().set_xlim(left=0.57)
+	plt.gca().set_ylim(top=1.004)
+	plt.gca().set_xlim(left=0.54)
 
 	# Create first legend and add artist manually
 	handles, labels = ax.get_legend_handles_labels()
@@ -256,14 +256,14 @@ def false_pos_plot(df, pname, col):
 def simul1_plot(args):
 	xl = args[0]
 	df = pd.read_excel(xl, skiprows=1)
-	mydf = df.dropna()[:11]
-	mydf2 = df.dropna()[24:35]
+	mydf = df.dropna()[:12]
+	mydf2 = df.dropna()[26:38]
 
 	final_df1 = pd.concat([mydf, mydf2])
 	positive_mixed_plot(final_df1, 1000, 'pos-mix-1k', dist_ratio=.1, rot_head=-0.0003)
 
-	mydf3 = df.dropna()[12:23]
-	mydf4 = df.dropna()[36:47]
+	mydf3 = df.dropna()[13:25]
+	mydf4 = df.dropna()[39:51]
 
 	final_df2 = pd.concat([mydf3, mydf4])
 	positive_mixed_plot(final_df2, 110128, 'pos-mix-110k', dist_ratio=1.0, rot_head=-0.0001)
@@ -339,14 +339,23 @@ def real1_plot(args):
 	df_hela = df[29:35]
 	#confidence_plot(df_hela, 'HeLa')
 
-	#ax, tool_order, col_list = prepare_for_simul(2)
+	hs68_cpu, hs68_mem = prepare_resource_real_data(args, 'hs68')
+	hela_cpu, hela_mem = prepare_resource_real_data(args, 'hela')
 
-	#fig, axes = plt.subplots(nrows=1, ncols=4, sharex=True, squeeze=False, figsize=(10,5))
+	#df_list = [ hs68_cpu, hs68_mem, hela_cpu, hela_mem ]
+	#resource_real_plot(df_list)
+	
+	hs68_cpu['cell line'] = 'Hs68'
+	hs68_mem['cell line'] = 'Hs68'
 
-	#resource_real_plot(args, 'hs68', tool_order, axes, ax_id=0)
-	#resource_real_plot(args, 'hela', tool_order, axes, ax_id=2)
-	resource_real_plot(args, 'hs68')
-	resource_real_plot(args, 'hela')
+	hela_cpu['cell line'] = 'HeLa'
+	hela_mem['cell line'] = 'HeLa'
+
+	df_cpu = pd.concat([hs68_cpu, hela_cpu])
+	df_mem = pd.concat([hs68_mem, hela_mem])
+
+	resource_real_plot2(df_cpu, 'time')
+	resource_real_plot2(df_mem, 'mem')
 
 def top_calls_plot(df, sample):
 	df["Top 100 not enriched not depleted"] = df["Top 100 not depleted"] - df["Top 100 enriched"]
@@ -398,7 +407,7 @@ def top_calls_plot(df, sample):
 
 	plt.savefig('{}_top100_enriched_notdepleted.png'.format(sample), bbox_inches='tight', dpi=600)
 
-def resource_real_plot(args, sample):
+def prepare_resource_real_data(args, sample):
 	xl = pd.ExcelFile(args[0])
 	print(xl.sheet_names)
 	df = pd.io.excel.ExcelFile.parse(xl, "real(1_thread)")
@@ -440,43 +449,80 @@ def resource_real_plot(args, sample):
 	df_mem = pd.melt(df_mem, id_vars=['Tool', 'R-', 'R+'], value_vars=['RNaseR-', 'RNaseR+'], var_name='dataset', value_name='mem')
 	print(df_mem)
 
-	#ax, tool_order, col_list = prepare_for_simul(2)
-	#fig, axes = plt.subplots(nrows=1, ncols=4, sharex=False, squeeze=False, figsize=(10,5))
+	return df_cput, df_mem
 
-	ax_id = 0
-	for t in ['time', 'mem']:
-		ax, tool_order, col_list = prepare_for_simul(4)
+def resource_real_plot2(df, typ):
+	ax, tool_order, col_list = prepare_for_simul(4)
+	x = tool_order
+	
+	#ax = sns.barplot(x = 'Tool', y = typ, hue = 'dataset', alpha=1.0, data=df, order=tool_order)
+	ax = sns.catplot(x = 'Tool', y = typ, hue = 'dataset', col='cell line', alpha=1.0, data=df, order=tool_order, kind='bar', legend=True, sharey=False)
+	
+	if typ == 'time':
+		ax.set(ylabel='Time (min)')
+	else:
+		ax.set(ylabel='Memory usage (GB)')
+
+	sns.despine(left=True, right=True, top=True)
+
+	#matplotlib.pyplot.sca(ax)
+	for i in range(2):
+		xlabels = ax.axes[0,i].get_xticklabels()
+		ax.axes[0,i].set_xticklabels(xlabels, rotation=90)
+		ax.axes[0,i].get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+		ax.axes[0,i].grid(b=True, which='major', color='gray', linewidth=1.0)
+		ax.axes[0,i].grid(b=True, which='minor', color='gray', linewidth=0.5)
+		ax.axes[0,i].xaxis.grid(False)
+
+
+	ax.set(xlabel='Methods')
+
+	#if sample == 'hela' and t == 'mem':
+	#	ax.fig.get_axes()[0].legend(loc='lower left', bbox_to_anchor=(1,0.5), title='dataset')
+
+	plt.savefig('{}_combined.pdf'.format(typ), bbox_inches='tight')
+		
+def resource_real_plot(df_list):
+	ax, tool_order, col_list = prepare_for_simul(2)
+
+	#fig, axes = plt.subplots(nrows=1, ncols=4, sharex=True, squeeze=False, figsize=(10,5))
+	fig, axes = plt.subplots(1, 4)
+
+	res_type = [ 'time', 'mem', 'time', 'mem' ]
+
+	for t, df, ax_ind in zip(res_type, df_list, range(len(res_type))):
+		#ax, tool_order, col_list = prepare_for_simul(4)
 		x = tool_order
 		
-		ax = sns.catplot(x = 'Tool', y = '{}'.format(t), hue = 'dataset', alpha=1.0, data=df_cput if (t == 'time') else df_mem, order=tool_order, kind='bar', legend=False)
-
-		if t == 'time':
-			ax.set(ylabel='Time (min)')
-		else:
-			ax.set(ylabel='Memory usage (GB)')
-
-		sns.despine(left=True, right=True, top=True)
-
-		#matplotlib.pyplot.sca(ax)
-		plt.xticks(rotation=90)
-
-		#axes[0, ax_id].axes[0,0].get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator())
-		ax.axes[0, 0].get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator())
-		plt.grid(b=True, which='major', color='gray', linewidth=1.0)
-		plt.grid(b=True, which='minor', color='gray', linewidth=0.5)
-		plt.gca().xaxis.grid(False)
+		ax = sns.catplot(x = 'Tool', y = t, hue = 'dataset', alpha=1.0, data=df, order=tool_order, kind='bar', legend=False, ax=axes[ax_ind])
 		
-		ax.set(xlabel='Methods')
+		#ax = axes[ax_ind]
 
-		#if sample == 'hela' and t == 'mem':
-		#	ax.fig.get_axes()[0].legend(loc='lower left', bbox_to_anchor=(1,0.5), title='dataset')
 
-		#plt.savefig('{}_{}_{}.pdf'.format(sample, s, typ), bbox_inches='tight')
-		plt.savefig('{}_{}_combined.pdf'.format(sample, t), bbox_inches='tight')
+		#if t == 'time':
+		#	ax.set(ylabel='Time (min)')
+		#else:
+		#	ax.set(ylabel='Memory usage (GB)')
 
-		ax_id += 1
+		#sns.despine(left=True, right=True, top=True)
+
+		##matplotlib.pyplot.sca(ax)
+		#plt.xticks(rotation=90)
+
+		##axes[0, 0].axes[0,0].get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+		##ax.axes[0, 0].get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+		##plt.grid(b=True, which='major', color='gray', linewidth=1.0)
+		##plt.grid(b=True, which='minor', color='gray', linewidth=0.5)
+		##plt.gca().xaxis.grid(False)
+		#
+		#ax.set(xlabel='Methods')
+
+		##if sample == 'hela' and t == 'mem':
+		##	ax.fig.get_axes()[0].legend(loc='lower left', bbox_to_anchor=(1,0.5), title='dataset')
+
+		##plt.savefig('{}_{}_combined.pdf'.format(sample, t), bbox_inches='tight')
 		
-	#plt.savefig('real_time_mem.pdf', bbox_inches='tight')
+	plt.savefig('real_time_mem.pdf', bbox_inches='tight')
 
 
 def resource_plot_single(args):
@@ -901,4 +947,4 @@ def main():
 		real1_plot(args)
 
 if __name__ == '__main__':
-		main()
+	main()
