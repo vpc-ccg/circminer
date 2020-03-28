@@ -36,15 +36,15 @@ void RegionalHashTable::init(int ws, uint32_t gspos, uint32_t gepos) {
 	
 	memset(nuc_hval, -1, 128);
 
-	nuc_hval['a'] = 0;
-	nuc_hval['c'] = 1;
-	nuc_hval['g'] = 2;
-	nuc_hval['t'] = 3;
+	nuc_hval[ static_cast<unsigned char> ('a') ] = 0;
+	nuc_hval[ static_cast<unsigned char> ('c') ] = 1;
+	nuc_hval[ static_cast<unsigned char> ('g') ] = 2;
+	nuc_hval[ static_cast<unsigned char> ('t') ] = 3;
 
-	nuc_hval['A'] = 0;
-	nuc_hval['C'] = 1;
-	nuc_hval['G'] = 2;
-	nuc_hval['T'] = 3;
+	nuc_hval[ static_cast<unsigned char> ('A') ] = 0;
+	nuc_hval[ static_cast<unsigned char> ('C') ] = 1;
+	nuc_hval[ static_cast<unsigned char> ('G') ] = 2;
+	nuc_hval[ static_cast<unsigned char> ('T') ] = 3;
 }
 
 void RegionalHashTable::reset (void) {

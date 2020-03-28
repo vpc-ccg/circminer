@@ -266,7 +266,7 @@ int getGenomeMetaInfo(char *fileName, char *genomeMetaInfo, int *genomeMetaInfoL
 	*genomeMetaInfoLength = i;
 
 	for (i = 0; i < *numOfChrs; i++) {
-		fprintf(stderr, "Len: %lu\n", my_chrLen[i]);
+		fprintf(stderr, "Chr length: %u\n", my_chrLen[i]);
 	}
 
 	freeMem(my_chrLen, sizeof(unsigned int) * 10000);

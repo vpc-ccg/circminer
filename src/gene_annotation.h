@@ -45,7 +45,7 @@ typedef struct {
 class GTFParser {
 private:
 	FILE* input;
-	size_t file_size;
+// 	size_t file_size;
 
 	char* line;
 	int len;

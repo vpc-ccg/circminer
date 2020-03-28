@@ -213,7 +213,7 @@ int TransExtension::extend_chain_both_sides(const chain_t& ch, char* seq, int se
 	return mr.type;
 }
 
-bool TransExtension::extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int seq_len, int ub, MatchedMate& mr, int& err) {
+bool TransExtension::extend_chain_right(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int seq_len, uint32_t ub, MatchedMate& mr, int& err) {
 	bool right_ok = true;
 
 	uint32_t rm_pos = ch.frags[ch.chain_len-1].rpos + ch.frags[ch.chain_len-1].len - 1;
@@ -244,7 +244,7 @@ bool TransExtension::extend_chain_right(const vector <uint32_t>& common_tid, con
 	return right_ok;
 }
 
-bool TransExtension::extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int32_t qspos, int lb, MatchedMate& mr, int& err) {
+bool TransExtension::extend_chain_left(const vector <uint32_t>& common_tid, const chain_t& ch, char* seq, int32_t qspos, uint32_t lb, MatchedMate& mr, int& err) {
 	bool left_ok = true;
 
 	uint32_t lm_pos = ch.frags[0].rpos;
