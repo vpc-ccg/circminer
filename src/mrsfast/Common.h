@@ -52,16 +52,11 @@
 #define MAX_SNP_PER_CHR		100000000
 #define CHAR_IN_FASTA_LINE	50
 
-// #define MIN_CONTIG_SIZE		500
-// #define DEF_CONTIG_SIZE 	640
-// #define DEF_CONTIG_MAX_SIZE	660
 
 #define MIN_CONTIG_SIZE		1000000000
 #define DEF_CONTIG_SIZE 	1200000000
 #define DEF_CONTIG_MAX_SIZE	1300000000
 //#define DEF_CONTIG_MAX_SIZE	1900000000
-
-
 typedef uint64_t CompressedSeq;
 typedef uint16_t CheckSumType;
 

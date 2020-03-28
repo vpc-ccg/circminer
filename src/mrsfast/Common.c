@@ -42,48 +42,6 @@
 #include <pthread.h>
 #include "Common.h"
 
-// GLOBAL >>>
-
-int						uniqueMode=1;
-int						indexingMode;
-int						searchingMode;
-int						pairedEndMode;
-int						pairedEndDiscordantMode;
-int						pairedEndProfilingMode = 0;
-int						bestMappingMode = 0;
-int						SNPMode = 0;
-int						seqCompressed;
-int						outCompressed;
-int						cropSize = 0;
-int						tailCropSize = 0;
-int						progressRep = 0;
-int						nohitDisabled = 0;
-int						noSamHeader = 0;
-int						minPairEndedDistance=-1;
-int						maxPairEndedDistance=-1;
-int						minPairEndedDiscordantDistance=-1;
-int						maxPairEndedDiscordantDistance=-1;
-int						errThreshold = -1;
-char					*seqFile1;
-char					*seqFile2;
-char					fileName[3][FILE_NAME_LENGTH];
-char					*unmappedOutput;
-char					*mappingOutputPath;
-char					*concordantStatOutput;
-short					maxHits = 0;
-unsigned char			WINDOW_SIZE = 14;
-unsigned int			CONTIG_SIZE;
-unsigned int			CONTIG_MAX_SIZE;
-unsigned int			THREAD_COUNT = 1;
-unsigned short			DISCORDANT_CUT_OFF = 300;
-double					MAX_MEMORY = 4;// GB
-int						THREAD_ID[255];
-int						SNP_QUAL_THRESHOLD = 53;
-int						loadFullHashTable;
-char					checkSumLength = 0;
-
-// GLOBAL <<<
-
 unsigned short 			SEQ_LENGTH = 0;
 unsigned short 			QUAL_LENGTH = 0;
 unsigned short			CMP_SEQ_LENGTH = 0;

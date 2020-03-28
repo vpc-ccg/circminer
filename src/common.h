@@ -79,6 +79,13 @@ using namespace std;
 #define PAMFORMAT 1
 #define SAMFORMAT 2
 
+//---------- Library Settings ----------//
+
+//#define MIN_CONTIG_SIZE		1000000000
+//#define DEF_CONTIG_SIZE 	1200000000
+//#define DEF_CONTIG_MAX_SIZE	1300000000
+//#define DEF_CONTIG_MAX_SIZE	1900000000
+
 //---------- Global Variables ----------//
 
 extern bool indexMode;

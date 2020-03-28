@@ -3,6 +3,20 @@
 
 #include "common.h"
 
+// MRSFAST LIBRARY SETTINGS
+unsigned char	WINDOW_SIZE = 14;
+unsigned int	CONTIG_SIZE;
+unsigned int	CONTIG_MAX_SIZE;
+unsigned int	THREAD_COUNT = 1;
+char			fileName[3][FILE_NAME_LENGTH];
+char			checkSumLength = 0;
+int				THREAD_ID[255];
+int				loadFullHashTable;
+int				pairedEndMode;
+int				SNPMode = 0;
+//
+
+
 FILE* open_file(char* filename, char* mode) {
 	FILE* fp;
 	fp = fopen(filename, mode);
