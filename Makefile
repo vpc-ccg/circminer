@@ -35,6 +35,7 @@ MYOBJ        = $(SRCDIR)/circminer.o \
 			   $(SRCDIR)/hash_table.o \
 			   $(SRCDIR)/process_circ.o \
 			   $(SRCDIR)/extend.o \
+			   $(SRCDIR)/genome.o \
 			   $(SRCDIR)/edlib.o \
 
 MRSOBJ       = $(MRSDIR)/[!base]*.o

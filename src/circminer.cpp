@@ -13,6 +13,7 @@
 #include "process_circ.h"
 #include "hash_table.h"
 #include "utils.h"
+#include "genome.h"
 
 extern "C" {
 #include "mrsfast/Common.h"
@@ -35,6 +36,7 @@ ScoreMatrix edit_mat;
 FASTQParser fq_parser1;
 FASTQParser fq_parser2;
 GenomeSeeder genome_seeder;
+GenomePacker genome_packer;
 
 int mapping(int& last_round_num);
 void circ_detect(int last_round_num);
