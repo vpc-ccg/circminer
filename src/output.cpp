@@ -30,7 +30,7 @@ SAMOutput::SAMOutput () {
 	r2_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
 }
 
-SAMOutput::SAMOutput (char* sam_prefix, char* open_mode) {
+SAMOutput::SAMOutput (char* sam_prefix, char* open_mode, const vector <ContigLen>& chr_info) {
 	r1_attr.rname = (char*) malloc(MAXLINESIZE);
 	r1_attr.cigar = (char*) malloc(MAXLINESIZE);
 	r1_attr.rnext = (char*) malloc(MAXLINESIZE);
@@ -42,7 +42,7 @@ SAMOutput::SAMOutput (char* sam_prefix, char* open_mode) {
 	r1_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
 	r2_attr.tags.all_tags = (char*) malloc(MAXTOTALTAGLEN);
 
-	init(sam_prefix, open_mode);
+	init(sam_prefix, open_mode, chr_info);
 }
 
 SAMOutput::~SAMOutput (void) {
@@ -62,8 +62,8 @@ void SAMOutput::finalize (void) {
 	close_file(outsam);
 }
 
-void SAMOutput::init (char* sam_prefix, char* open_mode) {
-	char fname[FILE_NAME_LENGTH];
+void SAMOutput::init (char* sam_prefix, char* open_mode, const vector <ContigLen>& chr_info) {
+	char fname[FILE_NAME_MAX_LEN];
 	if (reportMapping == SAMFORMAT)
 		sprintf(fname, "%s.mapping.sam", sam_prefix);
 	else if (reportMapping == PAMFORMAT)
@@ -74,7 +74,7 @@ void SAMOutput::init (char* sam_prefix, char* open_mode) {
 	outsam = open_file(fname, open_mode);
 
 	if (strcmp(open_mode, "w") == 0 and reportMapping == SAMFORMAT)
-		print_header();
+		print_header(chr_info);
 
 }
 
@@ -296,13 +296,11 @@ void SAMOutput::write_pam_rec_pe (Record* rec1, Record* rec2) {
 	//mutex_unlock(&pmap_lock);
 }
 
-void SAMOutput::print_header (void) {
+void SAMOutput::print_header (const vector <ContigLen>& chr_info) {
 	fprintf(outsam, "@HD\tVN:1.4\tSO:unsorted\n");
-	int chr_cnt = getChrCnt();
-	char** chr_names = getChrNames();
-	int* chr_lens = getChrLens();
+	int chr_cnt = chr_info.size();
 	for (int i = 0; i < chr_cnt; ++i) {
-		fprintf(outsam, "@SQ\tSN:%s\tLN:%d\n", chr_names[i], chr_lens[i]);
+		fprintf(outsam, "@SQ\tSN:%s\tLN:%u\n", chr_info[i].name.c_str(), chr_info[i].len);
 	}
 }
 

@@ -39,6 +39,8 @@
 
 #include "Common.h"
 
+extern int loadFullHashTable;
+
 typedef struct HashTable
 {
 	long long hv;
@@ -57,8 +59,8 @@ CompressedSeq	*getCmpRefGenome();
 CompressedSeq	*getCmpRefGenOrigin();
 int				getRefGenLength();
 int				getCmpRefGenLength();
-int				initLoadingCompressedGenomeMeta(char*, ContigLen*, int*);
-int				initLoadingHashTableMeta(char*, ContigLen*, int*);
+int				initLoadingCompressedGenomeMeta(char*);
+int				initLoadingHashTableMeta(char*);
 int				initLoadingHashTable(char*);
 HashTable		*getHashTable();
 GeneralIndex	*getCandidates(int hv);

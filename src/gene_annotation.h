@@ -71,10 +71,10 @@ public:
 	vector <vector < vector <uint8_t> > > trans2seg;
 
 	GTFParser (void);
-	GTFParser (char* filename, const ContigLen* contig_len, int contig_count);
+	GTFParser (char* filename, const vector <ContigLen>& contig_len);
 	~GTFParser (void);
 
-	void init (char* filename, const ContigLen* contig_len, int contig_count);
+	void init (char* filename, const vector <ContigLen>& contig_len);
 	bool get_next (void);
 	bool has_next (void);
 	bool read_next (void);
@@ -83,7 +83,7 @@ public:
 	bool parse_gtf_rec (char* line, int len, GTFRecord* cr);
 	bool load_gtf (void);
 
-	void set_contig_shift(const ContigLen* contig_len, int contig_count);
+	void set_contig_shift(const vector <ContigLen>& contig_len);
 	void chrloc2conloc(string& chr, uint32_t& start, uint32_t& end);
 
 	int binary_search(const vector <ExonSeg>& seg, int beg, int end, bool on_start, uint32_t target);

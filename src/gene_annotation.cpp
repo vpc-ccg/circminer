@@ -16,8 +16,8 @@ GTFParser::GTFParser(void) {
 	input = NULL;
 }
 
-GTFParser::GTFParser(char* filename, const ContigLen* contig_len, int contig_count) {
-	init(filename, contig_len, contig_count);
+GTFParser::GTFParser(char* filename, const vector <ContigLen>& contig_len) {
+	init(filename, contig_len);
 }
 
 GTFParser::~GTFParser(void) {
@@ -25,9 +25,9 @@ GTFParser::~GTFParser(void) {
 	free(line);
 }
 
-void GTFParser::init(char* filename, const ContigLen* contig_len, int contig_count) {
-	char* fname = (char*) malloc(FILE_NAME_LENGTH);
-	char* rmode = (char*) malloc(FILE_NAME_LENGTH);
+void GTFParser::init(char* filename, const vector <ContigLen>& contig_len) {
+	char* fname = (char*) malloc(FILE_NAME_MAX_LEN);
+	char* rmode = (char*) malloc(FILE_NAME_MAX_LEN);
 
 	sprintf(fname, "%s", filename);
 	sprintf(rmode, "%c", 'r');
@@ -40,7 +40,7 @@ void GTFParser::init(char* filename, const ContigLen* contig_len, int contig_cou
 	max_line_size = MAXGTFLINESIZE;
 	line = (char*) malloc(max_line_size);
 
-	set_contig_shift(contig_len, contig_count);
+	set_contig_shift(contig_len);
 
 	level["gene"] = 1;
 	level["transcript"] = 2;
@@ -403,31 +403,30 @@ void GTFParser::print_record(const GTFRecord& r) {
 	fprintf(stderr, "%s %s %d %d\n", r.gene_name.c_str(), r.chr.c_str(), r.start, r.end);
 }
 
-void GTFParser::set_contig_shift(const ContigLen* chr_info, int contig_count) {
-	unsigned int curr_contig = 1;
-	uint32_t sum_size = 0;
+void GTFParser::set_contig_shift(const vector <ContigLen>& chr_info) {
+	unsigned int contig_count = chr_info.size();
+	uint32_t curr_contig;
+
 	ConShift con_shift;
 	ConShift chr_shift;
-	for (int i = 0; i < contig_count; i++) {
+
+	for (unsigned int i = 0; i < contig_count; i++) {
+		curr_contig = chr_info[i].contig_id;
 		ostringstream con_name;
 		con_name << curr_contig;
 
 		con_shift.contig = con_name.str();
-		con_shift.shift = sum_size;
+		con_shift.shift = chr_info[i].start_pos;
 		chr2con[chr_info[i].name] = con_shift;
 
 		chr_shift.contig = chr_info[i].name;
-		chr_shift.shift = sum_size;
+		chr_shift.shift = chr_info[i].start_pos;
+
 		if (curr_contig > con2chr.size()) {
 			con2chr.resize(curr_contig);
 		}
 		con2chr[curr_contig-1].push_back(chr_shift);
 
-		sum_size += chr_info[i].len + 1;	// +1 because of N at the end of each chr
-		if (sum_size >= MIN_CONTIG_SIZE) {
-			sum_size = 0;
-			curr_contig++;
-		}
 	}
 }
 

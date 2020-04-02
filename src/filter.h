@@ -32,10 +32,10 @@ private:
 
 public:
 	FilterRead (void);
-	FilterRead (char* save_fname, bool pe, int round, bool first_round, bool last_round, char* fq_file1, char* fq_file2);
+	FilterRead (char* save_fname, bool pe, int round, bool first_round, bool last_round, char* fq_file1, char* fq_file2, const vector <ContigLen>& chr_info);
 	~FilterRead (void);
 
-	void init (char* save_fname, bool pe, int round, bool first_round, bool last_round, char* fq_file1, char* fq_file2);
+	void init (char* save_fname, bool pe, int round, bool first_round, bool last_round, char* fq_file1, char* fq_file2, const vector <ContigLen>& chr_info);
 	void finalize (void);
 
 	int process_read (int thid, Record* current_record, int kmer_size, GIMatchedKmer* fl, GIMatchedKmer* bl, 

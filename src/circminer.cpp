@@ -47,19 +47,15 @@ int main(int argc, char **argv) {
 	if (exit_c == 1)
 		return 0;
 
+	genome_packer.init(referenceFilename);
+
 	/****************************************************
 	 * INDEXING
 	 ***************************************************/
 	if (indexMode)
 	{
-		if (compactIndex) {
-			if (!generateHashTable(fileName[0], fileName[1]))
-				return 1;
-		}
-		else {
-			if (!generateHashTableOnDisk(fileName[0], fileName[1]))
-				return 1;	
-		}
+		if (! genome_packer.build_index(compactIndex))
+			return 1;
 	}
 
 	/****************************************************
@@ -96,11 +92,6 @@ int mapping(int& last_round_num) {
 	double cputime_curr;
 	double realtime_curr;
 	
-	char* ref_file = referenceFilename;
-	char index_file [FILE_NAME_LENGTH];
-	strcpy(index_file, ref_file);
-	strcat(index_file, ".index");
-
 	char* fq_file1 = fastqFilename[0];
 	char* fq_file2;
 	bool is_pe = pairedEnd;
@@ -157,15 +148,19 @@ int mapping(int& last_round_num) {
 	int	flag;
 	double tmpTime;
 
+	vector <ContigLen> orig_contig_len;
+	genome_packer.load_index_info(orig_contig_len);
+
+	char index_file [FILE_NAME_MAX_LEN];
+	strcpy(index_file, genome_packer.get_index_fname().c_str());
+
 	if (!checkHashTable(index_file))
 		return 1;
 
 	fprintf(stdout, "%s mode\n", pairedEnd ? "paired-end" : "single-end");
 	fprintf(stdout, "%s\n", loadFullHashTable ? "Load full hash table from index" : "Create hash table on the fly");
 
-	ContigLen orig_contig_len;
-	int contig_cnt;
-	if (!initLoadingHashTableMeta(index_file, &orig_contig_len, &contig_cnt))
+	if (!initLoadingHashTableMeta(index_file))
 		return 1;
 
 	genome_seeder.init(LOADCONTIGSTRINMEM);
@@ -174,7 +169,7 @@ int mapping(int& last_round_num) {
 	/**GTF Parser Init**/
 	/*******************/
 
-	gtf_parser.init(gtfFilename, &orig_contig_len, contig_cnt);
+	gtf_parser.init(gtfFilename, orig_contig_len);
 	if (! gtf_parser.load_gtf()) {
 		fprintf(stdout, "Error in reading GTF file.\n");
 		exit(1);
@@ -247,7 +242,7 @@ int mapping(int& last_round_num) {
 		if (!is_first) {
 			filter_read.finalize();
 		}
-		filter_read.init(outputFilename, is_pe, contigNum + 1, is_first, is_last, fq_file1, fq_file2);
+		filter_read.init(outputFilename, is_pe, contigNum + 1, is_first, is_last, fq_file1, fq_file2, orig_contig_len);
 		is_first = false;
 
 		for (int th = 0; th < threadCount; ++th)

@@ -23,8 +23,8 @@ using namespace std;
 
 class ProcessCirc {
 private:
-	char fq_file1[FILE_NAME_LENGTH];
-	char fq_file2[FILE_NAME_LENGTH];
+	char fq_file1[FILE_NAME_MAX_LEN];
+	char fq_file2[FILE_NAME_MAX_LEN];
 
 	FILE* report_file;
 	FILE* candid_file;

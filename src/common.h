@@ -31,7 +31,7 @@ using namespace std;
 #define maxM3(A,B,C) maxM(maxM(A, B), C)
 
 #define MAXLINESIZE 600
-// #define FILE_NAME_LENGTH 1000
+#define FILE_NAME_MAX_LEN 2000
 #define LINELOG	100000
 #define ASCISIZE 128
 #define INF 1e9
@@ -79,12 +79,10 @@ using namespace std;
 #define PAMFORMAT 1
 #define SAMFORMAT 2
 
-//---------- Library Settings ----------//
+//---------- Contig Settings ----------//
 
-//#define MIN_CONTIG_SIZE		1000000000
-//#define DEF_CONTIG_SIZE 	1200000000
-//#define DEF_CONTIG_MAX_SIZE	1300000000
-//#define DEF_CONTIG_MAX_SIZE	1900000000
+#define DEF_CONTIG_SIZE 	1100000000
+#define DEF_CONTIG_MAX_SIZE	1300000000
 
 //---------- Global Variables ----------//
 
@@ -109,11 +107,11 @@ extern int threadCount;
 extern int stage;
 extern int reportMapping;
 
-extern char gtfFilename[FILE_NAME_LENGTH];
-extern char referenceFilename[FILE_NAME_LENGTH];
-extern char fastqFilename[2][FILE_NAME_LENGTH];
-extern char outputFilename[FILE_NAME_LENGTH];
-extern char outputDir[FILE_NAME_LENGTH];
+extern char gtfFilename[FILE_NAME_MAX_LEN];
+extern char referenceFilename[FILE_NAME_MAX_LEN];
+extern char fastqFilename[2][FILE_NAME_MAX_LEN];
+extern char outputFilename[FILE_NAME_MAX_LEN];
+extern char outputDir[FILE_NAME_MAX_LEN];
 
 extern char* contigName;
 extern int contigNum;
@@ -131,6 +129,15 @@ extern pthread_mutex_t read_lock;
 
 
 //---------- Structures ----------//
+
+typedef struct
+{
+	string name;	// original contig name before packing 
+	uint32_t contig_id;	// contig id after packing
+	uint32_t start_pos;
+	uint32_t end_pos;
+	uint32_t len;
+} ContigLen;
 
 struct fragment_t{
 	uint32_t rpos;

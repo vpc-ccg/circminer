@@ -22,9 +22,9 @@ FilterRead::FilterRead (void) {
 }
 
 FilterRead::FilterRead (char* save_fname, bool pe, int round, bool first_round, bool last_round, 
-						char* fq_file1, char* fq_file2) {
+						char* fq_file1, char* fq_file2, const vector <ContigLen>& chr_info) {
 
-	init(save_fname, pe, round, first_round, last_round, fq_file1, fq_file2);
+	init(save_fname, pe, round, first_round, last_round, fq_file1, fq_file2, chr_info);
 }
 
 FilterRead::~FilterRead (void) {
@@ -32,12 +32,12 @@ FilterRead::~FilterRead (void) {
 }
 
 void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, bool last_round, 
-						char* fq_file1, char* fq_file2) {
+						char* fq_file1, char* fq_file2, const vector <ContigLen>& chr_info) {
 
 	char mode[2];
 	sprintf(mode, "%s", (first_round) ? "w" : "a");
 
-	sam_output.init(save_fname, mode);
+	sam_output.init(save_fname, mode, chr_info);
 	extension = new TransExtension[threadCount];
 
 	for (int i = 0; i < threadCount; ++i)
@@ -48,8 +48,8 @@ void FilterRead::init (char* save_fname, bool pe, int round, bool first_round, b
 	this->last_round = last_round;
 	
 	// temp fastq file(s) to be read in next round
-	char* temp_fname = (char*) malloc(FILE_NAME_LENGTH);
-	char* wmode = (char*) malloc(FILE_NAME_LENGTH);
+	char* temp_fname = (char*) malloc(FILE_NAME_MAX_LEN);
+	char* wmode = (char*) malloc(FILE_NAME_MAX_LEN);
 	sprintf(wmode, "%c", 'w');
 	if (is_pe) {
 		sprintf(temp_fname, "%s_%d_remain_R1.fastq", save_fname, round);

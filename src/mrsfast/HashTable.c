@@ -531,7 +531,7 @@ int checkHashTable(char *fileName)
 }
 
 /**********************************************/
-int initLoadingCompressedGenomeMeta(char *fileName, ContigLen *contig_len, int *contig_cnt)
+int initLoadingCompressedGenomeMeta(char *fileName)
 {
 	// file header:
 	// 1 byte (magicNumber): Magic number of HashTable (0: <v3, 1: bisulfite <v1.26.4, 2: >v3, 3: Full HashTable on index)
@@ -567,10 +567,6 @@ int initLoadingCompressedGenomeMeta(char *fileName, ContigLen *contig_len, int *
 	tmp = fread(&_ih_chrCnt, sizeof(int), 1, _ih_fp);
 	_ih_chrNames = getMem(_ih_chrCnt * sizeof(char *));
 
-	//***//
-	*contig_cnt = _ih_chrCnt;
-	//***//
-
 	for (i = 0; i < _ih_chrCnt; i++)
 	{
 		_ih_chrNames[i] = getMem(CONTIG_NAME_SIZE);
@@ -580,11 +576,6 @@ int initLoadingCompressedGenomeMeta(char *fileName, ContigLen *contig_len, int *
 		_ih_chrNames[i][nameLen] = '\0';
 		tmp = fread(&_ih_refGenLen, sizeof(int), 1, _ih_fp);
 		
-		//***//
-		contig_len[i].name = _ih_chrNames[i];
-		contig_len[i].len = _ih_refGenLen;
-		//***//
-
 		if (_ih_refGenLen > _ih_maxChrLength)
 			_ih_maxChrLength = _ih_refGenLen;
 	}
@@ -615,7 +606,7 @@ int initLoadingCompressedGenomeMeta(char *fileName, ContigLen *contig_len, int *
 }
 
 /**********************************************/
-int initLoadingHashTableMeta(char *fileName, ContigLen *contig_len, int *contig_cnt)
+int initLoadingHashTableMeta(char *fileName)
 {
 	// file header:
 	// 1 byte (magicNumber): Magic number of HashTable (0: <v3, 1: bisulfite <v1.26.4, 2: >v3, 3: Full HashTable on index)
@@ -652,10 +643,6 @@ int initLoadingHashTableMeta(char *fileName, ContigLen *contig_len, int *contig_
 	_ih_chrNames = getMem(_ih_chrCnt * sizeof(char *));
 	_ih_chrLens  = getMem(_ih_chrCnt * sizeof(int));
 
-	//***//
-	*contig_cnt = _ih_chrCnt;
-	//***//
-
 	for (i = 0; i < _ih_chrCnt; i++)
 	{
 		_ih_chrNames[i] = getMem(CONTIG_NAME_SIZE);
@@ -666,11 +653,6 @@ int initLoadingHashTableMeta(char *fileName, ContigLen *contig_len, int *contig_
 		tmp = fread(&_ih_refGenLen, sizeof(int), 1, _ih_fp);
 		_ih_chrLens[i] = _ih_refGenLen;
 		
-		//***//
-		contig_len[i].name = _ih_chrNames[i];
-		contig_len[i].len = _ih_refGenLen;
-		//***//
-
 		if (_ih_refGenLen > _ih_maxChrLength)
 			_ih_maxChrLength = _ih_refGenLen;
 	}

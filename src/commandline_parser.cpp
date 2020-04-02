@@ -26,11 +26,11 @@ int maxCheckSumLen = sizeof(uint16_t) * 8 / 2;	// 2bit per bp
 int reportMapping = DISCARDMAPREPORT;
 int seqcnt = 0;
 
-char gtfFilename[FILE_NAME_LENGTH];
-char referenceFilename[FILE_NAME_LENGTH];
-char fastqFilename[2][FILE_NAME_LENGTH];
-char outputFilename[FILE_NAME_LENGTH]="output";
-char outputDir[FILE_NAME_LENGTH] = "./";
+char gtfFilename[FILE_NAME_MAX_LEN];
+char referenceFilename[FILE_NAME_MAX_LEN];
+char fastqFilename[2][FILE_NAME_MAX_LEN];
+char outputFilename[FILE_NAME_MAX_LEN]="output";
+char outputDir[FILE_NAME_MAX_LEN] = "./";
 
 char* contigName;
 int contigNum;
@@ -110,27 +110,27 @@ int parse_command( int argc, char *argv[] )
 			case 's': {
 				++seqcnt;
 				pairedEnd = false;
-				strncpy(fastqFilename[0], optarg, FILE_NAME_LENGTH );
+				strncpy(fastqFilename[0], optarg, FILE_NAME_MAX_LEN );
 				break;
 			}
 			case '1': {
 				++seqcnt;
 				pairedEnd = false;
-				strncpy(fastqFilename[0], optarg, FILE_NAME_LENGTH );
+				strncpy(fastqFilename[0], optarg, FILE_NAME_MAX_LEN );
 				break;
 			}
 			case '2': {
 				++seqcnt;
 				pairedEnd = true;
-				strncpy(fastqFilename[1], optarg, FILE_NAME_LENGTH );
+				strncpy(fastqFilename[1], optarg, FILE_NAME_MAX_LEN );
 				break;
 			}
 			case 'r': {
-				strncpy(referenceFilename, optarg, FILE_NAME_LENGTH);
+				strncpy(referenceFilename, optarg, FILE_NAME_MAX_LEN);
 				break;
 			}		
 			case 'g': {
-				strncpy(gtfFilename, optarg, FILE_NAME_LENGTH );
+				strncpy(gtfFilename, optarg, FILE_NAME_MAX_LEN );
 				//gtf_flag = 1;
 				break;
 			}
@@ -143,7 +143,7 @@ int parse_command( int argc, char *argv[] )
 				break;
 			}
 			case 'o': {
-				strncpy(outputFilename, optarg, FILE_NAME_LENGTH);
+				strncpy(outputFilename, optarg, FILE_NAME_MAX_LEN);
 				break;
 			}
 			case 't': {
@@ -224,22 +224,25 @@ int parse_command( int argc, char *argv[] )
 		}
 	}
 
-	if (seqcnt == 0)
+	if (!indexMode)
 	{
-		fprintf(stderr, "ERROR: no sequence file is provided.\n");
-		return 1;
-	}
+		if (seqcnt == 0)
+		{
+			fprintf(stderr, "ERROR: no sequence file is provided.\n");
+			return 1;
+		}
 
-	if (!pairedEnd and seqcnt != 1)
-	{
-		fprintf(stderr, "ERROR: %d single-end sequence files provided.\nOnly one is accepted.\n", seqcnt);
-		return 1;
-	}
+		if (!pairedEnd and seqcnt != 1)
+		{
+			fprintf(stderr, "ERROR: %d single-end sequence files provided.\nOnly one is accepted.\n", seqcnt);
+			return 1;
+		}
 
-	if (pairedEnd and seqcnt != 2)
-	{
-		fprintf(stderr, "ERROR: %d paired-end sequence file(s) provided.\nOnly two files are accepted.\n", seqcnt);
-		return 1;
+		if (pairedEnd and seqcnt != 2)
+		{
+			fprintf(stderr, "ERROR: %d paired-end sequence file(s) provided.\nOnly two files are accepted.\n", seqcnt);
+			return 1;
+		}
 	}
 
 	if (kmer > WINDOW_SIZE + maxCheckSumLen || kmer < WINDOW_SIZE)
@@ -254,9 +257,6 @@ int parse_command( int argc, char *argv[] )
 	{
 		CONTIG_SIZE		= DEF_CONTIG_SIZE;
 		CONTIG_MAX_SIZE	= DEF_CONTIG_MAX_SIZE;
-
-		sprintf(fileName[0], "%s", referenceFilename);
-		sprintf(fileName[1], "%s.index", fileName[0]);
 	}
 
 	initCommon();
@@ -272,7 +272,7 @@ int parse_command( int argc, char *argv[] )
 /**********************************************/
 void printHELPShort(void) 
 {
-	fprintf(stdout, "usage: circminer --index ref.fa [options]\n");
+	fprintf(stdout, "usage: circminer --index -r ref.fa [options]\n");
 	fprintf(stdout, "       circminer -r ref.fa -g gene_model.gtf -1 reads_1.fastq -2 reads_2.fastq [options]\n");
 	fprintf(stderr, "For more details and command line options run \"circminer --help\"\n");
 }

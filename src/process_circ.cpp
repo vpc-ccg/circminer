@@ -12,6 +12,7 @@
 #include "chain.h"
 #include "extend.h"
 #include "utils.h"
+#include "genome.h"
 
 #define BINSIZE 5000
 #define MAXHTLISTSIZE 0
@@ -104,7 +105,7 @@ ProcessCirc::~ProcessCirc (void) {
 
 	// Remove intermediate files
 	if (finalCleaning) {
-		char command [FILE_NAME_LENGTH];
+		char command [FILE_NAME_MAX_LEN + 100];
 		sprintf(command, "rm %s*_remain_R*.fastq{,.srt}", outputFilename);
 
 		system(command);
@@ -124,8 +125,8 @@ void ProcessCirc::sort_fq_internal(char* fqname) {
 	fprintf(stdout, "Sorting remaining read mappings internally... ");
 	fflush(stdout);
 
-	char* sorted_file = (char*) malloc(FILE_NAME_LENGTH);
-	char* wmode = (char*) malloc(FILE_NAME_LENGTH);
+	char* sorted_file = (char*) malloc(FILE_NAME_MAX_LEN);
+	char* wmode = (char*) malloc(FILE_NAME_MAX_LEN);
 
 	sprintf(sorted_file, "%s.srt", fqname);
 	sprintf(wmode, "%c", 'w');
@@ -179,7 +180,7 @@ void ProcessCirc::sort_fq(char* fqname) {
 		exit(EXIT_FAILURE);
 	}
 
-	char command [FILE_NAME_LENGTH];
+	char command [FILE_NAME_MAX_LEN + 500];
 	sprintf(command, "cat %s | paste - - - - | sort --parallel=%d -S 8G -k2,2n | tr \"\t\" \"\n\" > %s.srt", fqname, threadCount, fqname);
 
 	int ret = system(command);
@@ -200,9 +201,11 @@ void ProcessCirc::do_process (void) {
 
 	checkSumLength = (WINDOW_SIZE > kmer) ? 0 : kmer - WINDOW_SIZE;
 
-	char index_file [FILE_NAME_LENGTH];
-	strcpy(index_file, referenceFilename);
-	strcat(index_file, ".index");
+	vector <ContigLen> orig_contig_len;
+	genome_packer.load_index_info(orig_contig_len);
+
+	char index_file [FILE_NAME_MAX_LEN];
+	strcpy(index_file, genome_packer.get_index_fname().c_str());
 
 	initCommon();
 	
@@ -214,9 +217,7 @@ void ProcessCirc::do_process (void) {
 	if (!checkHashTable(index_file))
 		return;
 
-	ContigLen orig_contig_len;
-	int contig_cnt;
-	if (!initLoadingCompressedGenomeMeta(index_file, &orig_contig_len, &contig_cnt))
+	if (!initLoadingCompressedGenomeMeta(index_file))
 		return;
 
 	genome_seeder.init(LOADCONTIGSTRINMEM);
@@ -230,7 +231,7 @@ void ProcessCirc::do_process (void) {
 	/*******************/
 
 	if (stage == 1) { 
-		gtf_parser.init(gtfFilename, &orig_contig_len, contig_cnt);
+		gtf_parser.init(gtfFilename, orig_contig_len);
 		if (! gtf_parser.load_gtf()) {
 			fprintf(stdout, "Error in reading GTF file.\n");
 			exit(1);
@@ -1605,8 +1606,8 @@ void ProcessCirc::report_events (void) {
 }
 
 void ProcessCirc::open_report_file (void) {
-	char* temp_fname = (char*) malloc(FILE_NAME_LENGTH);
-	char* mode = (char*) malloc(FILE_NAME_LENGTH);
+	char* temp_fname = (char*) malloc(FILE_NAME_MAX_LEN);
+	char* mode = (char*) malloc(FILE_NAME_MAX_LEN);
 
 	sprintf(temp_fname, "%s.circ_report", outputFilename);
 	sprintf(mode, "%c", 'w');
@@ -1618,8 +1619,8 @@ void ProcessCirc::open_report_file (void) {
 }
 
 void ProcessCirc::open_candid_file (void) {
-	char* temp_fname = (char*) malloc(FILE_NAME_LENGTH);
-	char* mode = (char*) malloc(FILE_NAME_LENGTH);
+	char* temp_fname = (char*) malloc(FILE_NAME_MAX_LEN);
+	char* mode = (char*) malloc(FILE_NAME_MAX_LEN);
 
 	sprintf(temp_fname, "%s.candidates.pam", outputFilename);
 	sprintf(mode, "%c", 'w');

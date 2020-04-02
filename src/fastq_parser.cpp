@@ -53,8 +53,8 @@ void FASTQParser::init (void) {
 void FASTQParser::reset (char* filename) {
 	finalize();
 
-	char* fname = (char*) malloc(FILE_NAME_LENGTH);
-	char* rmode = (char*) malloc(FILE_NAME_LENGTH);
+	char* fname = (char*) malloc(FILE_NAME_MAX_LEN);
+	char* rmode = (char*) malloc(FILE_NAME_MAX_LEN);
 
 	sprintf(fname, "%s", filename);
 	sprintf(rmode, "%c", 'r');

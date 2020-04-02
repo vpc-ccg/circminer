@@ -49,14 +49,14 @@ private:
 	void set_output_se (Record* rec);
 	void set_output_pe (Record* rec1, Record* rec2);
 
-	void print_header (void);
+	void print_header (const vector <ContigLen>& chr_info);
 
 public:
 	SAMOutput (void);
-	SAMOutput (char* sam_prefix, char* open_mode);
+	SAMOutput (char* sam_prefix, char* open_mode, const vector <ContigLen>& chr_info);
 	~SAMOutput (void);
 
-	void init (char* sam_prefix, char* open_mode);
+	void init (char* sam_prefix, char* open_mode, const vector <ContigLen>& chr_info);
 
 	void finalize (void);
 
