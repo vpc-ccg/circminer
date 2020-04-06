@@ -1,3 +1,6 @@
 [submodule "lib/edlib"]
 	path = lib/edlib
 	url = https://github.com/Martinsos/edlib
+[submodule "lib/util-logger"]
+	path = lib/util-logger
+	url = https://github.com/vpc-ccg/util-logger.git
