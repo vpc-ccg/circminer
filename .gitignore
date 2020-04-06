@@ -2,6 +2,7 @@ src/*.o
 src/mrsfast/*.o
 src/edlib.cpp
 src/edlib.h
+src/logger.h
 test/*
 profiling/*
 circminer
