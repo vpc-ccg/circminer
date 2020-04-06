@@ -23,6 +23,8 @@ typedef pair<uint32_t, int> pu32i;
 void set_mm(chain_t& ch, uint32_t qspos, int rlen, int dir, MatchedMate& mm);
 
 ProcessCirc::ProcessCirc (int last_round_num, int ws) : extension(0, EDIT_ALIGNMENT) {
+    Logger::instance().info.set_prefix("[INFO] + ");
+
 	sprintf(fq_file1, "%s_%d_remain_R1.fastq", outputFilename, last_round_num);
 	sprintf(fq_file2, "%s_%d_remain_R2.fastq", outputFilename, last_round_num);
 
@@ -30,25 +32,27 @@ ProcessCirc::ProcessCirc (int last_round_num, int ws) : extension(0, EDIT_ALIGNM
 	double real_time = get_real_time();
 
 	if (internalSort) {
+        Logger::instance().info("Sorting remaining read mappings internally... \n");
 		sort_fq_internal(fq_file1);
 		sort_fq_internal(fq_file2);
 	}
 	else {
-		sort_fq(fq_file1);
-		sort_fq(fq_file2);
+        Logger::instance().info("Sorting remaining read mappings using GNU sort... \n");
+        int ret1 = sort_fq(fq_file1);
+		int ret2 = sort_fq(fq_file2);
+//		if (ret1 and ret2)
+//		    fprintf(stdout, "OK\n");
 	}
 
 	double final_cpu_time = get_cpu_time();
 	double final_real_time = get_real_time();
 
-	fprintf(stdout, "Finished sorting in %.2lf CPU sec (%.2lf real sec)\n", 
+    Logger::instance().info("Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n",
 			final_cpu_time - cpu_time, final_real_time - real_time);
 	fflush(stdout);
 
 	sprintf(fq_file1, "%s_%d_remain_R1.fastq.srt", outputFilename, last_round_num);
 	sprintf(fq_file2, "%s_%d_remain_R2.fastq.srt", outputFilename, last_round_num);
-
-	fprintf(stdout, "%s\n",fq_file1 );
 
 	report_file = NULL;
 	candid_file = NULL;
@@ -122,7 +126,7 @@ bool record_ptr_compare(Record* r, Record* o) {
 }
 
 void ProcessCirc::sort_fq_internal(char* fqname) {
-	fprintf(stdout, "Sorting remaining read mappings internally... ");
+    Logger::instance().debug("Filename: %s\n",fqname);
 	fflush(stdout);
 
 	char* sorted_file = (char*) malloc(FILE_NAME_MAX_LEN);
@@ -169,11 +173,10 @@ void ProcessCirc::sort_fq_internal(char* fqname) {
 
 	free(sorted_file);
 	free(wmode);
-	fprintf(stdout, "OK\n");
 }
 
-void ProcessCirc::sort_fq(char* fqname) {
-	fprintf(stdout, "Sorting remaining read mappings using GNU sort... ");
+int ProcessCirc::sort_fq(char* fqname) {
+    Logger::instance().debug("Filename: %s\n",fqname);
 	fflush(stdout);
 	if (!system(NULL)) {
 		fprintf(stdout, "Error: Unable to run system call.\n");
@@ -184,8 +187,7 @@ void ProcessCirc::sort_fq(char* fqname) {
 	sprintf(command, "cat %s | paste - - - - | sort --parallel=%d -S 8G -k2,2n | tr \"\t\" \"\n\" > %s.srt", fqname, threadCount, fqname);
 
 	int ret = system(command);
-	if (ret == 0)
-		fprintf(stdout, "OK\n");
+    return ret;
 }
 
 void ProcessCirc::do_process (void) {
@@ -210,7 +212,6 @@ void ProcessCirc::do_process (void) {
 	initCommon();
 	
 	THREAD_COUNT = threadCount;
-	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
 	for (int i = 0; i < 255; i++)
 		THREAD_ID[i] = i;
 
@@ -230,19 +231,19 @@ void ProcessCirc::do_process (void) {
 	/**GTF Parser Init**/
 	/*******************/
 
-	if (stage == 1) { 
+	if (stage == 1) {
+        Logger::instance().info("Loading GTF file...\n");
+
 		gtf_parser.init(gtfFilename, orig_contig_len);
 		if (! gtf_parser.load_gtf()) {
 			fprintf(stdout, "Error in reading GTF file.\n");
 			exit(1);
 		}
-		else 
-			fprintf(stdout, "GTF file successfully loaded!\n");
 
 		cputime_curr = get_cpu_time();
 		realtime_curr = get_real_time();
 
-		fprintf(stdout, "[P] Loaded GTF in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+        Logger::instance().info("Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
 
 		cputime_start = cputime_curr;
 		realtime_start = realtime_curr;
@@ -286,8 +287,8 @@ void ProcessCirc::do_process (void) {
 			cputime_curr = get_cpu_time();
 			realtime_curr = get_real_time();
 
-			fprintf(stdout, "[P] %d reads in %.2lf CPU sec (%.2lf real sec)\t Look ups: %u\n", line, cputime_curr - cputime_start, realtime_curr - realtime_start, lookup_cnt);
-			fflush(stdout);
+//			fprintf(stdout, "[P] %d reads in %.2lf CPU sec (%.2lf real sec)\t Look ups: %u\n", line, cputime_curr - cputime_start, realtime_curr - realtime_start, lookup_cnt);
+//			fflush(stdout);
 
 			cputime_start = cputime_curr;
 			realtime_start = realtime_curr;
@@ -315,7 +316,9 @@ void ProcessCirc::do_process (void) {
 	cputime_curr = get_cpu_time();
 	realtime_curr = get_real_time();
 
-	fprintf(stdout, "[P] Mapping in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
+    Logger::instance().info.set_prefix("[INFO] ");
+    Logger::instance().info("CircRNA detection Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n",
+                            cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
 
 	finalizeLoadingCompressedGenome();
 	genome_seeder.finalize();
@@ -1638,7 +1641,7 @@ void ProcessCirc::load_genome (void) {
 	double realtime_curr;
 	double tmpTime;
 
-	fprintf(stdout, "Started loading index...\n");
+    Logger::instance().info("Loading genome sequence...\n");
 
 	loadCompressedRefGenome ( &tmpTime );  			// Reading a fragment
 
@@ -1650,7 +1653,8 @@ void ProcessCirc::load_genome (void) {
 	cputime_curr = get_cpu_time();
 	realtime_curr = get_real_time();
 
-	fprintf(stdout, "[P] Loaded genome index successfully in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+    Logger::instance().info("Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n",
+                            cputime_curr - cputime_start, realtime_curr - realtime_start);
 
 	cputime_start = cputime_curr;
 	realtime_start = realtime_curr;

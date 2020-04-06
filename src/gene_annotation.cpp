@@ -368,10 +368,10 @@ bool GTFParser::load_gtf(void) {
 	}
 
 	for (unsigned int i = 0; i < near_border_bs.size(); i++) {
-		fprintf(stdout, "Contig [%u]: Near exon boundaries: %zu\n", i+1, near_border_bs[i].count());
+		Logger::instance().debug("{GTFParser} Contig #%u: Near exon boundaries: %zu\n", i+1, near_border_bs[i].count());
 	}
 	for (unsigned int i = 0; i < intronic_bs.size(); i++) {
-		fprintf(stdout, "Contig [%u]: Intronic: %zu\n", i+1, intronic_bs[i].count());
+        Logger::instance().debug("{GTFParser} Contig #%u: Intronic: %zu\n", i+1, intronic_bs[i].count());
 	}
 
 	delete prev_record;

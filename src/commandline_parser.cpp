@@ -262,11 +262,14 @@ int parse_command( int argc, char *argv[] )
 	initCommon();
 	
 	THREAD_COUNT = threadCount;
-	fprintf(stdout, "# Threads: %d\n", THREAD_COUNT);
-	for (int i = 0; i < 255; i++)
+
+    for (int i = 0; i < 255; i++)
 		THREAD_ID[i] = i;
 
-	return 0;
+    Logger::instance().info("Number of threads: %d\n", THREAD_COUNT);
+    Logger::instance().info("Input file type: %s \n", pairedEnd ? "Paired-end" : "Single-end");
+
+    return 0;
 }
 
 /**********************************************/

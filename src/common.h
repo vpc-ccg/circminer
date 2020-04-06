@@ -17,6 +17,7 @@
 #include <zlib.h>
 
 #include "interval_info.h"
+#include "logger.h"
 
 extern "C" {
 #include "mrsfast/Common.h"

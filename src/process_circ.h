@@ -66,7 +66,7 @@ public:
 	void open_report_file (void);
 	void open_candid_file (void);
 	void load_genome (void);
-	void sort_fq (char* fqname);
+	int sort_fq (char* fqname);
 	void sort_fq_internal (char* fqname);
 
 	void do_process (void);

@@ -43,6 +43,12 @@ void circ_detect(int last_round_num);
 void* map_reads (void* args);
 
 int main(int argc, char **argv) {
+    Logger::instance().error.toggle_time().set_prefix("[ERROR] ");
+//    Logger::instance().error.set_buffer_size(10);
+    Logger::instance().info.toggle_time().set_prefix("[INFO] ");
+//    Logger::instance().info.set_buffer_size(5);
+    Logger::instance().debug.toggle_time().set_prefix("[DEBUG] ");
+
 	int exit_c = parse_command( argc, argv );
 	if (exit_c == 1)
 		return 0;
@@ -157,9 +163,6 @@ int mapping(int& last_round_num) {
 	if (!checkHashTable(index_file))
 		return 1;
 
-	fprintf(stdout, "%s mode\n", pairedEnd ? "paired-end" : "single-end");
-	fprintf(stdout, "%s\n", loadFullHashTable ? "Load full hash table from index" : "Create hash table on the fly");
-
 	if (!initLoadingHashTableMeta(index_file))
 		return 1;
 
@@ -169,18 +172,18 @@ int mapping(int& last_round_num) {
 	/**GTF Parser Init**/
 	/*******************/
 
+	Logger::instance().info("Loading GTF file...\n");
+
 	gtf_parser.init(gtfFilename, orig_contig_len);
 	if (! gtf_parser.load_gtf()) {
 		fprintf(stdout, "Error in reading GTF file.\n");
 		exit(1);
 	}
-	else 
-		fprintf(stdout, "GTF file successfully loaded!\n");
 
 	cputime_curr = get_cpu_time();
 	realtime_curr = get_real_time();
 
-	fprintf(stdout, "[P] Loaded GTF in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
+	Logger::instance().info("Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n", cputime_curr - cputime_start, realtime_curr - realtime_start);
 
 	cputime_start = cputime_curr;
 	realtime_start = realtime_curr;
@@ -192,19 +195,21 @@ int mapping(int& last_round_num) {
 	bool is_first = true;
 	bool is_last = false;
 
+    Logger::instance().info("Genome index type: %s\n", loadFullHashTable ? "Full" : "Compact");
 	do {
-		fprintf(stdout, "Started loading index...\n");
+        Logger::instance().info("Loading genome index...\n");
 	
 		flag = loadHashTable ( &tmpTime );  			// Reading a fragment
 
 		cputime_curr = get_cpu_time();
 		realtime_curr = get_real_time();
 
-		fprintf(stdout, "[P] Loaded genome index successfully in %.2lf CPU sec (%.2lf real sec)\n\n", 
+		Logger::instance().info("Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n",
 				cputime_curr - cputime_start, realtime_curr - realtime_start);
-		fprintf(stdout, "Winodw size: %d\nChecksum Len: %d\n", WINDOW_SIZE, checkSumLength);
+        Logger::instance().debug("kmer size: %d + %d = %d\n", WINDOW_SIZE, checkSumLength, WINDOW_SIZE+checkSumLength);
 
 		// loading contig sequence from reference index
+		Logger::instance().info("Loading genome sequence...\n");
 		bool success_gload = genome_seeder.pac2char_whole_contig();
 
 		double cputime_loaded_gnome_str = get_cpu_time();
@@ -214,7 +219,7 @@ int mapping(int& last_round_num) {
 			fprintf(stderr, "Error: unable to load reference genome to memory\n");
 			exit(1);
 		}
-		fprintf(stdout, "[P] Loaded genome sequence successfully in %.2lf CPU sec (%.2lf real sec)\n\n", 
+		Logger::instance().info("Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n",
 				cputime_loaded_gnome_str - cputime_curr, realtime_loaded_gnome_str - realtime_curr);
 
 		cputime_curr = cputime_loaded_gnome_str;
@@ -227,12 +232,13 @@ int mapping(int& last_round_num) {
 		double fq_cputime_start = cputime_curr;
 		double fq_realtime_start = realtime_curr;
 
-		fprintf(stdout, "Contig: %s\n", getRefGenomeName());
 		contigName = getRefGenomeName();
 		contigNum = atoi(contigName) - 1;
 		last_round_num = contigNum + 1;
 
-		fq_parser1.reset(fq_file1);
+        Logger::instance().info("Starting pseudo-alignment (Round %s)\n", contigName);
+
+        fq_parser1.reset(fq_file1);
 		if (is_pe) {
 			fq_parser2.reset(fq_file2);
 		}
@@ -262,7 +268,7 @@ int mapping(int& last_round_num) {
 		cputime_curr = get_cpu_time();
 		realtime_curr = get_real_time();
 
-		fprintf(stdout, "[P] Mapping in %.2lf CPU sec (%.2lf real sec)\n\n", cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
+		Logger::instance().info("Completed round %s! (CPU time: %.2lfs; Real time: %.2lfs)\n", contigName, cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
 
 		cputime_start = cputime_curr;
 		realtime_start = realtime_curr;
@@ -308,13 +314,14 @@ int mapping(int& last_round_num) {
 
 void circ_detect(int last_round_num) {
 	int ws = 8;
+    Logger::instance().info("Starting circRNA detection\n");
 	ProcessCirc process_circ(last_round_num, ws);
 	process_circ.do_process();
 }
 
 void* map_reads (void* args) {
 	FilterArgs* fa = (struct FilterArgs*) args;
-	printf("--- thread #%d\n", fa->id);
+	Logger::instance().debug("--- thread #%d\n", fa->id);
 
 	filter_print_func print_func_ptr;
 	if (reportMapping == SAMFORMAT)
