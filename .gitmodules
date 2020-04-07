@@ -4,3 +4,6 @@
 [submodule "lib/util-logger"]
 	path = lib/util-logger
 	url = https://github.com/vpc-ccg/util-logger.git
+[submodule "lib/mrsfast"]
+	path = lib/mrsfast
+	url = https://github.com/sfu-compbio/mrsfast.git

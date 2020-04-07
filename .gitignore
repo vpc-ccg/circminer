@@ -1,8 +1,11 @@
 src/*.o
+obj/*.o
 src/mrsfast/*.o
 src/edlib.cpp
 src/edlib.h
 src/logger.h
+src/mrsfast/Common.*
+src/mrsfast/RefGenome.*
 test/*
 profiling/*
 circminer
