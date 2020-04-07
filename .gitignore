@@ -1,6 +1,6 @@
 src/*.o
 obj/*.o
-src/mrsfast/*.o
+src/mrsfast/obj/*.o
 src/edlib.cpp
 src/edlib.h
 src/logger.h
@@ -10,3 +10,4 @@ test/*
 profiling/*
 circminer
 cmd.run
+.idea/*

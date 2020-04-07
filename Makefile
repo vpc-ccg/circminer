@@ -33,7 +33,7 @@ MYSRC        = circminer.cpp \
 			   genome.cpp \
 			   edlib.cpp \
 
-MRSOBJ       = $(MRSDIR)/[!base]*.o
+MRSOBJ       = $(MRSDIR)/$(OBJDIR)/*.o
 
 SOURCES = $(patsubst %, $(SRCDIR)/%, $(MYSRC))
 MYOBJ = $(SOURCES:$(SRCDIR)/%.$(SRCEXT)=$(OBJDIR)/%.o)

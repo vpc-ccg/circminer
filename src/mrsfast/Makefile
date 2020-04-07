@@ -1,21 +1,33 @@
 MRSFAST_VERSION := "3.4.0"
 BUILD_DATE := "$(shell date)"
 
-objects= Sort.o Common.o RefGenome.o HashTable.o 
+CC ?= gcc
+
+LIBS=-lz -lm -pthread -lpthread
+CFLAGS=-fno-pic -DMRSFAST_VERSION=\"$(MRSFAST_VERSION)\" -DBUILD_DATE=\"$(BUILD_DATE)\"
+
+SRCEXT	:= c
+OBJDIR	:= obj
+SOURCES	= Sort.c Common.c RefGenome.c HashTable.c
+OBJECTS	= $(SOURCES:%.$(SRCEXT)=$(OBJDIR)/%.o) 
+
+.PHONY: all debug profile valgrind build clean dirs
+.PHONY: OPTIMIZE_FLAGS DEBUG_FLAGS PROFILE_FLAGS
 
 all: OPTIMIZE_FLAGS build
 debug: DEBUG_FLAGS build
 profile: PROFILE_FLAGS build
 valgrind: OPTIMIZE_FLAGS DEBUG_FLAGS build
-build: SSE_FLAGS $(objects)
+build: SSE_FLAGS dirs $(OBJECTS)
 
-LDFLAGS=#-static
-LIBS=-lz -lm -pthread -lpthread
-CFLAGS=-fno-pic -DMRSFAST_VERSION=\"$(MRSFAST_VERSION)\" -DBUILD_DATE=\"$(BUILD_DATE)\"
+dirs:
+	@mkdir -p $(OBJDIR)
 
+$(OBJDIR)/%.o: %.$(SRCEXT)
+	$(CC) $(CFLAGS) $(LIBS) -c $< -o $@ 
 
 clean:
-	@rm -f $(objects)
+	@rm -fv $(OBJECTS)
 	
 DEBUG_FLAGS:
 	$(eval CFLAGS = $(CFLAGS) -ggdb)
