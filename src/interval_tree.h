@@ -11,28 +11,31 @@
 
 using namespace std;
 
-template <class T> class FlatIntervalTree {
+template<class T>
+class FlatIntervalTree {
 private:
-	vector < IntervalInfo<T> > disjoint_intervals;
-	
-	void shift_right(int ind);
-	bool handle_overlap(int& cur_ind, const T& fresh);
+    vector <IntervalInfo<T>> disjoint_intervals;
 
-	int search(uint32_t target);
+    void shift_right(int ind);
+
+    bool handle_overlap(int &cur_ind, const T &fresh);
+
+    int search(uint32_t target);
 
 public:
-	FlatIntervalTree(void);
-	~FlatIntervalTree(void);
+    FlatIntervalTree(void);
+    ~FlatIntervalTree(void);
 
-	void build(map <T, string>& sorted_list);
-	IntervalInfo<T>* find(uint32_t pos);
-	IntervalInfo<T>* find_ind(uint32_t pos, int& ind);
+    void build(map <T, string> &sorted_list);
 
-	IntervalInfo<T>* get_node(int ind);
+    IntervalInfo<T> *find(uint32_t pos);
+    IntervalInfo<T> *find_ind(uint32_t pos, int &ind);
 
-	void build_trans2seg_table(int trans_cnt, vector <vector <uint8_t> >& trans2seg, vector <int>& starts);
+    IntervalInfo<T> *get_node(int ind);
 
-	void print();
+    void build_trans2seg_table(int trans_cnt, vector <vector<uint8_t>> &trans2seg, vector<int> &starts);
+
+    void print();
 };
 
 #include "interval_tree_impl.h"

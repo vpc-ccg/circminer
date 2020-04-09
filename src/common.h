@@ -1,7 +1,7 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#if DEBUG==1
+#if DEBUG == 1
 #define DEBUG_MODE
 #endif
 
@@ -26,19 +26,19 @@ extern "C" {
 
 using namespace std;
 
-#define maxM(A,B) (((A) > (B)) ? (A) : (B))
-#define minM(A,B) (((A) < (B)) ? (A) : (B))
-#define minM3(A,B,C) minM(minM(A, B), C)
-#define maxM3(A,B,C) maxM(maxM(A, B), C)
+#define maxM(A, B) (((A) > (B)) ? (A) : (B))
+#define minM(A, B) (((A) < (B)) ? (A) : (B))
+#define minM3(A, B, C) minM(minM(A, B), C)
+#define maxM3(A, B, C) maxM(maxM(A, B), C)
 
 #define MAXLINESIZE 600
 #define FILE_NAME_MAX_LEN 2000
-#define LINELOG	100000
+#define LINELOG    100000
 #define ASCISIZE 128
 #define INF 1e9
 
 #define MINLB 0
-#define MAXUB 4294967295	//2^32 - 1
+#define MAXUB 4294967295    //2^32 - 1
 
 #define MINKMER 15
 #define MAXDISCRDTLEN 20000
@@ -51,27 +51,27 @@ using namespace std;
 
 #define MAXTLEN 500
 #define FRAGLIM 500
-#define MAXINTRON	2000000
+#define MAXINTRON    2000000
 #define BESTCHAINLIM 30
 
 #define LARIAT2BEGTH 1000
 
 // ouput categories
-#define CATNUM 14	// number of output categories
+#define CATNUM 14    // number of output categories
 
 // the order matters:
-#define CONCRD	0
-#define DISCRD	1
-#define CHIORF	2
-#define CHIBSJ	3
-#define CHI2BSJ	4
-#define CONGEN	5
-#define CHIFUS	6
-#define CONGNM	7
-#define OEA2	8
-#define CANDID	9
-#define OEANCH	10
-#define ORPHAN	11
+#define CONCRD    0
+#define DISCRD    1
+#define CHIORF    2
+#define CHIBSJ    3
+#define CHI2BSJ    4
+#define CONGEN    5
+#define CHIFUS    6
+#define CONGNM    7
+#define OEA2    8
+#define CANDID    9
+#define OEANCH    10
+#define ORPHAN    11
 #define NOPROC_MANYHIT 12
 #define NOPROC_NOMATCH 13
 
@@ -82,8 +82,8 @@ using namespace std;
 
 //---------- Contig Settings ----------//
 
-#define DEF_CONTIG_SIZE 	1100000000
-#define DEF_CONTIG_MAX_SIZE	1300000000
+#define DEF_CONTIG_SIZE    1100000000
+#define DEF_CONTIG_MAX_SIZE    1300000000
 
 //---------- Global Variables ----------//
 
@@ -114,12 +114,12 @@ extern char fastqFilename[2][FILE_NAME_MAX_LEN];
 extern char outputFilename[FILE_NAME_MAX_LEN];
 extern char outputDir[FILE_NAME_MAX_LEN];
 
-extern char* contigName;
+extern char *contigName;
 extern int contigNum;
 
 extern uint32_t lookup_cnt;
-extern vector <bitset <DEF_CONTIG_MAX_SIZE> > near_border_bs;
-extern vector <bitset <DEF_CONTIG_MAX_SIZE> > intronic_bs;
+extern vector <bitset<DEF_CONTIG_MAX_SIZE>> near_border_bs;
+extern vector <bitset<DEF_CONTIG_MAX_SIZE>> intronic_bs;
 
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];
@@ -131,389 +131,394 @@ extern pthread_mutex_t read_lock;
 
 //---------- Structures ----------//
 
-typedef struct
-{
-	string name;	// original contig name before packing 
-	uint32_t contig_id;	// contig id after packing
-	uint32_t start_pos;
-	uint32_t end_pos;
-	uint32_t len;
+typedef struct {
+    string name;    // original contig name before packing
+    uint32_t contig_id;    // contig id after packing
+    uint32_t start_pos;
+    uint32_t end_pos;
+    uint32_t len;
 } ContigLen;
 
-struct fragment_t{
-	uint32_t rpos;
-	int32_t qpos;
-	uint32_t len;
+struct fragment_t {
+    uint32_t rpos;
+    int32_t qpos;
+    uint32_t len;
 
-	bool operator < (const fragment_t& other) const {
-		return rpos < other.rpos;
-	}
+    bool operator<(const fragment_t &other) const {
+        return rpos < other.rpos;
+    }
 };
 
 /**************************************************************************************************/
 
 typedef struct {
-	fragment_t* frags;
-	uint32_t chain_len;
-	float score;
+    fragment_t *frags;
+    uint32_t chain_len;
+    float score;
 } chain_t;
 
 /**************************************************************************************************/
 
 typedef struct {
-	chain_t* chains;
-	int best_chain_count;
+    chain_t *chains;
+    int best_chain_count;
 } chain_list;
 
 /**************************************************************************************************/
 
 typedef struct {
-	GeneralIndex* frags;	// array of locations
+    GeneralIndex *frags;    // array of locations
 
-	uint32_t frag_count;
-	int32_t qpos;
+    uint32_t frag_count;
+    int32_t qpos;
 } GIMatchedKmer;
 
 /**************************************************************************************************/
 
 struct GeneInfo {
-	uint32_t start;
-	uint32_t end;
-	uint32_t gene_id;
+    uint32_t start;
+    uint32_t end;
+    uint32_t gene_id;
 
-	friend ostream& operator<<(ostream& os, const GeneInfo& gi);
+    friend ostream &operator<<(ostream &os, const GeneInfo &gi);
 
-	bool operator < (const GeneInfo& gi) const;
+    bool operator<(const GeneInfo &gi) const;
 
-	inline uint32_t length() { return end - start + 1; }
+    inline uint32_t length() { return end - start + 1; }
 };
 
-inline ostream& operator<<(ostream& os, const GeneInfo& gi);
+inline ostream &operator<<(ostream &os, const GeneInfo &gi);
 
 /**************************************************************************************************/
 
 struct JunctionInfo {
-	uint32_t beg;
-	uint32_t end;
-	uint32_t bp_matched;
+    uint32_t beg;
+    uint32_t end;
+    uint32_t bp_matched;
 };
 
 /**************************************************************************************************/
 
 struct JunctionInfoList {
-	uint32_t count;
-	vector <JunctionInfo> junc_info;
+    uint32_t count;
+    vector <JunctionInfo> junc_info;
 
-	JunctionInfoList() : count(0), junc_info(maxReadLength) {}
+    JunctionInfoList() : count(0), junc_info(maxReadLength) {}
 
-	void clear() { count = 0; }
-	void push_back(uint32_t b, uint32_t e, uint32_t m) {
-		if (b >= e)
-			return;
-		junc_info[count].beg = b;
-		junc_info[count].end = e;
-		junc_info[count].bp_matched = m;
-		++count;
-	}
-	void print() {
-		fprintf(stderr, "\n>>>\n");
-		fprintf(stderr, "Junctions count: %u\n", count);
-		for (uint32_t i = 0; i < count; ++i)
-			fprintf(stderr, "[%u - %u](%u), ", 
-					junc_info[i].beg, junc_info[i].end, junc_info[i].bp_matched);
-		fprintf(stderr, "\n<<<\n");
-	}
+    void clear() { count = 0; }
+
+    void push_back(uint32_t b, uint32_t e, uint32_t m) {
+        if (b >= e)
+            return;
+        junc_info[count].beg = b;
+        junc_info[count].end = e;
+        junc_info[count].bp_matched = m;
+        ++count;
+    }
+
+    void print() {
+        fprintf(stderr, "\n>>>\n");
+        fprintf(stderr, "Junctions count: %u\n", count);
+        for (uint32_t i = 0; i < count; ++i)
+            fprintf(stderr, "[%u - %u](%u), ",
+                    junc_info[i].beg, junc_info[i].end, junc_info[i].bp_matched);
+        fprintf(stderr, "\n<<<\n");
+    }
 };
 
 /**************************************************************************************************/
 
 struct UniqSeg {
-	uint32_t start;
-	uint32_t end;
-	uint32_t next_exon_beg;
-	uint32_t gene_id;
-	vector<uint32_t> trans_id;
+    uint32_t start;
+    uint32_t end;
+    uint32_t next_exon_beg;
+    uint32_t gene_id;
+    vector <uint32_t> trans_id;
 
-	friend ostream& operator<<(ostream& os, const UniqSeg& us);
+    friend ostream &operator<<(ostream &os, const UniqSeg &us);
 
-	UniqSeg() : 
-			start(0), end(0), next_exon_beg(0), gene_id(0) {}
-	UniqSeg(uint32_t gid, uint32_t s, uint32_t e, uint32_t n) : 
-			start(s), end(e), next_exon_beg(n), gene_id(gid) {}
+    UniqSeg() :
+            start(0), end(0), next_exon_beg(0), gene_id(0) {}
 
-	UniqSeg(const UniqSeg& other);
+    UniqSeg(uint32_t gid, uint32_t s, uint32_t e, uint32_t n) :
+            start(s), end(e), next_exon_beg(n), gene_id(gid) {}
 
-	UniqSeg& operator = (const UniqSeg& other);
-	bool operator < (const UniqSeg& r) const;
-	bool operator == (const UniqSeg& r) const;
+    UniqSeg(const UniqSeg &other);
 
-	bool same_gene(const UniqSeg& r) const;
-	bool same_exon(const UniqSeg& r) const;
-	bool next_exon(const UniqSeg& r) const;
+    UniqSeg &operator=(const UniqSeg &other);
+    bool operator<(const UniqSeg &r) const;
+    bool operator==(const UniqSeg &r) const;
+
+    bool same_gene(const UniqSeg &r) const;
+    bool same_exon(const UniqSeg &r) const;
+    bool next_exon(const UniqSeg &r) const;
 };
 
 // Temporary, just for testing --will be deleted
-inline ostream& operator<<(ostream& os, const UniqSeg& us);
+inline ostream &operator<<(ostream &os, const UniqSeg &us);
 
 /**************************************************************************************************/
 
 struct MatchedRead;
 
 struct MatchedMate {
-	uint32_t 	spos;
-	uint32_t 	epos;
-	uint32_t 	qspos;
-	uint32_t 	qepos;
+    uint32_t spos;
+    uint32_t epos;
+    uint32_t qspos;
+    uint32_t qepos;
 
-	int 		right_ed;
-	int 		left_ed;
-	int 		middle_ed;
+    int right_ed;
+    int left_ed;
+    int middle_ed;
 
-	int			sclen_right;
-	int			sclen_left;
-	uint32_t	matched_len;
-	int			dir;
-	int			type;
+    int sclen_right;
+    int sclen_left;
+    uint32_t matched_len;
+    int dir;
+    int type;
 
-	uint16_t	junc_num;
+    uint16_t junc_num;
 
-	bool		is_concord;
+    bool is_concord;
 
-	bool		left_ok;
-	bool		right_ok;
-	
-	bool		looked_up_spos;	// intronic / inter-genic -> looked up but not found (still NULL)
-	bool		looked_up_epos;	// intronic / inter-genic -> looked up but not found (still NULL)
-	
-	bool		looked_up_gene;
+    bool left_ok;
+    bool right_ok;
 
-	int 		exon_ind_spos;
-	int 		exon_ind_epos;
+    bool looked_up_spos;    // intronic / inter-genic -> looked up but not found (still NULL)
+    bool looked_up_epos;    // intronic / inter-genic -> looked up but not found (still NULL)
 
-	const IntervalInfo<UniqSeg>* exons_spos;
-	const IntervalInfo<UniqSeg>* exons_epos;
+    bool looked_up_gene;
 
-	const IntervalInfo<GeneInfo>* gene_info;
+    int exon_ind_spos;
+    int exon_ind_epos;
 
-	JunctionInfoList junc_info;
+    const IntervalInfo<UniqSeg> *exons_spos;
+    const IntervalInfo<UniqSeg> *exons_epos;
 
-	MatchedMate (void);
-	MatchedMate (const MatchedRead& mr, int r1_2, int rlen, bool partial);
-	
-	void set (uint32_t rs, uint32_t re, uint32_t qs, uint32_t qe, int d);
-	bool merge_to_right(const MatchedMate& rmm);
+    const IntervalInfo<GeneInfo> *gene_info;
 
-	void operator = (const MatchedMate& mm);
+    JunctionInfoList junc_info;
+
+    MatchedMate(void);
+    MatchedMate(const MatchedRead &mr, int r1_2, int rlen, bool partial);
+
+    void set(uint32_t rs, uint32_t re, uint32_t qs, uint32_t qe, int d);
+
+    bool merge_to_right(const MatchedMate &rmm);
+
+    void operator=(const MatchedMate &mm);
 
 };
 
 /**************************************************************************************************/
 
 struct MatchedRead {
-	// pos on reference
-	uint32_t	spos_r1;
-	uint32_t	spos_r2;
-	uint32_t	epos_r1;
-	uint32_t	epos_r2;
-	
-	// pos on read
-	uint32_t 	qspos_r1;
-	uint32_t 	qspos_r2;
-	uint32_t 	qepos_r1;
-	uint32_t 	qepos_r2;
+    // pos on reference
+    uint32_t spos_r1;
+    uint32_t spos_r2;
+    uint32_t epos_r1;
+    uint32_t epos_r2;
 
-	uint32_t	mlen_r1;
-	uint32_t 	mlen_r2;
+    // pos on read
+    uint32_t qspos_r1;
+    uint32_t qspos_r2;
+    uint32_t qepos_r1;
+    uint32_t qepos_r2;
 
-	bool		r1_forward;
-	bool		r2_forward;
+    uint32_t mlen_r1;
+    uint32_t mlen_r2;
 
-	int 		ed_r1;
-	int 		ed_r2;
-	int 		type;
-	int32_t 	tlen;
-	uint16_t 	junc_num;
-	bool		gm_compatible;
-	int 		contig_num;
+    bool r1_forward;
+    bool r2_forward;
 
-	uint64_t	genome_spos;
-	
-	string		chr_r1;
-	string		chr_r2;
+    int ed_r1;
+    int ed_r2;
+    int type;
+    int32_t tlen;
+    uint16_t junc_num;
+    bool gm_compatible;
+    int contig_num;
 
-	MatchedRead(void);
-	MatchedRead(MatchedRead* orig);
-	
-	bool update(const MatchedMate& r1, const MatchedMate& r2, const string& chr, uint32_t shift, 
-							int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first);
+    uint64_t genome_spos;
 
-	bool update_type(int type);
+    string chr_r1;
+    string chr_r2;
 
-	inline bool go_for_update(const MatchedMate& r1, const MatchedMate& r2, int32_t tlen, bool gm_compatible, int type);
+    MatchedRead(void);
+    MatchedRead(MatchedRead *orig);
+
+    bool update(const MatchedMate &r1, const MatchedMate &r2, const string &chr, uint32_t shift,
+                int32_t tlen, uint16_t jun_between, bool gm_compatible, int type, bool r1_first);
+
+    bool update_type(int type);
+
+    inline bool go_for_update(const MatchedMate &r1, const MatchedMate &r2, int32_t tlen, bool gm_compatible, int type);
 };
 
 /**************************************************************************************************/
 
 struct MatePair {
-	int type;
-	float score;
-	chain_t forward;
-	chain_t reverse;
-	vector <uint32_t> common_tid;
+    int type;
+    float score;
+    chain_t forward;
+    chain_t reverse;
+    vector <uint32_t> common_tid;
 
-	MatePair() : score(-1) {}
-	MatePair(const MatePair& other);
+    MatePair() : score(-1) {}
+    MatePair(const MatePair &other);
 
-	MatePair& operator = (const MatePair& other);
-	bool operator < (const MatePair& r) const;
+    MatePair &operator=(const MatePair &other);
+    bool operator<(const MatePair &r) const;
 };
 
 /**************************************************************************************************/
 
 typedef struct {
-	string contig;
-	uint32_t shift;
+    string contig;
+    uint32_t shift;
 } ConShift;
 
 /**************************************************************************************************/
 
 struct GenRegion {
-	uint32_t last_pos;	// last position on exon
-	uint32_t next_pos;	// next position on next exon
+    uint32_t last_pos;    // last position on exon
+    uint32_t next_pos;    // next position on next exon
 
-	GenRegion () : last_pos(0), next_pos(0) { }
-	GenRegion (uint32_t lp, uint32_t np) : last_pos(lp), next_pos(np) { }
+    GenRegion() : last_pos(0), next_pos(0) {}
+    GenRegion(uint32_t lp, uint32_t np) : last_pos(lp), next_pos(np) {}
 
-	void set (uint32_t lp, uint32_t np);
+    void set(uint32_t lp, uint32_t np);
 
-	bool operator < (const GenRegion& r) const;
+    bool operator<(const GenRegion &r) const;
 };
 
 /**************************************************************************************************/
 
 struct AllCoord {
-	uint32_t rspos;
-	uint32_t rlen;
-	uint32_t qspos;
-	uint32_t qlen;
+    uint32_t rspos;
+    uint32_t rlen;
+    uint32_t qspos;
+    uint32_t qlen;
 
-	AllCoord (uint32_t rs, uint32_t rl, uint32_t qs, uint32_t ql) : rspos(rs), rlen(rl), qspos(qs), qlen(ql) {}
+    AllCoord(uint32_t rs, uint32_t rl, uint32_t qs, uint32_t ql) : rspos(rs), rlen(rl), qspos(qs), qlen(ql) {}
 
-	bool operator < (const AllCoord& r) const;
+    bool operator<(const AllCoord &r) const;
 };
 
 /**************************************************************************************************/
 
 struct CircRes {
-	string chr;
-	string rname;
-	uint32_t spos;
-	uint32_t epos;
-	int type;
+    string chr;
+    string rname;
+    uint32_t spos;
+    uint32_t epos;
+    int type;
 
-	string start_signal;
-	string end_signal;
+    string start_signal;
+    string end_signal;
 
-	string start_bp_ref;
-	string end_bp_ref;
+    string start_bp_ref;
+    string end_bp_ref;
 
-	void set_bp (uint32_t sp, uint32_t ep, const string& ssignal, const string& esignal, char* sbref, char* ebref);
+    void set_bp(uint32_t sp, uint32_t ep, const string &ssignal, const string &esignal, char *sbref, char *ebref);
 
-	bool operator < (const CircRes& r) const;
-	bool operator == (const CircRes& r) const;
+    bool operator<(const CircRes &r) const;
+    bool operator==(const CircRes &r) const;
 };
 
 /**************************************************************************************************/
 
 struct Record {
-	char* rname;
-	char* seq;
-	char* rcseq;
-	char* comment;
-	char* qual;
-	char* rqual;
+    char *rname;
+    char *seq;
+    char *rcseq;
+    char *comment;
+    char *qual;
+    char *rqual;
 
-	uint32_t seq_len;
+    uint32_t seq_len;
 
-	MatchedRead* mr;
+    MatchedRead *mr;
 
-	Record(void) {
-		mr = new MatchedRead;
-	}
+    Record(void) {
+        mr = new MatchedRead;
+    }
 
-	~Record(void) {
-		delete mr;
-	}
+    ~Record(void) {
+        delete mr;
+    }
 
-	Record(Record* orig);
+    Record(Record *orig);
 
-	void init(void);
-	void finalize(void);
+    void init(void);
 
-	void deep_copy(Record* orig);
+    void finalize(void);
 
-	bool operator < (const Record& r) const;
+    void deep_copy(Record *orig);
+
+    bool operator<(const Record &r) const;
 };
 
 struct RecordStr {
-	string rname;
-	string seq;
-	string comment;
-	string qual;
+    string rname;
+    string seq;
+    string comment;
+    string qual;
 
-	MatchedRead mr;
+    MatchedRead mr;
 
-	RecordStr(void) {
-	}
+    RecordStr(void) {
+    }
 
-	~RecordStr(void) {
-	}
+    ~RecordStr(void) {
+    }
 
-	RecordStr(const RecordStr& other);
-	RecordStr(Record* orig);
+    RecordStr(const RecordStr &other);
+    RecordStr(Record *orig);
 
-	void deep_copy(Record* orig);
+    void deep_copy(Record *orig);
 
-	bool operator < (const RecordStr& r) const;
+    bool operator<(const RecordStr &r) const;
 };
 
 /**************************************************************************************************/
 
 struct FilterArgs {
-	int id;
-	int kmer_size;
+    int id;
+    int kmer_size;
 
-	GIMatchedKmer* fl;
-	GIMatchedKmer* bl;
+    GIMatchedKmer *fl;
+    GIMatchedKmer *bl;
 
-	chain_list* fbc_r1; 
-	chain_list* bbc_r1;
-	chain_list* fbc_r2; 
-	chain_list* bbc_r2;
+    chain_list *fbc_r1;
+    chain_list *bbc_r1;
+    chain_list *fbc_r2;
+    chain_list *bbc_r2;
 
-	FilterArgs (int k) : id(0), kmer_size(k) {}
+    FilterArgs(int k) : id(0), kmer_size(k) {}
 
-	void set(GIMatchedKmer* f, GIMatchedKmer* b, 
-			 chain_list* fc1, chain_list* bc1, 
-			 chain_list* fc2, chain_list* bc2) {
+    void set(GIMatchedKmer *f, GIMatchedKmer *b,
+             chain_list *fc1, chain_list *bc1,
+             chain_list *fc2, chain_list *bc2) {
 
-		fl = f;
-		bl = b;
+        fl = f;
+        bl = b;
 
-		fbc_r1  = fc1;
-		bbc_r1 = bc1;
-		fbc_r2  = fc2;
-		bbc_r2 = bc2;
-	}
+        fbc_r1 = fc1;
+        bbc_r1 = bc1;
+        fbc_r2 = fc2;
+        bbc_r2 = bc2;
+    }
 };
 
 /**************************************************************************************************/
 
 //---------- Functions ----------//
 
-FILE* open_file(char* filename, char* mode);
-gzFile open_gzfile(char* filename, char* mode);
-void close_file(FILE* fp);
+FILE *open_file(char *filename, char *mode);
+gzFile open_gzfile(char *filename, char *mode);
+
+void close_file(FILE *fp);
 void close_gzfile(gzFile fp);
 
 // verbose-aware fprintf
@@ -522,23 +527,23 @@ void vafprintf(int verbosity, FILE *stream, const char *format, ...);
 double get_cpu_time();
 double get_real_time();
 
-void mutex_lock(pthread_mutex_t* m);
-void mutex_unlock(pthread_mutex_t* m);
+void mutex_lock(pthread_mutex_t *m);
+void mutex_unlock(pthread_mutex_t *m);
 
 //------- Implementations --------//
 
 // verbose-aware fprintf
 inline void vafprintf(int verbosity, FILE *stream, const char *format, ...) {
-	#ifdef DEBUG_MODE
-		if (verbosity > verboseMode)	return;
+#ifdef DEBUG_MODE
+    if (verbosity > verboseMode)	return;
 
-		va_list args;
-		va_start (args, format);
-		vfprintf (stream, format, args);
-		va_end (args);
-	#endif
+    va_list args;
+    va_start (args, format);
+    vfprintf (stream, format, args);
+    va_end (args);
+#endif
 }
 
 //--------------------------------//
 
-#endif	//__COMMON_H__
+#endif    //__COMMON_H__

@@ -41,47 +41,47 @@
 
 extern int loadFullHashTable;
 
-typedef struct HashTable
-{
-	long long hv;
-	int *locs; 
+typedef struct HashTable {
+    long long hv;
+    int *locs;
 } HashTable;
 
-typedef struct 
-{
-	GeneralIndex *list;
+typedef struct {
+    GeneralIndex *list;
 } IHashTable;
 
-char			*getRefGenome();
-char			*getRefGenomeName();
-int				getRefGenomeOffset();
-CompressedSeq	*getCmpRefGenome();
-CompressedSeq	*getCmpRefGenOrigin();
-int				getRefGenLength();
-int				getCmpRefGenLength();
-int				initLoadingCompressedGenomeMeta(char*);
-int				initLoadingHashTableMeta(char*);
-int				initLoadingHashTable(char*);
-HashTable		*getHashTable();
-GeneralIndex	*getCandidates(int hv);
-unsigned char	*getAlphabetCount();
-void			rewindHashTable();
-int 			getChrCnt();
-char 			**getChrNames();
-int				*getChrLens();
-int 			getMaxChrLength();
-int				generateHashTableOnDisk(char*, char*);
-int				generateHashTable(char*, char*);
-int				checkHashTable(char*);
-int				loadHashTable(double*);
-int	 			loadCompressedRefGenome(double *loadTime);
-void			generateCompressedGenome(char* refGen, unsigned int refGenLength, CompressedSeq* crefGen);
-unsigned int	calculateHashTableSize(unsigned int *hashTable, unsigned int maxSize);
-void			setHashTablePointers(GeneralIndex* fullTable, unsigned int hashTableMaxSize, unsigned int* hashTable, IHashTable* hashTablePointer);
-void			finalizeLoadingCompressedGenome();
-void			finalizeLoadingHashTable();
+char *getRefGenome();
+char *getRefGenomeName();
+int getRefGenomeOffset();
+CompressedSeq *getCmpRefGenome();
+CompressedSeq *getCmpRefGenOrigin();
+int getRefGenLength();
+int getCmpRefGenLength();
+int initLoadingCompressedGenomeMeta(char *);
+int initLoadingHashTableMeta(char *);
+int initLoadingHashTable(char *);
+HashTable *getHashTable();
+GeneralIndex *getCandidates(int hv);
+unsigned char *getAlphabetCount();
+void rewindHashTable();
+int getChrCnt();
+char **getChrNames();
+int *getChrLens();
+int getMaxChrLength();
+int generateHashTableOnDisk(char *, char *);
+int generateHashTable(char *, char *);
+int checkHashTable(char *);
+int loadHashTable(double *);
+int loadCompressedRefGenome(double *loadTime);
+void generateCompressedGenome(char *refGen, unsigned int refGenLength, CompressedSeq *crefGen);
+unsigned int calculateHashTableSize(unsigned int *hashTable, unsigned int maxSize);
+void setHashTablePointers(GeneralIndex *fullTable, unsigned int hashTableMaxSize, unsigned int *hashTable,
+                          IHashTable *hashTablePointer);
 
-void			*calculateHashTableOnFly(int *idp);
-void			*sortHashTable(int *id);
+void finalizeLoadingCompressedGenome();
+void finalizeLoadingHashTable();
+
+void *calculateHashTableOnFly(int *idp);
+void *sortHashTable(int *id);
 
 #endif

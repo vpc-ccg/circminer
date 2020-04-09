@@ -37,256 +37,277 @@
 #include <stdio.h>
 #include "Common.h"
 #include "Sort.h"
+
 /**********************************************/
-static inline int lg( int x ) {
-	// floor( log2( x ) )
-	int r = 0;
-	while ( x > 1 ) r++, x >>= 1;
-	return r;
+static inline int lg(int x) {
+    // floor( log2( x ) )
+    int r = 0;
+    while (x > 1) r++, x >>= 1;
+    return r;
 }
+
 /**********************************************/
-void heapSortGI( GeneralIndex * A, int N ) {
-	// N - size of the array to be sorted
-	if ( N <= 1 ) return;
-	int i, j, maxi;
-	// We make the array a max heap using "bubble-down" operation
-	for ( i = N/2 - 1; i >= 0; i-- ) {
-		j = i;
-		// bubble-down
-		while ( 2 * j + 2 < N ) {
+void heapSortGI(GeneralIndex *A, int N) {
+    // N - size of the array to be sorted
+    if (N <= 1) return;
+    int i, j, maxi;
+    // We make the array a max heap using "bubble-down" operation
+    for (i = N / 2 - 1; i >= 0; i--) {
+        j = i;
+        // bubble-down
+        while (2 * j + 2 < N) {
 //			if ( A[ 2 * j + 1 ].checksum > A[ 2 * j + 2 ].checksum ) maxi = 2 * j + 1;
-			if ( A[ 2 * j + 1 ].checksum > A[ 2 * j + 2 ].checksum || (A[ 2 * j + 1 ].checksum == A[ 2 * j + 2 ].checksum && A[ 2 * j + 1 ].info > A[ 2 * j + 2 ].info)) maxi = 2 * j + 1;
-			else maxi = 2 * j + 2;
+            if (A[2 * j + 1].checksum > A[2 * j + 2].checksum ||
+                (A[2 * j + 1].checksum == A[2 * j + 2].checksum && A[2 * j + 1].info > A[2 * j + 2].info))
+                maxi = 2 * j + 1;
+            else maxi = 2 * j + 2;
 //			if ( A[ maxi ].checksum > A[ j ].checksum ) {
-			if ( A[ maxi ].checksum > A[ j ].checksum || (A[ maxi ].checksum == A[ j ].checksum && A[ maxi ].info > A[ j ].info)) {
-				GeneralIndex temp = A[ j ];
-				A[ j ] = A[ maxi ];
-				A[ maxi ] = temp;
-				j = maxi;
-			}
-			else break;
-		}
+            if (A[maxi].checksum > A[j].checksum || (A[maxi].checksum == A[j].checksum && A[maxi].info > A[j].info)) {
+                GeneralIndex temp = A[j];
+                A[j] = A[maxi];
+                A[maxi] = temp;
+                j = maxi;
+            } else break;
+        }
 //		if ( 2 * j + 1 < N && A[ 2 * j + 1 ].checksum > A[ j ].checksum ) {
-		if ( 2 * j + 1 < N && (A[ 2 * j + 1 ].checksum > A[ j ].checksum || (A[ 2 * j + 1 ].checksum == A[ j ].checksum && A[ 2 * j + 1 ].info > A[ j ].info))) {
-			GeneralIndex temp = A[ j ];
-			A[ j ] = A[ 2 * j + 1 ];
-			A[ 2 * j + 1 ] = temp;
-		}
-	}
-	// Extracting maximum and moving it to the end of the array as long as size is greater than 1
-	while ( --N ) {
-		GeneralIndex temp = A[ 0 ];
-		A[ 0 ] = A[ N ];
-		A[ N ] = temp;
-		j = 0;
-		// bubble-down
-		while ( 2 * j + 2 < N ) {
+        if (2 * j + 1 < N && (A[2 * j + 1].checksum > A[j].checksum ||
+                              (A[2 * j + 1].checksum == A[j].checksum && A[2 * j + 1].info > A[j].info))) {
+            GeneralIndex temp = A[j];
+            A[j] = A[2 * j + 1];
+            A[2 * j + 1] = temp;
+        }
+    }
+    // Extracting maximum and moving it to the end of the array as long as size is greater than 1
+    while (--N) {
+        GeneralIndex temp = A[0];
+        A[0] = A[N];
+        A[N] = temp;
+        j = 0;
+        // bubble-down
+        while (2 * j + 2 < N) {
 //			if ( A[ 2 * j + 1 ].checksum > A[ 2 * j + 2 ].checksum ) maxi = 2 * j + 1;
-			if ( A[ 2 * j + 1 ].checksum > A[ 2 * j + 2 ].checksum || (A[ 2 * j + 1 ].checksum == A[ 2 * j + 2 ].checksum && A[ 2 * j + 1 ].info > A[ 2 * j + 2 ].info)) maxi = 2 * j + 1;
-			else maxi = 2 * j + 2;
-			if ( A[ maxi ].checksum > A[ j ].checksum || (A[ maxi ].checksum == A[ j ].checksum && A[ maxi ].info > A[ j ].info)) {
-				GeneralIndex temp = A[ j ];
-				A[ j ] = A[ maxi ];
-				A[ maxi ] = temp;
-				j = maxi;
-			}
-			else break;
-		}
-		if ( 2 * j + 1 < N && (A[ 2 * j + 1 ].checksum > A[ j ].checksum ||  (A[ 2 * j + 1 ].checksum == A[ j ].checksum &&  A[ 2 * j + 1 ].info > A[ j ].info))) {
-			GeneralIndex temp = A[ j ];
-			A[ j ] = A[ 2 * j + 1 ];
-			A[ 2 * j + 1 ] = temp;
-		}
-	}
+            if (A[2 * j + 1].checksum > A[2 * j + 2].checksum ||
+                (A[2 * j + 1].checksum == A[2 * j + 2].checksum && A[2 * j + 1].info > A[2 * j + 2].info))
+                maxi = 2 * j + 1;
+            else maxi = 2 * j + 2;
+            if (A[maxi].checksum > A[j].checksum || (A[maxi].checksum == A[j].checksum && A[maxi].info > A[j].info)) {
+                GeneralIndex temp = A[j];
+                A[j] = A[maxi];
+                A[maxi] = temp;
+                j = maxi;
+            } else break;
+        }
+        if (2 * j + 1 < N && (A[2 * j + 1].checksum > A[j].checksum ||
+                              (A[2 * j + 1].checksum == A[j].checksum && A[2 * j + 1].info > A[j].info))) {
+            GeneralIndex temp = A[j];
+            A[j] = A[2 * j + 1];
+            A[2 * j + 1] = temp;
+        }
+    }
 }
-/**********************************************/
-void insertionSortGI( GeneralIndex * A, const int left, const int right ) {
-	// left, right - starting and ending index of the interval to be sorted
-	int i, j;
-	for ( i = left + 1; i <= right; i++ ) {
-		j = i;
-		GeneralIndex temp = A[ i ];
-		while ( j > left && (A[ j - 1 ].checksum > temp.checksum || (A[ j - 1 ].checksum == temp.checksum && A[ j - 1 ].info > temp.info))) {
-			A[ j ] = A[ j - 1 ];
-			j--;
-		}
-		A[ j ] = temp;
-	}
-}
-/**********************************************/
-void quickSortGI( GeneralIndex * A, const int left, const int right, int depth ) {
-	// left, right - starting and ending index of the interval to be sorted
-	// depth - max recursion depth allowed
-	if ( right - left <= 16 ) return;	// leave it for insertionSort
 
-	if ( depth == 0 ) heapSortGI( A + left, right - left + 1 );	// too many recursive calls, switch to heapsort to ensure O(nlogn) time
-	else {
-		int mid = ( left + right ) / 2;
-		int small = left - 1;
-		int i;
-		GeneralIndex temp;
-		// median of A[ left ], A[ mid ], A[ right ], to be stored in A[ right ]
-		if ( A[ mid ].checksum < A[ right ].checksum || (A[ mid ].checksum == A[ right ].checksum &&  A[ mid ].info < A[ right ].info)) {
-			temp = A[ right ];
-			A[ right ] = A[ mid ];
-			A[ mid ] = temp;
-		}
-		if ( A[ left ].checksum < A[ right ].checksum  || (A[ left ].checksum == A[ right ].checksum && A[ left ].info < A[ right ].info)) {
-			temp = A[ right ];
-			A[ right ] = A[ left ];
-			A[ left ] = temp;
-		}
-		if ( A[ left ].checksum < A[ mid ].checksum  ||  (A[ left ].checksum == A[ mid ].checksum &&  A[ left ].info < A[ mid ].info)) {
-			temp = A[ right ];
-			A[ right ] = A[ left ];
-			A[ left ] = temp;
-		}
-		else {
-			temp = A[ right ];
-			A[ right ] = A[ mid ];
-			A[ mid ] = temp;
-		}
-		// partitioning the array with respect to A[ right ]
-		for ( i = left; i < right; i++ ) {
-			if ( A[ i ].checksum < A[ right ].checksum ||  (A[ i ].checksum == A[ right ].checksum &&  A[ i ].info < A[ right ].info )) {
-				temp = A[ ++small ];
-				A[ small ] = A[ i ];
-				A[ i ] = temp;
-			}
-		}
-		temp = A[ small + 1 ];
-		A[ small + 1 ] = A[ right ];
-		A[ right ] = temp;
-		// recursion
-		quickSortGI( A, left, small, depth - 1 );
-		quickSortGI( A, small + 2, right, depth - 1 );
-	}
-}
 /**********************************************/
-void introSortGI( GeneralIndex * A, const int left, const int right ) {
-	// main sort, limiting recursion depth to 2 times the logarithm of its length
-	quickSortGI( A, left, right, 2 * lg( right - left + 1 ) );
-	// finish-up small unsorted pieces
-	insertionSortGI( A, left, right );
+void insertionSortGI(GeneralIndex *A, const int left, const int right) {
+    // left, right - starting and ending index of the interval to be sorted
+    int i, j;
+    for (i = left + 1; i <= right; i++) {
+        j = i;
+        GeneralIndex temp = A[i];
+        while (j > left && (A[j - 1].checksum > temp.checksum ||
+                            (A[j - 1].checksum == temp.checksum && A[j - 1].info > temp.info))) {
+            A[j] = A[j - 1];
+            j--;
+        }
+        A[j] = temp;
+    }
 }
-/**********************************************/
-void heapSortPair( Pair * A, int N ) {
-	// N - size of the array to be sorted
-	if ( N <= 1 ) return;
-	int i, j, maxi;
-	// We make the array a max heap using "bubble-down" operation
-	for ( i = N/2 - 1; i >= 0; i-- ) {
-		j = i;
-		// bubble-down
-		while ( 2 * j + 2 < N ) {
-			if ( A[ 2 * j + 1 ].hv > A[ 2 * j + 2 ].hv || (A[ 2 * j + 1 ].hv == A[ 2 * j + 2 ].hv && A[ 2 * j + 1 ].checksum > A[ 2 * j + 2 ].checksum)  ) maxi = 2 * j + 1;
-			else maxi = 2 * j + 2;
-			if ( A[ maxi ].hv > A[ j ].hv ||  (A[ maxi ].hv == A[ j ].hv && A[ maxi ].checksum > A[ j ].checksum)  ) {
-				Pair temp = A[ j ];
-				A[ j ] = A[ maxi ];
-				A[ maxi ] = temp;
-				j = maxi;
-			}
-			else break;
-		}
-		if ( 2 * j + 1 < N && ( A[ 2 * j + 1 ].hv > A[ j ].hv || (A[ 2 * j + 1 ].hv == A[ j ].hv && A[ 2 * j + 1 ].checksum > A[ j ].checksum) ) ) {
-			Pair temp = A[ j ];
-			A[ j ] = A[ 2 * j + 1 ];
-			A[ 2 * j + 1 ] = temp;
-		}
-	}
-	// Extracting maximum and moving it to the end of the array as long as size is greater than 1
-	while ( --N ) {
-		Pair temp = A[ 0 ];
-		A[ 0 ] = A[ N ];
-		A[ N ] = temp;
-		j = 0;
-		// bubble-down
-		while ( 2 * j + 2 < N ) {
-			if ( A[ 2 * j + 1 ].hv > A[ 2 * j + 2 ].hv || (A[ 2 * j + 1 ].hv == A[ 2 * j + 2 ].hv && A[ 2 * j + 1 ].checksum > A[ 2 * j + 2 ].checksum) ) maxi = 2 * j + 1;
-			else maxi = 2 * j + 2;
-			if ( A[ maxi ].hv > A[ j ].hv || (A[ maxi ].hv == A[ j ].hv && A[ maxi ].checksum > A[ j ].checksum) ) {
-				Pair temp = A[ j ];
-				A[ j ] = A[ maxi ];
-				A[ maxi ] = temp;
-				j = maxi;
-			}
-			else break;
-		}
-		if ( 2 * j + 1 < N && ( A[ 2 * j + 1 ].hv > A[ j ].hv || (A[ 2 * j + 1 ].hv == A[ j ].hv && A[ 2 * j + 1 ].checksum > A[ j ].checksum) ) ) {
-			Pair temp = A[ j ];
-			A[ j ] = A[ 2 * j + 1 ];
-			A[ 2 * j + 1 ] = temp;
-		}
-	}
-}
-/**********************************************/
-void insertionSortPair( Pair * A, const int left, const int right ) {
-	// left, right - starting and ending index of the interval to be sorted
-	int i, j;
-	for ( i = left + 1; i <= right; i++ ) {
-		j = i;
-		Pair temp = A[ i ];
-		while ( j > left && ( A[ j - 1 ].hv > temp.hv || (A[ j - 1 ].hv == temp.hv && A[ j - 1 ].checksum > temp.checksum) ) ) {
-			A[ j ] = A[ j - 1 ];
-			j--;
-		}
-		A[ j ] = temp;
-	}
-}
-/**********************************************/
-void quickSortPair( Pair * A, const int left, const int right, int depth ) {
-	// left, right - starting and ending index of the interval to be sorted
-	// depth - max recursion depth allowed
-	if ( right - left <= 16 ) return;	// leave it for insertionSort
 
-	if ( depth == 0 ) heapSortPair( A + left, right - left + 1 );	// too many recursive calls, switch to heapsort to ensure O(nlogn) time
-	else {
-		int mid = ( left + right ) / 2;
-		int small = left - 1;
-		int i;
-		Pair temp;
-		// median of A[ left ], A[ mid ], A[ right ], to be stored in A[ right ]
-		if ( A[ mid ].hv < A[ right ].hv || (A[ mid ].hv == A[ right ].hv && A[ mid ].checksum < A[ right ].checksum) ) {
-			temp = A[ right ];
-			A[ right ] = A[ mid ];
-			A[ mid ] = temp;
-		}
-		if ( A[ left ].hv < A[ right ].hv || (A[ left ].hv == A[ right ].hv && A[ left ].checksum < A[ right ].checksum) ) {
-			temp = A[ right ];
-			A[ right ] = A[ left ];
-			A[ left ] = temp;
-		}
-		if ( A[ left ].hv < A[ mid ].hv || (A[ left ].hv == A[ mid ].hv && A[ left ].checksum < A[ mid ].checksum) ) {
-			temp = A[ right ];
-			A[ right ] = A[ left ];
-			A[ left ] = temp;
-		}
-		else {
-			temp = A[ right ];
-			A[ right ] = A[ mid ];
-			A[ mid ] = temp;
-		}
-		// partitioning the array with respect to A[ right ]
-		for ( i = left; i < right; i++ ) {
-			if ( A[ i ].hv < A[ right ].hv || (A[ i ].hv == A[ right ].hv && A[ i ].checksum < A[ right ].checksum) ) {
-				temp = A[ ++small ];
-				A[ small ] = A[ i ];
-				A[ i ] = temp;
-			}
-		}
-		temp = A[ small + 1 ];
-		A[ small + 1 ] = A[ right ];
-		A[ right ] = temp;
-		// recursion
-		quickSortPair( A, left, small, depth - 1 );
-		quickSortPair( A, small + 2, right, depth - 1 );
-	}
-}
 /**********************************************/
-void introSortPair( Pair * A, const int left, const int right ) {
-	// main sort, limiting recursion depth to 2 times the logarithm of its length
-	quickSortPair( A, left, right, 2 * lg( right - left + 1 ) );
-	// finish-up small unsorted pieces
-	insertionSortPair( A, left, right );
+void quickSortGI(GeneralIndex *A, const int left, const int right, int depth) {
+    // left, right - starting and ending index of the interval to be sorted
+    // depth - max recursion depth allowed
+    if (right - left <= 16) return;    // leave it for insertionSort
+
+    // too many recursive calls, switch to heapsort to ensure O(nlogn) time
+    if (depth == 0) heapSortGI(A + left, right - left + 1);
+    else {
+        int mid = (left + right) / 2;
+        int small = left - 1;
+        int i;
+        GeneralIndex temp;
+        // median of A[ left ], A[ mid ], A[ right ], to be stored in A[ right ]
+        if (A[mid].checksum < A[right].checksum ||
+            (A[mid].checksum == A[right].checksum && A[mid].info < A[right].info)) {
+            temp = A[right];
+            A[right] = A[mid];
+            A[mid] = temp;
+        }
+        if (A[left].checksum < A[right].checksum ||
+            (A[left].checksum == A[right].checksum && A[left].info < A[right].info)) {
+            temp = A[right];
+            A[right] = A[left];
+            A[left] = temp;
+        }
+        if (A[left].checksum < A[mid].checksum || (A[left].checksum == A[mid].checksum && A[left].info < A[mid].info)) {
+            temp = A[right];
+            A[right] = A[left];
+            A[left] = temp;
+        } else {
+            temp = A[right];
+            A[right] = A[mid];
+            A[mid] = temp;
+        }
+        // partitioning the array with respect to A[ right ]
+        for (i = left; i < right; i++) {
+            if (A[i].checksum < A[right].checksum ||
+                (A[i].checksum == A[right].checksum && A[i].info < A[right].info)) {
+                temp = A[++small];
+                A[small] = A[i];
+                A[i] = temp;
+            }
+        }
+        temp = A[small + 1];
+        A[small + 1] = A[right];
+        A[right] = temp;
+        // recursion
+        quickSortGI(A, left, small, depth - 1);
+        quickSortGI(A, small + 2, right, depth - 1);
+    }
+}
+
+/**********************************************/
+void introSortGI(GeneralIndex *A, const int left, const int right) {
+    // main sort, limiting recursion depth to 2 times the logarithm of its length
+    quickSortGI(A, left, right, 2 * lg(right - left + 1));
+    // finish-up small unsorted pieces
+    insertionSortGI(A, left, right);
+}
+
+/**********************************************/
+void heapSortPair(Pair *A, int N) {
+    // N - size of the array to be sorted
+    if (N <= 1) return;
+    int i, j, maxi;
+    // We make the array a max heap using "bubble-down" operation
+    for (i = N / 2 - 1; i >= 0; i--) {
+        j = i;
+        // bubble-down
+        while (2 * j + 2 < N) {
+            if (A[2 * j + 1].hv > A[2 * j + 2].hv ||
+                (A[2 * j + 1].hv == A[2 * j + 2].hv && A[2 * j + 1].checksum > A[2 * j + 2].checksum))
+                maxi = 2 * j + 1;
+            else maxi = 2 * j + 2;
+            if (A[maxi].hv > A[j].hv || (A[maxi].hv == A[j].hv && A[maxi].checksum > A[j].checksum)) {
+                Pair temp = A[j];
+                A[j] = A[maxi];
+                A[maxi] = temp;
+                j = maxi;
+            } else break;
+        }
+        if (2 * j + 1 < N &&
+            (A[2 * j + 1].hv > A[j].hv || (A[2 * j + 1].hv == A[j].hv && A[2 * j + 1].checksum > A[j].checksum))) {
+            Pair temp = A[j];
+            A[j] = A[2 * j + 1];
+            A[2 * j + 1] = temp;
+        }
+    }
+    // Extracting maximum and moving it to the end of the array as long as size is greater than 1
+    while (--N) {
+        Pair temp = A[0];
+        A[0] = A[N];
+        A[N] = temp;
+        j = 0;
+        // bubble-down
+        while (2 * j + 2 < N) {
+            if (A[2 * j + 1].hv > A[2 * j + 2].hv ||
+                (A[2 * j + 1].hv == A[2 * j + 2].hv && A[2 * j + 1].checksum > A[2 * j + 2].checksum))
+                maxi = 2 * j + 1;
+            else maxi = 2 * j + 2;
+            if (A[maxi].hv > A[j].hv || (A[maxi].hv == A[j].hv && A[maxi].checksum > A[j].checksum)) {
+                Pair temp = A[j];
+                A[j] = A[maxi];
+                A[maxi] = temp;
+                j = maxi;
+            } else break;
+        }
+        if (2 * j + 1 < N &&
+            (A[2 * j + 1].hv > A[j].hv || (A[2 * j + 1].hv == A[j].hv && A[2 * j + 1].checksum > A[j].checksum))) {
+            Pair temp = A[j];
+            A[j] = A[2 * j + 1];
+            A[2 * j + 1] = temp;
+        }
+    }
+}
+
+/**********************************************/
+void insertionSortPair(Pair *A, const int left, const int right) {
+    // left, right - starting and ending index of the interval to be sorted
+    int i, j;
+    for (i = left + 1; i <= right; i++) {
+        j = i;
+        Pair temp = A[i];
+        while (j > left && (A[j - 1].hv > temp.hv || (A[j - 1].hv == temp.hv && A[j - 1].checksum > temp.checksum))) {
+            A[j] = A[j - 1];
+            j--;
+        }
+        A[j] = temp;
+    }
+}
+
+/**********************************************/
+void quickSortPair(Pair *A, const int left, const int right, int depth) {
+    // left, right - starting and ending index of the interval to be sorted
+    // depth - max recursion depth allowed
+    if (right - left <= 16) return;    // leave it for insertionSort
+
+    // too many recursive calls, switch to heapsort to ensure O(nlogn) time
+    if (depth == 0) heapSortPair(A + left, right - left + 1);
+    else {
+        int mid = (left + right) / 2;
+        int small = left - 1;
+        int i;
+        Pair temp;
+        // median of A[ left ], A[ mid ], A[ right ], to be stored in A[ right ]
+        if (A[mid].hv < A[right].hv || (A[mid].hv == A[right].hv && A[mid].checksum < A[right].checksum)) {
+            temp = A[right];
+            A[right] = A[mid];
+            A[mid] = temp;
+        }
+        if (A[left].hv < A[right].hv || (A[left].hv == A[right].hv && A[left].checksum < A[right].checksum)) {
+            temp = A[right];
+            A[right] = A[left];
+            A[left] = temp;
+        }
+        if (A[left].hv < A[mid].hv || (A[left].hv == A[mid].hv && A[left].checksum < A[mid].checksum)) {
+            temp = A[right];
+            A[right] = A[left];
+            A[left] = temp;
+        } else {
+            temp = A[right];
+            A[right] = A[mid];
+            A[mid] = temp;
+        }
+        // partitioning the array with respect to A[ right ]
+        for (i = left; i < right; i++) {
+            if (A[i].hv < A[right].hv || (A[i].hv == A[right].hv && A[i].checksum < A[right].checksum)) {
+                temp = A[++small];
+                A[small] = A[i];
+                A[i] = temp;
+            }
+        }
+        temp = A[small + 1];
+        A[small + 1] = A[right];
+        A[right] = temp;
+        // recursion
+        quickSortPair(A, left, small, depth - 1);
+        quickSortPair(A, small + 2, right, depth - 1);
+    }
+}
+
+/**********************************************/
+void introSortPair(Pair *A, const int left, const int right) {
+    // main sort, limiting recursion depth to 2 times the logarithm of its length
+    quickSortPair(A, left, right, 2 * lg(right - left + 1));
+    // finish-up small unsorted pieces
+    insertionSortPair(A, left, right);
 }

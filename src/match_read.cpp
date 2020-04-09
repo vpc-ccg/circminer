@@ -7,33 +7,32 @@ extern "C" {
 #include "mrsfast/HashTable.h"
 }
 
-GenomeSeeder::GenomeSeeder (void) : mode(DONOTLOADCONTIG), genome_str(NULL)
-{ }
+GenomeSeeder::GenomeSeeder(void) : mode(DONOTLOADCONTIG), genome_str(NULL) {}
 
-GenomeSeeder::~GenomeSeeder (void) {
+GenomeSeeder::~GenomeSeeder(void) {
 }
 
 void GenomeSeeder::init(int mode) {
-	lookup[0] = 'A';
-	lookup[1] = 'C';
-	lookup[2] = 'G';
-	lookup[3] = 'T';
-	lookup[4] = 'N';
-	lookup[5] = 'N';
-	lookup[6] = 'N';
-	lookup[7] = 'N';
+    lookup[0] = 'A';
+    lookup[1] = 'C';
+    lookup[2] = 'G';
+    lookup[3] = 'T';
+    lookup[4] = 'N';
+    lookup[5] = 'N';
+    lookup[6] = 'N';
+    lookup[7] = 'N';
 
-	this->mode = mode;
+    this->mode = mode;
 
-	if (mode == LOADCONTIGSTRINMEM) {
-		genome_str = (char*) malloc(DEF_CONTIG_SIZE);
-	}
+    if (mode == LOADCONTIGSTRINMEM) {
+        genome_str = (char *) malloc(DEF_CONTIG_SIZE);
+    }
 }
 
 void GenomeSeeder::finalize(void) {
-	if (genome_str != NULL)
-		free(genome_str);
-	genome_str = NULL;
+    if (genome_str != NULL)
+        free(genome_str);
+    genome_str = NULL;
 }
 
 // assumption: target is not less than list[0]
@@ -42,302 +41,298 @@ void GenomeSeeder::finalize(void) {
 // => 
 // closest Greater than: returned index
 // closest Less than or Equal: returned index - 1
-int GenomeSeeder::frag_binary_search(const vector<fragment_t>& list, int beg, int end, uint32_t target) {
-	if (end - beg <= 1)
-		return end;
-	int mid = (beg + end) / 2;
-	if (target < list[mid].rpos)
-		return frag_binary_search(list, beg, mid, target);
-	else 
-		return frag_binary_search(list, mid, end, target);
+int GenomeSeeder::frag_binary_search(const vector <fragment_t> &list, int beg, int end, uint32_t target) {
+    if (end - beg <= 1)
+        return end;
+    int mid = (beg + end) / 2;
+    if (target < list[mid].rpos)
+        return frag_binary_search(list, beg, mid, target);
+    else
+        return frag_binary_search(list, mid, end, target);
 }
 
-int GenomeSeeder::get_exact_locs_hash(char* seq, int32_t qpos, uint32_t len, GIMatchedKmer* mk) {
-	mk->frag_count = 0;
-	mk->frags = NULL;
-	mk->qpos = qpos;
+int GenomeSeeder::get_exact_locs_hash(char *seq, int32_t qpos, uint32_t len, GIMatchedKmer *mk) {
+    mk->frag_count = 0;
+    mk->frags = NULL;
+    mk->qpos = qpos;
 
-	int hv = hashVal(seq);
-	if (hv < 0)
-		return 0;
+    int hv = hashVal(seq);
+    if (hv < 0)
+        return 0;
 
-	char* checksum_beg = seq + WINDOW_SIZE;
-	int cv = checkSumVal(checksum_beg);
-	if (cv < 0)
-		return 0;
+    char *checksum_beg = seq + WINDOW_SIZE;
+    int cv = checkSumVal(checksum_beg);
+    if (cv < 0)
+        return 0;
 
-	GeneralIndex *it = getCandidates(hv);
+    GeneralIndex *it = getCandidates(hv);
 
-	if (it == NULL) {
-		return 0;
-	}
+    if (it == NULL) {
+        return 0;
+    }
 
-	uint32_t lb = 1;
-	uint32_t ub = it[0].info;
-	uint32_t mid;
-	int16_t target = cv;
-	uint32_t LB = 0;
-	uint32_t UB = 0;
+    uint32_t lb = 1;
+    uint32_t ub = it[0].info;
+    uint32_t mid;
+    int16_t target = cv;
+    uint32_t LB = 0;
+    uint32_t UB = 0;
 
-	while (lb < ub) {
-		mid = (lb + ub) / 2;
-		if (target <= it[mid].checksum)
-			ub = mid;
-		else
-			lb = mid + 1;
-	}
-	
-	if (ub < lb || target != it[lb].checksum)
-		return 0;
-	UB = LB = lb;
+    while (lb < ub) {
+        mid = (lb + ub) / 2;
+        if (target <= it[mid].checksum)
+            ub = mid;
+        else
+            lb = mid + 1;
+    }
 
-	lb = LB;
-	ub = it[0].info;
-	while (lb < ub) {
-		mid = (lb + ub + 1) / 2;
-		if (target < it[mid].checksum)
-			ub = mid - 1;
-		else
-			lb = mid;
-	}
+    if (ub < lb || target != it[lb].checksum)
+        return 0;
+    UB = LB = lb;
 
-	if (target == it[lb].checksum)
-		UB = lb;
-	
-	mk->frag_count = UB - LB + 1;
-	mk->frags = it + LB;
+    lb = LB;
+    ub = it[0].info;
+    while (lb < ub) {
+        mid = (lb + ub + 1) / 2;
+        if (target < it[mid].checksum)
+            ub = mid - 1;
+        else
+            lb = mid;
+    }
 
-	return UB - LB + 1;
+    if (target == it[lb].checksum)
+        UB = lb;
+
+    mk->frag_count = UB - LB + 1;
+    mk->frags = it + LB;
+
+    return UB - LB + 1;
 }
 
 // reduce number of frags in LargeList (ll) using SmalList (sl)
 // ll locations should be smaller than sl
-bool GenomeSeeder::reduce_hits_behind(GIMatchedKmer* sl, GIMatchedKmer* ll) {
-	if (sl->frag_count == 0 or ll->frag_count == 0)
-		return false;
+bool GenomeSeeder::reduce_hits_behind(GIMatchedKmer *sl, GIMatchedKmer *ll) {
+    if (sl->frag_count == 0 or ll->frag_count == 0)
+        return false;
 
-	uint32_t max_dist = ((sl->qpos - ll->qpos) / kmer) * maxIntronLen;
+    uint32_t max_dist = ((sl->qpos - ll->qpos) / kmer) * maxIntronLen;
 
-	uint32_t size = 0;
-	uint32_t j = 0;
-	for (uint32_t i = 0; i < ll->frag_count; i++) {
-		while (j < sl->frag_count and sl->frags[j].info <= ll->frags[i].info)
-			j++;
+    uint32_t size = 0;
+    uint32_t j = 0;
+    for (uint32_t i = 0; i < ll->frag_count; i++) {
+        while (j < sl->frag_count and sl->frags[j].info <= ll->frags[i].info)
+            j++;
 
-		if (j >= sl->frag_count)
-			break;
+        if (j >= sl->frag_count)
+            break;
 
-		// now sl->frags[j].info > ll->frags[i].info
-		if (ll->frags[i].info + max_dist >= sl->frags[j].info) {
-			ll->frags[size].info = ll->frags[i].info;
-			size++;
-		}
-	}
+        // now sl->frags[j].info > ll->frags[i].info
+        if (ll->frags[i].info + max_dist >= sl->frags[j].info) {
+            ll->frags[size].info = ll->frags[i].info;
+            size++;
+        }
+    }
 
-	//fprintf(stderr, "Pre hits size: %d\tCur hits size: %d\n", ll->frag_count, size);
+    //fprintf(stderr, "Pre hits size: %d\tCur hits size: %d\n", ll->frag_count, size);
 
-	ll->frag_count = size;
-	return (size > 0 and size <= seedLim);
+    ll->frag_count = size;
+    return (size > 0 and size <= seedLim);
 }
 
 // reduce number of frags in LargeList (ll) using SmalList (sl)
 // ll locations should be greater than sl
-bool GenomeSeeder::reduce_hits_ahead(GIMatchedKmer* sl, GIMatchedKmer* ll) {
-	if (sl->frag_count == 0 or ll->frag_count == 0)
-		return false;
+bool GenomeSeeder::reduce_hits_ahead(GIMatchedKmer *sl, GIMatchedKmer *ll) {
+    if (sl->frag_count == 0 or ll->frag_count == 0)
+        return false;
 
-	uint32_t max_dist = ((ll->qpos - sl->qpos) / kmer) * maxIntronLen;
+    uint32_t max_dist = ((ll->qpos - sl->qpos) / kmer) * maxIntronLen;
 
-	uint32_t size = 0;
-	uint32_t j = 0;
-	for (uint32_t i = 0; i < ll->frag_count; i++) {
-		if (j >= sl->frag_count)
-			break;
+    uint32_t size = 0;
+    uint32_t j = 0;
+    for (uint32_t i = 0; i < ll->frag_count; i++) {
+        if (j >= sl->frag_count)
+            break;
 
-		if (sl->frags[j].info >= ll->frags[i].info)
-			continue;
+        if (sl->frags[j].info >= ll->frags[i].info)
+            continue;
 
-		while (j < sl->frag_count and sl->frags[j].info + max_dist < ll->frags[i].info)
-			j++;
+        while (j < sl->frag_count and sl->frags[j].info + max_dist < ll->frags[i].info)
+            j++;
 
-		if (j >= sl->frag_count)
-			break;
+        if (j >= sl->frag_count)
+            break;
 
-		if (ll->frags[i].info <= max_dist + sl->frags[j].info) {
-			ll->frags[size].info = ll->frags[i].info;
-			size++;
-		}
-	}
+        if (ll->frags[i].info <= max_dist + sl->frags[j].info) {
+            ll->frags[size].info = ll->frags[i].info;
+            size++;
+        }
+    }
 
-	//fprintf(stderr, "Pre hits size: %d\tCur hits size: %d\n", ll->frag_count, size);
+    //fprintf(stderr, "Pre hits size: %d\tCur hits size: %d\n", ll->frag_count, size);
 
-	ll->frag_count = size;
-	return (size > 0 and size <= seedLim);
+    ll->frag_count = size;
+    return (size > 0 and size <= seedLim);
 }
 
 // return:
 // # valid kmers
 // is valid if: #fragments > 0 and < seedLim
-int GenomeSeeder::kmer_match_skip_hash(char* rseq, int rseq_len, int kmer_size, int shift, int skip, int ll_step, GIMatchedKmer* mk_res, int& em_count) {
-	int i, j;
-	int occ;
-	int invalid_kmer = 0;
-	int valid_kmer = 0;
-	//int valid_kmer_ind = 0;
-	uint32_t match_len = kmer_size;
+int GenomeSeeder::kmer_match_skip_hash(char *rseq, int rseq_len, int kmer_size, int shift, int skip, int ll_step,
+                                       GIMatchedKmer *mk_res, int &em_count) {
+    int i, j;
+    int occ;
+    int invalid_kmer = 0;
+    int valid_kmer = 0;
+    //int valid_kmer_ind = 0;
+    uint32_t match_len = kmer_size;
 
-	GIMatchedKmer* cur = mk_res;
+    GIMatchedKmer *cur = mk_res;
 
-	// initialize
-	int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer)) - 1;
-	for (j = 0; j < max_seg_cnt; j++) {
-		(cur+j)->frag_count = 0;
-		(cur+j)->frags = NULL;
-		//(cur+j)->qpos = skip*j;
-	}
+    // initialize
+    int max_seg_cnt = 2 * (ceil(1.0 * maxReadLength / kmer)) - 1;
+    for (j = 0; j < max_seg_cnt; j++) {
+        (cur + j)->frag_count = 0;
+        (cur + j)->frags = NULL;
+        //(cur+j)->qpos = skip*j;
+    }
 
-	vector <int32_t> starting_qpoints;
-	int32_t cut_start;
-	for (i = shift; i < rseq_len; i += skip) {
-		if (rseq_len - i < kmer_size)
-			break;
+    vector <int32_t> starting_qpoints;
+    int32_t cut_start;
+    for (i = shift; i < rseq_len; i += skip) {
+        if (rseq_len - i < kmer_size)
+            break;
 
-		cut_start = i;
-		//if (rseq_len - i < 2 * kmer_size)
-		//	cut_start = rseq_len - kmer_size;
-		//else
-		//	cut_start = i;
-			
-		starting_qpoints.push_back(cut_start);
-	}
+        cut_start = i;
+        //if (rseq_len - i < 2 * kmer_size)
+        //	cut_start = rseq_len - kmer_size;
+        //else
+        //	cut_start = i;
 
-	em_count = 0;
-	j = -1 * ll_step;
-	for (unsigned int k = 0; k < starting_qpoints.size(); ++k) {
-		i = starting_qpoints[k];
-		j += ll_step;
+        starting_qpoints.push_back(cut_start);
+    }
 
-		if (i != shift)
-			cur += ll_step;
+    em_count = 0;
+    j = -1 * ll_step;
+    for (unsigned int k = 0; k < starting_qpoints.size(); ++k) {
+        i = starting_qpoints[k];
+        j += ll_step;
 
-		cur->qpos = i;
+        if (i != shift)
+            cur += ll_step;
 
-		occ = get_exact_locs_hash(rseq + i, i, match_len, cur);
-		
-		vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
-		if (occ <= 0) {
-			occ = 0;
-			invalid_kmer++;
-		}
+        cur->qpos = i;
 
-		else if (uint32_t(occ) > seedLim ) {
-			invalid_kmer++;
-		}
+        occ = get_exact_locs_hash(rseq + i, i, match_len, cur);
 
-		else {
-			//valid_kmer_ind = j;
-			valid_kmer++;
-		}
+        vafprintf(2, stderr, "Occ: %d\tind: %d\tmatch len: %d\n", occ, i, match_len);
+        if (occ <= 0) {
+            occ = 0;
+            invalid_kmer++;
+        } else if (uint32_t(occ) > seedLim) {
+            invalid_kmer++;
+        } else {
+            //valid_kmer_ind = j;
+            valid_kmer++;
+        }
 
-		em_count++;	
-	}
+        em_count++;
+    }
 
-	valid_kmer = em_count - invalid_kmer;
+    valid_kmer = em_count - invalid_kmer;
 
-	// trying to reduce size of hits it there is only one valid kmer
-	//if (valid_kmer == 1) {
-	//	GIMatchedKmer* small = mk_res + valid_kmer_ind;
-	//	for (int i = 0; i < valid_kmer_ind; i += ll_step) {
-	//		//fprintf(stderr, "Reducing size of ind = %d\n", i);
-	//		if (reduce_hits_behind(small, mk_res + i))
-	//			valid_kmer++;
-	//	}
+    // trying to reduce size of hits it there is only one valid kmer
+    //if (valid_kmer == 1) {
+    //	GIMatchedKmer* small = mk_res + valid_kmer_ind;
+    //	for (int i = 0; i < valid_kmer_ind; i += ll_step) {
+    //		//fprintf(stderr, "Reducing size of ind = %d\n", i);
+    //		if (reduce_hits_behind(small, mk_res + i))
+    //			valid_kmer++;
+    //	}
 
-	//	for (int i = valid_kmer_ind + ll_step; i < em_count * ll_step; i += ll_step) {
-	//		//fprintf(stderr, "Reducing size of ind = %d\n", i);
-	//		if (reduce_hits_ahead(small, mk_res + i))
-	//			valid_kmer++;
-	//	}
-	//}
-	
-	for (int i = 0; i < em_count * ll_step; i += ll_step) {
-		if ((mk_res+i)->frag_count > seedLim) {
-			(mk_res+i)->frag_count = 0;
-			//(mk_res+i)->frags = NULL;
-		}
-	}
+    //	for (int i = valid_kmer_ind + ll_step; i < em_count * ll_step; i += ll_step) {
+    //		//fprintf(stderr, "Reducing size of ind = %d\n", i);
+    //		if (reduce_hits_ahead(small, mk_res + i))
+    //			valid_kmer++;
+    //	}
+    //}
 
-	return valid_kmer;
+    for (int i = 0; i < em_count * ll_step; i += ll_step) {
+        if ((mk_res + i)->frag_count > seedLim) {
+            (mk_res + i)->frag_count = 0;
+            //(mk_res+i)->frags = NULL;
+        }
+    }
+
+    return valid_kmer;
 }
 
 // fragment results will be sorted
-int GenomeSeeder::split_match_hash(char* rseq, int rseq_len, int kmer_size, GIMatchedKmer* starting_node) {
-	int valid_nonov_kmer = 0;
-	int valid_ov_kmer = 0;
-	int nonov_em_count;
+int GenomeSeeder::split_match_hash(char *rseq, int rseq_len, int kmer_size, GIMatchedKmer *starting_node) {
+    int valid_nonov_kmer = 0;
+    int valid_ov_kmer = 0;
+    int nonov_em_count;
 
-	valid_nonov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, 0, kmer_size, 2, starting_node, nonov_em_count);
+    valid_nonov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, 0, kmer_size, 2, starting_node, nonov_em_count);
 
-	//int ov_em_count;
-	//if (valid_nonov_kmer < 2)
-	//	valid_ov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, kmer_size / 2, kmer_size, 2, starting_node + 1, ov_em_count);
-	
-	vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
+    //int ov_em_count;
+    //if (valid_nonov_kmer < 2)
+    //	valid_ov_kmer = kmer_match_skip_hash(rseq, rseq_len, kmer_size, kmer_size / 2, kmer_size, 2, starting_node + 1, ov_em_count);
 
-	//print_hits(starting_node, 7);
+    vafprintf(1, stderr, "Non-OV valids: %d\nOV valids: %d\n", valid_nonov_kmer, valid_ov_kmer);
 
-	return valid_nonov_kmer + valid_ov_kmer;
+    //print_hits(starting_node, 7);
+
+    return valid_nonov_kmer + valid_ov_kmer;
 }
 
-bool GenomeSeeder::pac2char(uint32_t start, int len, char* str) {
-	int ref_len = getRefGenLength();
-	if (((int) (start) < 0) or ((int)(start) + len - 1 > ref_len))
-		return false;
+bool GenomeSeeder::pac2char(uint32_t start, int len, char *str) {
+    int ref_len = getRefGenLength();
+    if (((int) (start) < 0) or ((int) (start) + len - 1 > ref_len))
+        return false;
 
-	//str = genome_str + start;
-	
-	strncpy(str, genome_str + start - 1, len);
-	str[len] = '\0';
+    //str = genome_str + start;
 
-	return true;
+    strncpy(str, genome_str + start - 1, len);
+    str[len] = '\0';
+
+    return true;
 }
 
-bool GenomeSeeder::pac2char_otf(uint32_t start, int len, char* str) {
-	//fprintf(stderr, "extract pos: %d-%d\n", start, start+len-1);
-	int ref_len = getRefGenLength();
-	if (((int) (start) < 0) or ((int)(start) + len - 1 > ref_len))
-		return false;		// do not write ref seq if it goes out of the contig border
+bool GenomeSeeder::pac2char_otf(uint32_t start, int len, char *str) {
+    //fprintf(stderr, "extract pos: %d-%d\n", start, start+len-1);
+    int ref_len = getRefGenLength();
+    if (((int) (start) < 0) or ((int) (start) + len - 1 > ref_len))
+        return false;        // do not write ref seq if it goes out of the contig border
 
-	CompressedSeq* crnext = getCmpRefGenome();
+    CompressedSeq *crnext = getCmpRefGenome();
 
-	uint32_t skip = (start - 1) / 21;
-	crnext += skip;
-	int pass = (start - 1) % 21;
+    uint32_t skip = (start - 1) / 21;
+    crnext += skip;
+    int pass = (start - 1) % 21;
 
-	CompressedSeq crdata = *crnext;
-	crdata <<= 3 * pass;
+    CompressedSeq crdata = *crnext;
+    crdata <<= 3 * pass;
 
-	int i = 0;
-	int j = pass;
-	int val;
+    int i = 0;
+    int j = pass;
+    int val;
 
-	while (i < len) {
-		val = (crdata >> 60) & 7;
-		str[i++] = lookup[val];
-		if (++j == 21) {
-			j = 0;
-			crdata = *(++crnext);
-		}
-		else {
-			crdata <<= 3;
-		}
-	}
-	str[i] = '\0';
-	return true;
+    while (i < len) {
+        val = (crdata >> 60) & 7;
+        str[i++] = lookup[val];
+        if (++j == 21) {
+            j = 0;
+            crdata = *(++crnext);
+        } else {
+            crdata <<= 3;
+        }
+    }
+    str[i] = '\0';
+    return true;
 }
 
 bool GenomeSeeder::pac2char_whole_contig(void) {
-	return pac2char_otf(1, getRefGenLength(), genome_str);
+    return pac2char_otf(1, getRefGenLength(), genome_str);
 }
 
 //void print_hits(GIMatchedKmer* frag_l, int cnt) {

@@ -11,98 +11,113 @@
 #include "fastq_parser.h"
 #include "extend.h"
 
-#define FR 0	// Forward Reverse
-#define RF 1	// Reverse Forward
-#define CR 20	// Circular RNA
-#define NCR 21	// Novel Circular RNA
-#define MCR 22	// Missed Circular RNA
-#define UD 30	// Undefined
-#define NF 40	// Not found
+#define FR 0    // Forward Reverse
+#define RF 1    // Reverse Forward
+#define CR 20    // Circular RNA
+#define NCR 21    // Novel Circular RNA
+#define MCR 22    // Missed Circular RNA
+#define UD 30    // Undefined
+#define NF 40    // Not found
 
 using namespace std;
 
 class ProcessCirc {
 private:
-	char fq_file1[FILE_NAME_MAX_LEN];
-	char fq_file2[FILE_NAME_MAX_LEN];
+    char fq_file1[FILE_NAME_MAX_LEN];
+    char fq_file2[FILE_NAME_MAX_LEN];
 
-	FILE* report_file;
-	FILE* candid_file;
+    FILE *report_file;
+    FILE *candid_file;
 
-	int window_size;
-	int step;
-	
-	char* fullmap_seq;
-	char* remain_seq;
-	char* r1_seq;
-	char* r2_seq;
-	
-	uint32_t fullmap_seq_len;
-	uint32_t remain_seq_len;
-	uint32_t r1_seq_len;
-	uint32_t r2_seq_len;
+    int window_size;
+    int step;
 
-	MatchedRead mr;
-	chain_list bc1;
-	chain_list bc2;
+    char *fullmap_seq;
+    char *remain_seq;
+    char *r1_seq;
+    char *r2_seq;
 
-	int pre_contig;
-	string pre_chr;
+    uint32_t fullmap_seq_len;
+    uint32_t remain_seq_len;
+    uint32_t r1_seq_len;
+    uint32_t r2_seq_len;
 
-	unordered_map <uint32_t, RegionalHashTable*> ind2ht;
-	unordered_set <uint32_t> removables;
-	unordered_map <uint32_t, uint32_t> gid2ind;
-	vector <uint32_t> gids;
+    MatchedRead mr;
+    chain_list bc1;
+    chain_list bc2;
 
-	vector <CircRes> circ_res;
-	vector <string> circ_type;
+    int pre_contig;
+    string pre_chr;
 
-	TransExtension extension;
+    unordered_map<uint32_t, RegionalHashTable *> ind2ht;
+    unordered_set <uint32_t> removables;
+    unordered_map <uint32_t, uint32_t> gid2ind;
+    vector <uint32_t> gids;
+
+    vector <CircRes> circ_res;
+    vector <string> circ_type;
+
+    TransExtension extension;
 
 public:
-	ProcessCirc (int last_round_num, int ws);
-	~ProcessCirc (void);
+    ProcessCirc(int last_round_num, int ws);
+    ~ProcessCirc(void);
 
-	void open_report_file (void);
-	void open_candid_file (void);
-	void load_genome (void);
-	int sort_fq (char* fqname);
-	void sort_fq_internal (char* fqname);
+    void open_report_file(void);
+    void open_candid_file(void);
 
-	void do_process (void);
-	void call_circ (Record* current_record1, Record* current_record2);
+    void load_genome(void);
 
-	void call_circ_single_split(Record* current_record1, Record* current_record2);
-	void call_circ_double_split(Record* current_record1, Record* current_record2);
+    int sort_fq(char *fqname);
+    void sort_fq_internal(char *fqname);
 
-	void binning (uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len);
-	void chaining (uint32_t qspos, uint32_t qepos, RegionalHashTable* regional_ht, char* remain_seq, uint32_t gene_len, uint32_t shift, chain_list& bc);
+    void do_process(void);
 
-	bool find_exact_coord (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, 
-							int dir, uint32_t qspos, char* rseq, int rlen, int whole_len, chain_t& bc);
+    void call_circ(Record *current_record1, Record *current_record2);
 
-	void refresh_hash_table_list (void);
-	void check_removables (uint32_t rspos);
-	RegionalHashTable* get_hash_table (const GeneInfo& gene_info);
-	RegionalHashTable* get_hash_table_smart (const GeneInfo& gene_info);
+    void call_circ_single_split(Record *current_record1, Record *current_record2);
+    void call_circ_double_split(Record *current_record1, Record *current_record2);
 
-	int check_split_map (MatchedMate& mm_r1, MatchedMate& mm_r2, MatchedMate& partial_mm, bool r1_partial, CircRes& cr);
-	int check_split_map (MatchedMate& mm_r1_1, MatchedMate& mm_r2_1, MatchedMate& mm_r1_2, MatchedMate& mm_r2_2, CircRes& cr);
-	int final_check (MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr);
+    void binning(uint32_t qspos, uint32_t qepos, RegionalHashTable *regional_ht, char *remain_seq, uint32_t gene_len);
 
-	int split_realignment(uint32_t qcutpos, uint32_t beg_bp, uint32_t end_bp, char* seq, uint32_t seq_len, const vector <uint32_t>& common_tid, MatchedMate& split_mm_left, MatchedMate& split_mm_right);
-	int split_realignment(uint32_t qcutpos, MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr);
+    void chaining(uint32_t qspos, uint32_t qepos, RegionalHashTable *regional_ht, char *remain_seq, uint32_t gene_len,
+                  uint32_t shift, chain_list &bc);
 
-	int rescue_overlapping_bsj(MatchedMate& full_mm, MatchedMate& split_mm_left, MatchedMate& split_mm_right, CircRes& cr);
+    bool find_exact_coord(MatchedMate &mm_r1, MatchedMate &mm_r2, MatchedMate &partial_mm,
+                          int dir, uint32_t qspos, char *rseq, int rlen, int whole_len, chain_t &bc);
 
-	void both_side_consensus(const vector <CircRes>& bsj_reads, string& ssignal, string& esignal);
-	void report_events (void);
+    void refresh_hash_table_list(void);
 
-	void print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 
-										MatchedMate& partial_mm, ConShift& con_shift);
+    void check_removables(uint32_t rspos);
 
-	void print_split_mapping (char* rname, MatchedMate& mm_r1, MatchedMate& mm_r2, 
-										MatchedMate& r1_partial_mm, MatchedMate& r2_partial_mm, ConShift& con_shift);
+    RegionalHashTable *get_hash_table(const GeneInfo &gene_info);
+    RegionalHashTable *get_hash_table_smart(const GeneInfo &gene_info);
+
+    int check_split_map(MatchedMate &mm_r1, MatchedMate &mm_r2, MatchedMate &partial_mm, bool r1_partial, CircRes &cr);
+
+    int check_split_map(MatchedMate &mm_r1_1, MatchedMate &mm_r2_1, MatchedMate &mm_r1_2, MatchedMate &mm_r2_2,
+                        CircRes &cr);
+
+    int final_check(MatchedMate &full_mm, MatchedMate &split_mm_left, MatchedMate &split_mm_right, CircRes &cr);
+
+    int split_realignment(uint32_t qcutpos, uint32_t beg_bp, uint32_t end_bp, char *seq, uint32_t seq_len,
+                          const vector <uint32_t> &common_tid, MatchedMate &split_mm_left, MatchedMate &split_mm_right);
+
+    int split_realignment(uint32_t qcutpos, MatchedMate &full_mm,
+                          MatchedMate &split_mm_left, MatchedMate &split_mm_right, CircRes &cr);
+
+    int rescue_overlapping_bsj(MatchedMate &full_mm, MatchedMate &split_mm_left, MatchedMate &split_mm_right,
+                               CircRes &cr);
+
+    void both_side_consensus(const vector <CircRes> &bsj_reads, string &ssignal, string &esignal);
+
+    void report_events(void);
+
+    void print_split_mapping(char *rname, MatchedMate &mm_r1, MatchedMate &mm_r2,
+                             MatchedMate &partial_mm, ConShift &con_shift);
+
+    void print_split_mapping(char *rname, MatchedMate &mm_r1, MatchedMate &mm_r2,
+                             MatchedMate &r1_partial_mm, MatchedMate &r2_partial_mm, ConShift &con_shift);
 
 };
 

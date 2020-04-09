@@ -7,64 +7,64 @@
 #define MAXTOTALTAGLEN 200
 
 struct OptionalTags {
-	int 		map_type;	//AT
-	int 		ed;			//NM
-	uint16_t 	junc_cnt;	//JC
-	bool 		gm_compat;	//TC
-	char*		all_tags;
+    int map_type;    //AT
+    int ed;            //NM
+    uint16_t junc_cnt;    //JC
+    bool gm_compat;    //TC
+    char *all_tags;
 
-	void to_string(void);
+    void to_string(void);
 };
 
 struct CommonAttr {
-	char* 		qname;
-	uint8_t 	mapq;
+    char *qname;
+    uint8_t mapq;
 };
 
 struct SeparateAttr {
-	uint16_t 		flag;
-	char* 			rname;
-	uint32_t 		pos;
-	char* 			cigar;
-	char* 			rnext;
-	uint32_t 		pnext;
-	int32_t 		tlen;
-	char* 			seq;
-	char* 			qual;
-	OptionalTags 	tags;
+    uint16_t flag;
+    char *rname;
+    uint32_t pos;
+    char *cigar;
+    char *rnext;
+    uint32_t pnext;
+    int32_t tlen;
+    char *seq;
+    char *qual;
+    OptionalTags tags;
 
 };
 
 class SAMOutput {
 private:
-	FILE* outsam;
+    FILE *outsam;
 
-	CommonAttr   com_attr;
-	SeparateAttr r1_attr;
-	SeparateAttr r2_attr;
+    CommonAttr com_attr;
+    SeparateAttr r1_attr;
+    SeparateAttr r2_attr;
 
-	uint16_t set_flag_se (MatchedMate* mm);
-	uint16_t set_flag_pe (MatchedRead* mr, bool first);
+    uint16_t set_flag_se(MatchedMate *mm);
+    uint16_t set_flag_pe(MatchedRead *mr, bool first);
 
-	void set_output_se (Record* rec);
-	void set_output_pe (Record* rec1, Record* rec2);
+    void set_output_se(Record *rec);
+    void set_output_pe(Record *rec1, Record *rec2);
 
-	void print_header (const vector <ContigLen>& chr_info);
+    void print_header(const vector <ContigLen> &chr_info);
 
 public:
-	SAMOutput (void);
-	SAMOutput (char* sam_prefix, char* open_mode, const vector <ContigLen>& chr_info);
-	~SAMOutput (void);
+    SAMOutput(void);
+    SAMOutput(char *sam_prefix, char *open_mode, const vector <ContigLen> &chr_info);
+    ~SAMOutput(void);
 
-	void init (char* sam_prefix, char* open_mode, const vector <ContigLen>& chr_info);
+    void init(char *sam_prefix, char *open_mode, const vector <ContigLen> &chr_info);
 
-	void finalize (void);
+    void finalize(void);
 
-	void write_sam_rec_se (Record* rec);
-	void write_pam_rec_se (Record* rec);
+    void write_sam_rec_se(Record *rec);
+    void write_pam_rec_se(Record *rec);
 
-	void write_sam_rec_pe (Record* rec1, Record* rec2);
-	void write_pam_rec_pe (Record* rec1, Record* rec2);
+    void write_sam_rec_pe(Record *rec1, Record *rec2);
+    void write_pam_rec_pe(Record *rec1, Record *rec2);
 };
 
 #endif //__OUTPUT_H__
