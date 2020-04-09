@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 #-*- encoding:utf-8 -*-
-#
-
 
 import sys, os, math
 class Usage(Exception):
@@ -40,7 +38,6 @@ def main():
 	print "Predicted " + str( len( r_dict) ) + " reads "
 
 	bs_dict = {}
-	#sr      = open("/home/yylin/share/for_hossein/SRR_OUT/BackSplice/chimeric.backsplice.read.id", 'r')
 	sr      = open( sys.argv[5], 'r')
 	for line in sr:
 		bs_dict[ line.split()[0]] = 1
