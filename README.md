@@ -96,6 +96,7 @@ For any bug report, feature request, or questions please fill out an issue throu
 
 ## Citation
 If you use CircMiner please cite our paper:
+
 Asghari H., Lin YY., Xu Y., Haghshenas E., Collins CC., Hach F. __[CircMiner: Accurate and Rapid Detection of Circular RNA through Splice-Aware Pseudo-Alignment Scheme](https://doi.org/10.1093/bioinformatics/btaa232)__. Bioinformatics (2020). btaa232
 
 ## Simulation Data
