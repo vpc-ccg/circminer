@@ -14,7 +14,7 @@ It is a sensitive computational tool for detecting circular RNAs (circRNAs) from
 The source code can be downloaded from [GitHub](https://github.com/vpc-ccg/circminer). Prerequisite are described below.
 
 ### Prerequisite
- - g++ 4.8.5 or higher
+ - GCC 4.9.4 or higher
  - GNU sort
 
 ### Compilation and Configuration
@@ -22,7 +22,7 @@ To install, you need to first fetch the repository [git repository](https://gith
 ```
 git clone --recursive https://github.com/vpc-ccg/circminer.git
 cd circminer
-make -j
+make 
 ```
 
 Now you are ready to go!
@@ -91,12 +91,15 @@ PAM mapping format:
 |20    |int   |Transcriptomic mapping: 1. Genomic mapping: 0              |
 
 
+## Contact & Support
+For any bug report, feature request, or questions please fill out an issue through CircMiner's [issue page](https://github.com/vpc-ccg/circminer/issues).
+
+## Citation
+If you use CircMiner please cite our paper:
+Asghari H., Lin YY., Xu Y., Haghshenas E., Collins CC., Hach F. __[CircMiner: Accurate and Rapid Detection of Circular RNA through Splice-Aware Pseudo-Alignment Scheme](https://doi.org/10.1093/bioinformatics/btaa232)__. Bioinformatics (2020). btaa232
+
 ## Simulation Data
 The simulated RNA-Seq reads used in this project can be accessed [here](https://figshare.com/projects/CircMiner/76488).
-
-## Contact & Support
-
-Feel free to drop any inquiry to Hossein Asghari [hasghari at sfu dot ca].
 
 ## Copyright and License
 This software is released under GNU General Public License (v3.0).
