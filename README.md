@@ -1,13 +1,12 @@
 CircMiner: Accurate and Rapid Detection of Circular RNA through Splice-Aware Pseudo-Alignment Scheme
 ===================
-## What is it?
-It is a sensitive computational tool for detecting circular RNAs (circRNAs) from RNA-Seq data.
+A sensitive and fast computational tool for detecting circular RNAs (circRNAs) from RNA-Seq data.
 
 # Table of contents
 1. [Installation](#installation)
 2. [Commands Options](#commands-options)
 3. [Example Commands](#example-commands)
-4. [Output Files](#output-file)
+4. [Output Files](#output-files)
 5. [Output Format](#output-format)
 6. [Contact & Support](#contact)
 
@@ -85,10 +84,10 @@ Run `circminer -h` to see available options.
 ## Output Files
 When a successful run finishes, the structure of output directory (e.g. outdir) will be as follows:
 ```
-outdir
-├── output.circ_report
-├── output.candidates.pam
-└── output.mapping.pam/output.mapping.sam
+outdir                                         # output directory
+├── output.circ_report                         # detected circRNA report
+├── output.candidates.pam                      # back-splice juntion read mappings
+└── output.mapping.pam/output.mapping.sam      # pseudo-alignment mapping results
 ```
 
 ## Output Format
