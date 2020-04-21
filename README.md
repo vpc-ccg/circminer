@@ -7,8 +7,9 @@ It is a sensitive computational tool for detecting circular RNAs (circRNAs) from
 1. [Installation](#installation)
 2. [Commands Options](#commands-options)
 3. [Example Commands](#example-commands)
-4. [Output Format](#output-format)
-5. [Contact & Support](#contact)
+4. [Output Files](#output-file)
+5. [Output Format](#output-format)
+6. [Contact & Support](#contact)
 
 ## Installation
 The source code can be downloaded from [GitHub](https://github.com/vpc-ccg/circminer). Prerequisite are described below.
@@ -37,6 +38,41 @@ Now you are ready to go!
 ### OPTIONS
 Run `circminer -h` to see available options.
 
+#### Indexing options
+	-i, --index: Indicates the indexing stage
+
+#### General options:
+	-r, --refernce:	Reference file.
+	-g, --gtf:	Gene model file.
+	-s, --seq:	Single-end sequence file.
+	-1, --seq1:	1st paired-end sequence file.
+	-2, --seq2:	2nd paired-end sequence file.
+
+#### Advanced options:
+	-m, --compact-index:	Use this option only while building the index to enable compact version of the index.
+	-k, --kmer:		Kmer size [14..22] (default = 19).
+	-l, --rlen:		Max read length (default = 300).
+	-e, --max-ed:		Max allowed edit distance on each mate (default = 4).
+	-c, --max-sc:		Max allowed soft clipping on each mate (default = 7).
+	-w, --band:		Band width for banded alignment (default = 3).
+	-S, --seed-lim:		Skip seeds that have more than INT occurrences (default = 500).
+	-T, --max-tlen:		Maximum template length of concordant mapping. Paired-end mode only (default = 500).
+	-I, --max-intron:	Maximum length of an intron (default = 2000000).
+	-C, --max-chain-list:	Maximum number of chained candidates to be processed (default = 30).
+	-o, --output:		Output file (default = output).
+	-t, --thread:		Number of threads (default = 1).
+	-A, --sam:		Enables SAM output for aligned reads. Cannot be set along with --pam.
+	-P, --pam:		Enables custom pam output for aligned reads. Cannot be set along with --sam.
+	-d, --verbose:		Verbose mode: 0 to 1. Higher values output more information (default = 0).
+	-a, --scan-lev:		Transcriptome/Genome scan level: 0 to 2. (default = 0)
+				0: Report the first mapping.
+				1: Continue processing the read unless it is perfectly mapped to cDNA.
+				2: Report the best mapping.
+
+#### Other options:
+	-h, --help:	Shows help message.
+	-v, --version:	Current version.
+
 ### Example Commands
 #### Indexing reference genome:
 
@@ -45,6 +81,15 @@ Run `circminer -h` to see available options.
 #### Mapping to reference genome and circRNA calling:
 	
 	$ ./circminer -r genome.fasta -g ga.gtf -1 reads_R1.fastq -2 reads_R2.fastq -k 20 -o output
+
+## Output Files
+When a successful run finishes, the structure of output directory (e.g. outdir) will be as follows:
+```
+outdir
+├── output.circ_report
+├── output.candidates.pam
+└── output.mapping.pam/output.mapping.sam
+```
 
 ## Output Format
 The information regarding the detected circRNAs is reported in `output.circ_report` file. It includes the exact breakpoint location, number of supporting back-splice junctions and their read names.
@@ -61,7 +106,7 @@ The information regarding the detected circRNAs is reported in `output.circ_repo
 |8     |string|Pass/Fail (based on matching splice signal to reference)                 |
 |9     |string|Supproting back-splice junction read names (comma-separated)|
 
-The back-splice juntion read mappings are stored in output.candidates.pam. If --pam/--sam is specified in the input arguments, the mapping results will be available in output.mapping.pam/output.mapping.sam file. 
+The back-splice juntion read mappings are stored in `output.candidates.pam`. If --pam/--sam is specified in the input arguments, the mapping results will be available in `output.mapping.pam/output.mapping.sam` file. 
 
 Note: If the scan level parameter (`-a, --scan-lev`) is set to 2 while running the tool, the mapping with the smallest error and soft-clip values is reported.
 
