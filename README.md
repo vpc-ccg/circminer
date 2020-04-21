@@ -8,7 +8,7 @@ A sensitive and fast computational tool for detecting circular RNAs (circRNAs) f
 3. [Example Commands](#example-commands)
 4. [Output Files](#output-files)
 5. [Output Format](#output-format)
-6. [Contact & Support](#contact)
+6. [Contact & Support](#contact--support)
 
 ## Installation
 The source code can be downloaded from [GitHub](https://github.com/vpc-ccg/circminer). Prerequisite are described below.
