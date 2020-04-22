@@ -13,6 +13,7 @@ extern "C" {
 using namespace std;
 
 #define FASTA_LINE_MAX_LEN 50
+#define MIDNCNT 50
 
 GenomePacker::GenomePacker(void) {
 
@@ -37,9 +38,10 @@ void GenomePacker::init(char *refname) {
 
 // returns 0 in case of error
 int GenomePacker::build_index(bool is_compact_index) {
-    fprintf(stdout, "Started packing reference genome...\n");
+    Logger::instance().info.set_buffer_size(10);
+    Logger::instance().info("Started packing reference genome...\n");
     pack_genome();
-    fprintf(stdout, "Packing done!\n");
+    Logger::instance().info("Packing done!\n");
 
     char packed_fname_cstr[FILE_NAME_MAX_LEN];
     strcpy(packed_fname_cstr, packed_fname.c_str());
@@ -47,7 +49,7 @@ int GenomePacker::build_index(bool is_compact_index) {
     char index_fname_cstr[FILE_NAME_MAX_LEN];
     strcpy(index_fname_cstr, index_fname.c_str());
 
-    fprintf(stdout, "Builing index\n");
+    Logger::instance().info("Builing index\n");
     if (is_compact_index) {
         if (!generateHashTable(packed_fname_cstr, index_fname_cstr))
             return 0;
@@ -103,7 +105,10 @@ void GenomePacker::pack_genome(void) {
     int cur_contig_size = 0;
     string current = "";
     string chr_id, chr_seq;
-    string middle_content = "N";
+    string middle_content = "";
+
+    for (int i = 0; i < MIDNCNT; ++i)
+        middle_content += "N";
 
     while (!is_eof()) {
         if (!get_next_chr(chr_id, chr_seq)) {

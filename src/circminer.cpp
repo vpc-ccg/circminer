@@ -44,9 +44,9 @@ void *map_reads(void *args);
 
 int main(int argc, char **argv) {
     Logger::instance().error.toggle_time().set_prefix("[ERROR] ");
-//    Logger::instance().error.set_buffer_size(10);
+    Logger::instance().error.set_buffer_size(10);
     Logger::instance().info.toggle_time().set_prefix("[INFO] ");
-//    Logger::instance().info.set_buffer_size(5);
+    Logger::instance().info.set_buffer_size(10);
     Logger::instance().debug.toggle_time().set_prefix("[DEBUG] ");
 
     int exit_c = parse_command(argc, argv);
