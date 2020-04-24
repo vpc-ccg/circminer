@@ -2,7 +2,7 @@ MRSFAST_VERSION := "3.4.0"
 
 CC ?= gcc
 
-LIBS=-lz -lm -pthread -lpthread
+LIBS=-pthread
 CFLAGS=-fno-pic -DMRSFAST_VERSION=\"$(MRSFAST_VERSION)\"
 
 SRCEXT	:= c
