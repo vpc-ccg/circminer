@@ -197,21 +197,22 @@ int mapping(int &last_round_num) {
     bool is_last = false;
 
     Logger::instance().info("Genome index type: %s\n", loadFullHashTable ? "Full" : "Compact");
+    Logger::instance().info("Starting read extraction\n");
     do {
-        Logger::instance().info("Loading genome index...\n");
+        Logger::instance().info("+ Loading genome index...\n");
 
         flag = loadHashTable(&tmpTime);            // Reading a fragment
 
         cputime_curr = get_cpu_time();
         realtime_curr = get_real_time();
 
-        Logger::instance().info("Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n",
+        Logger::instance().info("+ Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n",
                                 cputime_curr - cputime_start, realtime_curr - realtime_start);
-        Logger::instance().debug("kmer size: %d + %d = %d\n", WINDOW_SIZE, checkSumLength,
+        Logger::instance().debug("+ kmer size: %d + %d = %d\n", WINDOW_SIZE, checkSumLength,
                                  WINDOW_SIZE + checkSumLength);
 
         // loading contig sequence from reference index
-        Logger::instance().info("Loading genome sequence...\n");
+        Logger::instance().info("+ Loading genome sequence...\n");
         bool success_gload = genome_seeder.pac2char_whole_contig();
 
         double cputime_loaded_gnome_str = get_cpu_time();
@@ -221,7 +222,7 @@ int mapping(int &last_round_num) {
             fprintf(stderr, "Error: unable to load reference genome to memory\n");
             exit(1);
         }
-        Logger::instance().info("Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n",
+        Logger::instance().info("+ Completed! (CPU time: %.2lfs; Real time: %.2lfs)\n",
                                 cputime_loaded_gnome_str - cputime_curr, realtime_loaded_gnome_str - realtime_curr);
 
         cputime_curr = cputime_loaded_gnome_str;
@@ -238,7 +239,7 @@ int mapping(int &last_round_num) {
         contigNum = atoi(contigName) - 1;
         last_round_num = contigNum + 1;
 
-        Logger::instance().info("Starting pseudo-alignment (Round %s)\n", contigName);
+        Logger::instance().info("+ Starting pseudo-alignment (Round %s)\n", contigName);
 
         fq_parser1.reset(fq_file1);
         if (is_pe) {
@@ -270,7 +271,7 @@ int mapping(int &last_round_num) {
         cputime_curr = get_cpu_time();
         realtime_curr = get_real_time();
 
-        Logger::instance().info("Completed round %s! (CPU time: %.2lfs; Real time: %.2lfs)\n", contigName,
+        Logger::instance().info("+ Completed round %s! (CPU time: %.2lfs; Real time: %.2lfs)\n", contigName,
                                 cputime_curr - fq_cputime_start, realtime_curr - fq_realtime_start);
 
         cputime_start = cputime_curr;

@@ -6,7 +6,6 @@ LIBS        := -lz -lm -lpthread
 CFLAGS      := -w 
 #CXXFLAGS    := -Wall $(INCS) -std=c++14
 CXXFLAGS    := -w $(INCS) -std=c++14
-LDFLAGS     := 
 
 SRCDIR      := src
 LIBDIR      := lib
@@ -122,8 +121,8 @@ DEBUG_FLAGS:
 	$(eval CXXFLAGS = $(CXXFLAGS) -g)
 
 VERBOSE_FLAGS:
-	$(eval CFLAGS = $(CFLAGS) -DDEBUG=1)
-	$(eval CXXFLAGS = $(CXXFLAGS) -DDEBUG=1)
+	$(eval CFLAGS = $(CFLAGS) -DDEBUG)
+	$(eval CXXFLAGS = $(CXXFLAGS) -DDEBUG)
 
 PROFILE_FLAGS:
 	$(eval LIBS = $(LIBS) -lprofiler)

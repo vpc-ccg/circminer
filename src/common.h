@@ -1,10 +1,6 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#if DEBUG == 1
-#define DEBUG_MODE
-#endif
-
 #include <cinttypes>
 #include <cstdarg>
 #include <cstdio>
@@ -534,7 +530,7 @@ void mutex_unlock(pthread_mutex_t *m);
 
 // verbose-aware fprintf
 inline void vafprintf(int verbosity, FILE *stream, const char *format, ...) {
-#ifdef DEBUG_MODE
+#ifdef DEBUG
     if (verbosity > verboseMode)	return;
 
     va_list args;
