@@ -11,13 +11,15 @@ A sensitive and fast computational tool for detecting circular RNAs (circRNAs) f
 6. [Contact & Support](#contact--support)
 
 ## Installation
-The source code can be downloaded from [GitHub](https://github.com/vpc-ccg/circminer). Prerequisite are described below.
+### BIOCONDA
 
-### Prerequisite
- - GCC 4.9.4 or higher
- - GNU sort
+CircMiner can be istalled using [conda](https://conda.io/) package manager via [bioconda](https://bioconda.github.io/) channel:
+```
+conda install -c bioconda circminer
+```
+### Installation from Source
+> *Prerequisite.* You will need (i) GCC 4.9.4 or higher; and (ii) higher GNU sort to compile the source code.
 
-### Compilation and Configuration
 To install, you need to first fetch the repository [git repository](https://github.com/vpc-ccg/circminer) or download the corresponding compressed files. 
 ```
 git clone --recursive https://github.com/vpc-ccg/circminer.git
