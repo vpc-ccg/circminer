@@ -117,6 +117,12 @@ bool GTFParser::parse_gtf_rec(char *line, int len, GTFRecord *cr) {
         cr->end = atoi(gtf_fields[4].c_str());
         cr->forward_strand = (gtf_fields[6] == "+");
 
+        cr->gene_id = "-";
+        cr->trans_id = "-";
+        cr->exon_num = "-";
+        cr->exon_num_int = -1;
+        cr->gene_name = "-";
+
         for (unsigned int i = 0; i < gtf_attr.size(); i += 2) {
             if (gtf_attr[i] == "gene_id")
                 cr->gene_id = gtf_attr[i + 1];
