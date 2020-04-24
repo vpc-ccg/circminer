@@ -3,9 +3,9 @@ CXX         ?= g++
 
 INCS        := 
 LIBS        := -lz -lm -lpthread
-CFLAGS      := -w 
+CFLAGS      := 
 #CXXFLAGS    := -Wall $(INCS) -std=c++14
-CXXFLAGS    := -w $(INCS) -std=c++14
+CXXFLAGS    := $(INCS) -std=c++14
 
 SRCDIR      := src
 LIBDIR      := lib
