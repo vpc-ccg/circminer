@@ -1,9 +1,7 @@
-MRSFAST_VERSION := "3.4.0"
-
 CC ?= gcc
 
-LIBS=-pthread
-CFLAGS=-fno-pic -DMRSFAST_VERSION=\"$(MRSFAST_VERSION)\"
+LIBS=-lpthread
+CFLAGS=
 
 SRCEXT	:= c
 OBJDIR	:= obj
