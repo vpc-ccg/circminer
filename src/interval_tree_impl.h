@@ -174,8 +174,7 @@ IntervalInfo<T> *FlatIntervalTree<T>::get_node(int ind) {
 template<class T>
 void
 FlatIntervalTree<T>::build_trans2seg_table(int trans_cnt, vector <vector<uint8_t>> &trans2seg, vector<int> &starts) {
-    //fprintf(stdout, "trans cnt: %d\n", trans_cnt);
-    //vector <int> starts(trans_cnt, INF);
+    // Logger::instance().debug("{FlatIntervalTree} trans cnt: %d\n", trans_cnt);
     starts.clear();
     for (int i = 0; i < trans_cnt; i++)
         starts.push_back(INF);
@@ -202,7 +201,6 @@ FlatIntervalTree<T>::build_trans2seg_table(int trans_cnt, vector <vector<uint8_t
 
             for (int k = 0; k < disjoint_intervals[i].seg_list[j].trans_id.size(); k++) {
                 tid = disjoint_intervals[i].seg_list[j].trans_id[k];
-                //fprintf(stdout, "tid: %d\n", tid);
                 if (i < starts[tid])
                     starts[tid] = i;
                 if (i > ends[tid])
@@ -214,6 +212,7 @@ FlatIntervalTree<T>::build_trans2seg_table(int trans_cnt, vector <vector<uint8_t
     // alloc and init
     for (int i = 0; i < trans_cnt; i++) {
         int s = ends[i] - starts[i] + 1;
+        // Logger::instance().debug("{FlatIntervalTree} trans [%u-%u], size: %d\n", starts[i], ends[i], s);
         trans2seg[i].resize(s);
         for (int j = 0; j < s; j++) {
             trans2seg[i][j] = 0;
