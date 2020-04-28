@@ -244,10 +244,15 @@ void SAMOutput::set_output_pe(Record *rec1, Record *rec2) {
 
 void SAMOutput::write_sam_rec_se(Record *rec) {
     set_output_se(rec);
+    
+    mutex_lock(&pmap_lock);
+    
     fprintf(outsam, "%s\t%u\t%s\t%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s\n",
             com_attr.qname, r1_attr.flag, r1_attr.rname, r1_attr.pos, com_attr.mapq,
             r1_attr.cigar, r1_attr.rnext, r1_attr.pnext, r1_attr.tlen, r1_attr.seq,
             r1_attr.qual);
+
+    mutex_unlock(&pmap_lock);
 }
 
 void SAMOutput::write_pam_rec_se(Record *rec) {
@@ -256,6 +261,9 @@ void SAMOutput::write_pam_rec_se(Record *rec) {
 
 void SAMOutput::write_sam_rec_pe(Record *rec1, Record *rec2) {
     set_output_pe(rec1, rec2);
+
+    mutex_lock(&pmap_lock);
+
     fprintf(outsam, "%s\t%u\t%s\t%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s%s\n",
             com_attr.qname, r1_attr.flag, r1_attr.rname, r1_attr.pos, com_attr.mapq,
             r1_attr.cigar, r1_attr.rnext, r1_attr.pnext, r1_attr.tlen, r1_attr.seq,
@@ -265,6 +273,8 @@ void SAMOutput::write_sam_rec_pe(Record *rec1, Record *rec2) {
             com_attr.qname, r2_attr.flag, r2_attr.rname, r2_attr.pos, com_attr.mapq,
             r2_attr.cigar, r2_attr.rnext, r2_attr.pnext, r2_attr.tlen, r2_attr.seq,
             r2_attr.qual, r2_attr.tags.all_tags);
+
+    mutex_unlock(&pmap_lock);
 }
 
 void SAMOutput::write_pam_rec_pe(Record *rec1, Record *rec2) {
@@ -272,7 +282,7 @@ void SAMOutput::write_pam_rec_pe(Record *rec1, Record *rec2) {
     char r1_dir = (mr->r1_forward) ? '+' : '-';
     char r2_dir = (mr->r2_forward) ? '+' : '-';
 
-    //mutex_lock(&pmap_lock);
+    mutex_lock(&pmap_lock);
 
     if (mr->type == CONCRD or mr->type == DISCRD or mr->type == CHIORF or mr->type == CHIBSJ or mr->type == CHI2BSJ or
         mr->type == CONGNM or mr->type == CONGEN) {
@@ -285,15 +295,19 @@ void SAMOutput::write_pam_rec_pe(Record *rec1, Record *rec2) {
                 mr->type);
     }
 
-    //mutex_unlock(&pmap_lock);
+    mutex_unlock(&pmap_lock);
 }
 
 void SAMOutput::print_header(const vector <ContigLen> &chr_info) {
+    mutex_lock(&pmap_lock);
+
     fprintf(outsam, "@HD\tVN:1.4\tSO:unsorted\n");
     int chr_cnt = chr_info.size();
     for (int i = 0; i < chr_cnt; ++i) {
         fprintf(outsam, "@SQ\tSN:%s\tLN:%u\n", chr_info[i].name.c_str(), chr_info[i].len);
     }
+
+    mutex_unlock(&pmap_lock);
 }
 
 void OptionalTags::to_string(void) {

@@ -67,7 +67,7 @@ public:
 inline int FASTQParser::get_next_rec_id(void) {
     int rid = -1;
 
-    //mutex_lock(&read_lock);
+    mutex_lock(&read_lock);
 
     if (curr_read < filled_size) {
         rid = curr_read;
@@ -77,7 +77,7 @@ inline int FASTQParser::get_next_rec_id(void) {
             mate_q->read_block();
     }
     ++curr_read;
-    //mutex_unlock(&read_lock);
+    mutex_unlock(&read_lock);
 
     return rid;
 }
@@ -89,7 +89,7 @@ inline Record *FASTQParser::get_next(int rid) {
 inline Record *FASTQParser::get_next(void) {
     Record *r = NULL;
 
-    //mutex_lock(&read_lock);
+    mutex_lock(&read_lock);
 
     if (curr_read < filled_size) {
         r = current_record + curr_read;
@@ -99,7 +99,7 @@ inline Record *FASTQParser::get_next(void) {
         ++curr_read;
     }
 
-    //mutex_unlock(&read_lock);
+    mutex_unlock(&read_lock);
 
     return r;
 }

@@ -400,12 +400,12 @@ void FilterRead::write_read_category(Record *current_record, int state) {
     //state = minM(state, current_record->state);
     //int cat = (state >= cat_count) ? DISCRD : state;
     if (!last_round and state != CONCRD) {
-        //mutex_lock(&write_lock);
+        mutex_lock(&write_lock);
 
         fprintf(temp_fq_r1, "%s\n%s\n%s%d\n%s\n", current_record->rname, current_record->seq, current_record->comment,
                 state, current_record->qual);
 
-        //mutex_unlock(&write_lock);
+        mutex_unlock(&write_lock);
     }
 }
 
@@ -414,7 +414,7 @@ void FilterRead::write_read_category(Record *current_record1, Record *current_re
     char r1_dir = (mr.r1_forward) ? '+' : '-';
     char r2_dir = (mr.r2_forward) ? '+' : '-';
 
-    //mutex_lock(&write_lock);
+    mutex_lock(&write_lock);
 
     fprintf(temp_fq_r1, "@%s", current_record1->rname);
     fprintf(temp_fq_r2, "@%s", current_record2->rname);
@@ -450,7 +450,7 @@ void FilterRead::write_read_category(Record *current_record1, Record *current_re
     fprintf(temp_fq_r2, "%c%s%c%s%c%s\n", sep, current_record2->seq, sep,
             current_record2->comment, sep, current_record2->qual);
 
-    //mutex_unlock(&write_lock);
+    mutex_unlock(&write_lock);
 
 }
 
