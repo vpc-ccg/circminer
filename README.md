@@ -5,10 +5,11 @@ A sensitive and fast computational tool for detecting circular RNAs (circRNAs) f
 # Table of contents
 1. [Installation](#installation)
 2. [Commands Options](#commands-options)
-3. [Example Commands](#example-commands)
-4. [Output Files](#output-files)
-5. [Output Format](#output-format)
-6. [Contact & Support](#contact--support)
+3. [Test Run](#test-run)
+4. [Example Commands](#example-commands)
+5. [Output Files](#output-files)
+6. [Output Format](#output-format)
+7. [Contact & Support](#contact--support)
 
 ## Installation
 ### BIOCONDA
@@ -60,7 +61,7 @@ Run `circminer -h` to see available options.
 	-T, --max-tlen:		Maximum template length of concordant mapping. Paired-end mode only (default = 500).
 	-I, --max-intron:	Maximum length of an intron (default = 2000000).
 	-C, --max-chain-list:	Maximum number of chained candidates to be processed (default = 30).
-	-o, --output:		Output file (default = output).
+	-o, --output:		Prefix of output files (default = output).
 	-t, --thread:		Number of threads (default = 1).
 	-A, --sam:		Enables SAM output for aligned reads. Cannot be set along with --pam.
 	-P, --pam:		Enables custom pam output for aligned reads. Cannot be set along with --sam.
@@ -74,14 +75,29 @@ Run `circminer -h` to see available options.
 	-h, --help:	Shows help message.
 	-v, --version:	Current version.
 
+## Test Run
+To make sure CircMiner is successfully installed and runable on your machine, you can download a small sample test [here](https://ndownloader.figshare.com/files/22423638). Unzip the downloaded package and use the following commands to run CircMiner for building the index and calling circRNAs.
+
 ### Example Commands
 #### Indexing reference genome:
 
-	$ ./circminer --index -r genome.fasta -k 20 --thread 4
+	$ ./circminer --index -r ref.fa -k 20 --thread 4
 
 #### Mapping to reference genome and circRNA calling:
 	
-	$ ./circminer -r genome.fasta -g ga.gtf -1 reads_R1.fastq -2 reads_R2.fastq -k 20 -o output
+	$ ./circminer -r ref.fa -g ref.gtf -1 R1.fq -2 R2.fq -k 20 -o output
+
+After a successful run `output.circ_report` should contain the following two lines:
+|1  |586821  |608056  |8  |STC  |CT-AG  |CT-AG  |Pass  |Circ1-12,Circ1-56,Circ1-18,Circ1-50,Circ1-110,Circ1-80,Circ1-2,Circ1-4
+|1  |805799  |810170  |9  |STC  |TT-TA  |TT-TA  |Pass  |Circ2-32,Circ2-40,Circ2-36,Circ2-74,Circ2-76,Circ2-80,Circ2-60,Circ2-44,Circ2-2
+
+### Annotate CircMiner's output file
+To annotate `output.circ_report` with the corresponding gene, transcript, and exon numbers please run the following script:
+    $ python scripts/annotate_transcript.py output.circ_report ref.gtf output.circ_report.annotated
+
+### Converting GTF file
+If you use UCSC GTF files please use the following script to convert them to Ensembl GTF style and use the converted GTF when running CircMiner.
+    $ python2.7 scripts/convertGTF.py INPUT_GTF OUTPUT_GTF
 
 ## Output Files
 When a successful run finishes, the structure of output directory (e.g. outdir) will be as follows:
@@ -89,7 +105,7 @@ When a successful run finishes, the structure of output directory (e.g. outdir) 
 outdir                                         # output directory
 ├── output.circ_report                         # detected circRNA report
 ├── output.candidates.pam                      # back-splice juntion read mappings
-└── output.mapping.pam/output.mapping.sam      # pseudo-alignment mapping results
+└── output.mapping.pam/output.mapping.sam      # pseudo-alignment mapping results (only available when corresponding argument is passed)
 ```
 
 ## Output Format

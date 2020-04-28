@@ -259,7 +259,8 @@ int parse_command(int argc, char *argv[]) {
         THREAD_ID[i] = i;
 
     Logger::instance().info("Number of threads: %d\n", THREAD_COUNT);
-    Logger::instance().info("Input file type: %s \n", pairedEnd ? "Paired-end" : "Single-end");
+    if (! indexMode)
+        Logger::instance().info("Input file type: %s \n", pairedEnd ? "Paired-end" : "Single-end");
 
     return 0;
 }
@@ -299,7 +300,7 @@ void printHELP(void) {
     fprintf(stdout, "\t-I, --max-intron:\tMaximum length of an intron (default = %d).\n", MAXINTRON);
     fprintf(stdout, "\t-C, --max-chain-list:\tMaximum number of chained candidates to be processed (default = %d).\n",
             BESTCHAINLIM);
-    fprintf(stdout, "\t-o, --output:\t\tOutput file (default = output).\n");
+    fprintf(stdout, "\t-o, --output:\t\tPrefix of output files (default = output).\n");
     fprintf(stdout, "\t-t, --thread:\t\tNumber of threads (default = 1).\n");
     fprintf(stdout, "\t-A, --sam:\t\tEnables SAM output for aligned reads. Cannot be set along with --pam.\n");
     fprintf(stdout, "\t-P, --pam:\t\tEnables custom pam output for aligned reads. Cannot be set along with --sam.\n");
