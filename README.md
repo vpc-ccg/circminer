@@ -89,6 +89,7 @@ To make sure CircMiner is successfully installed and runable on your machine, yo
 
 After a successful run `output.circ_report` should contain the following two lines:
 
+|--:|:------:|:------:|:-:|:---:|:-----:|:-----:|:----:|:---------------------------------------------------------------------------------|
 |1  |586821  |608056  |8  |STC  |CT-AG  |CT-AG  |Pass  |Circ1-12,Circ1-56,Circ1-18,Circ1-50,Circ1-110,Circ1-80,Circ1-2,Circ1-4
 |1  |805799  |810170  |9  |STC  |TT-TA  |TT-TA  |Pass  |Circ2-32,Circ2-40,Circ2-36,Circ2-74,Circ2-76,Circ2-80,Circ2-60,Circ2-44,Circ2-2
 
