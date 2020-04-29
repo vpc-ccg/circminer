@@ -119,6 +119,7 @@ extern vector <bitset<DEF_CONTIG_MAX_SIZE>> intronic_bs;
 
 extern char versionNumberMajor[10];
 extern char versionNumberMinor[10];
+extern char versionNumberPatch[10];
 
 extern pthread_mutex_t write_lock;
 extern pthread_mutex_t pmap_lock;

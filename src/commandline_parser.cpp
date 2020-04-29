@@ -94,7 +94,7 @@ int parse_command(int argc, char *argv[]) {
                 return 1;
             }
             case 'v': {
-                fprintf(stdout, "CircMiner %s.%s\n", versionNumberMajor, versionNumberMinor);
+                fprintf(stdout, "CircMiner %s.%s.%s\n", versionNumberMajor, versionNumberMinor, versionNumberPatch);
                 return 1;
             }
             case 'i': {
