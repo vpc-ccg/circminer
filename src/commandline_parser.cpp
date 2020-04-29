@@ -259,8 +259,12 @@ int parse_command(int argc, char *argv[]) {
         THREAD_ID[i] = i;
 
     Logger::instance().info("Number of threads: %d\n", THREAD_COUNT);
-    if (! indexMode)
+    if (! indexMode) {
         Logger::instance().info("Input file type: %s \n", pairedEnd ? "Paired-end" : "Single-end");
+    }
+    else {
+        Logger::instance().info("Kmer size: %d \n", kmer);
+    }
 
     return 0;
 }

@@ -201,8 +201,6 @@ void ProcessCirc::do_process(void) {
     double cputime_curr;
     double realtime_curr;
 
-    checkSumLength = (WINDOW_SIZE > kmer) ? 0 : kmer - WINDOW_SIZE;
-
     vector <ContigLen> orig_contig_len;
     genome_packer.load_index_info(orig_contig_len);
 
@@ -220,6 +218,8 @@ void ProcessCirc::do_process(void) {
 
     if (!initLoadingCompressedGenomeMeta(index_file))
         return;
+
+    kmer = WINDOW_SIZE + checkSumLength;
 
     genome_seeder.init(LOADCONTIGSTRINMEM);
 

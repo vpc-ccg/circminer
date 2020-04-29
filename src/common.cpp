@@ -5,10 +5,10 @@
 
 // MRSFAST LIBRARY SETTINGS
 unsigned char WINDOW_SIZE = 14;
+char checkSumLength = 6;
 unsigned int CONTIG_SIZE;
 unsigned int CONTIG_MAX_SIZE;
 unsigned int THREAD_COUNT = 1;
-char checkSumLength = 0;
 int THREAD_ID[255];
 int loadFullHashTable;
 int pairedEndMode;

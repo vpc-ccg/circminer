@@ -107,6 +107,7 @@ void initSavingIHashTable(char *fileName, char *genomeMetaInfo, int genomeMetaIn
     // file header:
     // 1 byte (magicNumber): Magic number of HashTable (0: <v3, 1: bisulfite <v1.26.4, 2: >v3, 3: Full HashTable on index)
     // 1 byte (WINDOW_SIZE): Windows Size of indexing
+    // 1 byte (checkSumLength): Checksum Length of indexing
     // 4 bytes (_ih_hsahTableMemSize): HashTbleMemSize: maximum number of elements that can be saved.
     // 4 bytes (_ih_IOBufferSize): memory required for reading hash table. In case the value is changed for loading.
     // 4 bytes (CONTIG_MAX_SIZE): maximum number of characters that can be in a contig. In case the value is changed for loading
@@ -119,6 +120,7 @@ void initSavingIHashTable(char *fileName, char *genomeMetaInfo, int genomeMetaIn
     int tmp;
     tmp = fwrite(&magicNumber, sizeof(magicNumber), 1, _ih_fp);
     tmp = fwrite(&WINDOW_SIZE, sizeof(WINDOW_SIZE), 1, _ih_fp);
+    tmp = fwrite(&checkSumLength, sizeof(checkSumLength), 1, _ih_fp);
     tmp = fwrite(&_ih_hashTableMemSize, sizeof(_ih_hashTableMemSize), 1, _ih_fp);
     tmp = fwrite(&_ih_IOBufferSize, sizeof(_ih_IOBufferSize), 1, _ih_fp);
     tmp = fwrite(&CONTIG_MAX_SIZE, sizeof(CONTIG_MAX_SIZE), 1, _ih_fp);
@@ -130,7 +132,7 @@ void initSavingIHashTable(char *fileName, char *genomeMetaInfo, int genomeMetaIn
 /**********************************************/
 void finalizeSavingIHashTable() {
     // seeking back to hashTableMemSize to update the value
-    fseek(_ih_fp, 2, SEEK_SET);
+    fseek(_ih_fp, 3, SEEK_SET);
     fwrite(&_ih_hashTableMemSize, sizeof(_ih_hashTableMemSize), 1, _ih_fp);
 
     freeMem(_ih_IOBuffer, _ih_IOBufferSize);
@@ -497,6 +499,7 @@ int checkHashTable(char *fileName) {
     loadFullHashTable = (magicNumber == 3) ? 1 : 0;
 
     tmp = fread(&WINDOW_SIZE, sizeof(WINDOW_SIZE), 1, _ih_fp);
+    tmp = fread(&checkSumLength, sizeof(checkSumLength), 1, _ih_fp);
     tmp = fread(&_ih_hashTableMemSize, sizeof(_ih_hashTableMemSize), 1, _ih_fp);
     tmp = fread(&_ih_IOBufferSize, sizeof(_ih_IOBufferSize), 1, _ih_fp);
     tmp = fread(&CONTIG_MAX_SIZE, sizeof(CONTIG_MAX_SIZE), 1, _ih_fp);
@@ -510,6 +513,7 @@ int initLoadingCompressedGenomeMeta(char *fileName) {
     // file header:
     // 1 byte (magicNumber): Magic number of HashTable (0: <v3, 1: bisulfite <v1.26.4, 2: >v3, 3: Full HashTable on index)
     // 1 byte (WINDOW_SIZE): Windows Size of indexing
+    // 1 byte (checkSumLength): Checksum Length of indexing
     // 4 bytes (_ih_hsahTableMemSize): HashTbleMemSize: maximum number of elements that can be saved.
     // 4 bytes (_ih_IOBufferSize): memory required for reading hash table. In case the value is changed for loading.
     // 4 bytes (CONTIG_MAX_SIZE): maximum number of characters that can be in a contig. In case the value is changed for loading
@@ -528,6 +532,7 @@ int initLoadingCompressedGenomeMeta(char *fileName) {
 
     tmp = fread(&magicNumber, sizeof(magicNumber), 1, _ih_fp);
     tmp = fread(&WINDOW_SIZE, sizeof(WINDOW_SIZE), 1, _ih_fp);
+    tmp = fread(&checkSumLength, sizeof(checkSumLength), 1, _ih_fp);
     tmp = fread(&_ih_hashTableMemSize, sizeof(_ih_hashTableMemSize), 1, _ih_fp);
 
     // _ih_hashTableMem = getMem(_ih_hashTableMemSize*sizeof(GeneralIndex));
@@ -580,6 +585,7 @@ int initLoadingHashTableMeta(char *fileName) {
     // file header:
     // 1 byte (magicNumber): Magic number of HashTable (0: <v3, 1: bisulfite <v1.26.4, 2: >v3, 3: Full HashTable on index)
     // 1 byte (WINDOW_SIZE): Windows Size of indexing
+    // 1 byte (checkSumLength): Checksum Length of indexing
     // 4 bytes (_ih_hsahTableMemSize): HashTbleMemSize: maximum number of elements that can be saved.
     // 4 bytes (_ih_IOBufferSize): memory required for reading hash table. In case the value is changed for loading.
     // 4 bytes (CONTIG_MAX_SIZE): maximum number of characters that can be in a contig. In case the value is changed for loading
@@ -598,6 +604,7 @@ int initLoadingHashTableMeta(char *fileName) {
 
     tmp = fread(&magicNumber, sizeof(magicNumber), 1, _ih_fp);
     tmp = fread(&WINDOW_SIZE, sizeof(WINDOW_SIZE), 1, _ih_fp);
+    tmp = fread(&checkSumLength, sizeof(checkSumLength), 1, _ih_fp);
     tmp = fread(&_ih_hashTableMemSize, sizeof(_ih_hashTableMemSize), 1, _ih_fp);
 
     _ih_hashTableMem = getMem(_ih_hashTableMemSize * sizeof(GeneralIndex));
@@ -652,6 +659,7 @@ int initLoadingHashTable(char *fileName) {
     // file header:
     // 1 byte (magicNumber): Magic number of HashTable (0: <v3, 1: bisulfite <v1.26.4, 2: >v3, 3: Full HashTable on index)
     // 1 byte (WINDOW_SIZE): Windows Size of indexing
+    // 1 byte (checkSumLength): Checksum Length of indexing
     // 4 bytes (_ih_hsahTableMemSize): HashTbleMemSize: maximum number of elements that can be saved.
     // 4 bytes (_ih_IOBufferSize): memory required for reading hash table. In case the value is changed for loading.
     // 4 bytes (CONTIG_MAX_SIZE): maximum number of characters that can be in a contig. In case the value is changed for loading
@@ -670,6 +678,7 @@ int initLoadingHashTable(char *fileName) {
 
     tmp = fread(&magicNumber, sizeof(magicNumber), 1, _ih_fp);
     tmp = fread(&WINDOW_SIZE, sizeof(WINDOW_SIZE), 1, _ih_fp);
+    tmp = fread(&checkSumLength, sizeof(checkSumLength), 1, _ih_fp);
     tmp = fread(&_ih_hashTableMemSize, sizeof(_ih_hashTableMemSize), 1, _ih_fp);
 
     _ih_hashTableMem = getMem(_ih_hashTableMemSize * sizeof(GeneralIndex));

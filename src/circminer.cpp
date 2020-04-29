@@ -104,6 +104,38 @@ int mapping(int &last_round_num) {
         fq_file2 = fastqFilename[1];
     }
 
+    /**********************/
+    /**Loading Hash Table**/
+    /**********************/
+
+    int flag;
+    double tmpTime;
+
+    vector <ContigLen> orig_contig_len;
+    genome_packer.load_index_info(orig_contig_len);
+
+    char index_file[FILE_NAME_MAX_LEN];
+    strcpy(index_file, genome_packer.get_index_fname().c_str());
+
+    if (!checkHashTable(index_file))
+        return 1;
+
+    if (!initLoadingHashTableMeta(index_file))
+        return 1;
+
+    int kmer_index = WINDOW_SIZE + checkSumLength;
+
+    Logger::instance().info("Kmer size obtained from index: %d\n", kmer_index);
+    if (kmer != kmer_index) {
+        Logger::instance().info("Given kmer size (%d) is not equal to the index kmer size (%d).\n",
+                                kmer, kmer_index);
+        Logger::instance().info("Setting kmer size to %d.\n", kmer_index);
+    }
+
+    kmer = kmer_index;
+        
+    genome_seeder.init(LOADCONTIGSTRINMEM);
+
     /*********************/
     /**Memory Allocation**/
     /*********************/
@@ -146,27 +178,6 @@ int mapping(int &last_round_num) {
     FilterArgs *filter_args[threadCount];
     for (int th = 0; th < threadCount; ++th)
         filter_args[th] = new FilterArgs(kmer);
-
-    /**********************/
-    /**Loading Hash Table**/
-    /**********************/
-
-    int flag;
-    double tmpTime;
-
-    vector <ContigLen> orig_contig_len;
-    genome_packer.load_index_info(orig_contig_len);
-
-    char index_file[FILE_NAME_MAX_LEN];
-    strcpy(index_file, genome_packer.get_index_fname().c_str());
-
-    if (!checkHashTable(index_file))
-        return 1;
-
-    if (!initLoadingHashTableMeta(index_file))
-        return 1;
-
-    genome_seeder.init(LOADCONTIGSTRINMEM);
 
     /*******************/
     /**GTF Parser Init**/
