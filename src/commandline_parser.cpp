@@ -10,7 +10,7 @@ bool compactIndex = false;
 bool pairedEnd = false;
 bool finalCleaning = true;
 bool internalSort = false;
-int kmer = 19;
+int kmer = 20;
 int maxReadLength = 300;
 int verboseMode = 0;
 int scanLevel = 0;
@@ -279,9 +279,15 @@ void printHELPShort(void) {
 /**********************************************/
 void printHELP(void) {
     fprintf(stdout, "\nSYNOPSIS\n");
-    fprintf(stdout, "\tcircminer --index FILE [options]\n");
+    fprintf(stdout, "\tcircminer --index -r FILE [options]\n");
     fprintf(stdout, "\tcircminer -r FILE -g FILE -s FILE [options]\n");
     fprintf(stdout, "\tcircminer -r FILE -g FILE -1 FILE -2 FILE [options]\n");
+    fprintf(stdout, "\nIndexing options:\n");
+    fprintf(stdout, "\t-i, --index:\t\tIndicates the indexing stage.\n");
+    fprintf(stdout,
+            "\t-m, --compact-index:\tUse this option only while building the index to enable compact version of the index.\n");
+    fprintf(stdout, "\t-k, --kmer:\t\tKmer size [%d..%d] (default = %d).\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen, kmer);
+
     fprintf(stdout, "\nGeneral options:\n");
     fprintf(stdout, "\t-r, --refernce:\tReference file.\n");
     fprintf(stdout, "\t-g, --gtf:\tGene model file.\n");
@@ -290,9 +296,6 @@ void printHELP(void) {
     fprintf(stdout, "\t-2, --seq2:\t2nd paired-end sequence file.\n");
 
     fprintf(stdout, "\nAdvanced options:\n");
-    fprintf(stdout,
-            "\t-m, --compact-index:\tUse this option only while building the index to enable compact version of the index.\n");
-    fprintf(stdout, "\t-k, --kmer:\t\tKmer size [%d..%d] (default = 19).\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen);
     fprintf(stdout, "\t-l, --rlen:\t\tMax read length (default = 300).\n");
     fprintf(stdout, "\t-e, --max-ed:\t\tMax allowed edit distance on each mate (default = %d).\n", EDTH);
     fprintf(stdout, "\t-c, --max-sc:\t\tMax allowed soft clipping on each mate (default = %d).\n", SOFTCLIPTH);
@@ -322,9 +325,9 @@ void printHELP(void) {
     fprintf(stdout, "\tIndexing the reference genome:\n");
     fprintf(stdout, "\t$ ./circminer --index -r ref.fa -k 20\n");
     fprintf(stdout, "\tcircRNA detection of single-end RNA-Seq reads:\n");
-    fprintf(stdout, "\t$ ./circminer -r ref.fa -g gene_model.gtf -s reads.fastq -k 20 -o output \n");
+    fprintf(stdout, "\t$ ./circminer -r ref.fa -g gene_model.gtf -s reads.fastq -o output \n");
     fprintf(stdout, "\tcircRNA detection of paired-end RNA-Seq reads:\n");
-    fprintf(stdout, "\t$ ./circminer -r ref.fa -g gene_model.gtf -1 reads_1.fastq -2 reads_2.fastq -k 20 -o output \n");
+    fprintf(stdout, "\t$ ./circminer -r ref.fa -g gene_model.gtf -1 reads_1.fastq -2 reads_2.fastq -o output \n");
 
     fprintf(stdout, "\n");
 }

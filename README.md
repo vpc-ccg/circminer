@@ -34,14 +34,16 @@ Now you are ready to go!
 
 ### Synopsis
 	
-	circminer --index -r FASTA_FILE -k KMER_SIZE [OPTIONS]
-	circminer -r FASTA_FILE -g GTF_FILE -1 FASTQ_FILE_R1 -2 FASTQ_FILE_R2 -k KMER_SIZE [OPTIONS]
+	circminer --index -r FASTA_FILE [OPTIONS]
+	circminer -r FASTA_FILE -g GTF_FILE -1 FASTQ_FILE_R1 -2 FASTQ_FILE_R2 [OPTIONS]
 
 ### OPTIONS
 Run `circminer -h` to see available options.
 
 #### Indexing options
-	-i, --index: Indicates the indexing stage
+	-i, --index:    Indicates the indexing stage.
+	-m, --compact-index:	Use this option only while building the index to enable compact version of the index.
+	-k, --kmer:		Kmer size [14..22] (default = 20).
 
 #### General options:
 	-r, --refernce:	Reference file.
@@ -51,8 +53,6 @@ Run `circminer -h` to see available options.
 	-2, --seq2:	2nd paired-end sequence file.
 
 #### Advanced options:
-	-m, --compact-index:	Use this option only while building the index to enable compact version of the index.
-	-k, --kmer:		Kmer size [14..22] (default = 19).
 	-l, --rlen:		Max read length (default = 300).
 	-e, --max-ed:		Max allowed edit distance on each mate (default = 4).
 	-c, --max-sc:		Max allowed soft clipping on each mate (default = 7).
@@ -85,7 +85,7 @@ To make sure CircMiner is successfully installed and runable on your machine, yo
 
 #### Mapping to reference genome and circRNA calling:
 	
-	$ ./circminer -r ref.fa -g ref.gtf -1 R1.fq -2 R2.fq -k 20 -o output
+	$ ./circminer -r ref.fa -g ref.gtf -1 R1.fq -2 R2.fq -o output
 
 After a successful run `output.circ_report` should contain the following two lines:
 
