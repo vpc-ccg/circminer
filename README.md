@@ -41,7 +41,7 @@ Now you are ready to go!
 Run `circminer -h` to see available options.
 
 #### Indexing options
-	-i, --index:        Indicates the indexing stage.
+	-i, --index:            Indicates the indexing stage.
 	-m, --compact-index:	Use this option only while building the index to enable compact version of the index.
 	-k, --kmer:		Kmer size [14..22] (default = 20).
 
