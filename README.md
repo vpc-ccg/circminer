@@ -46,7 +46,7 @@ Run `circminer -h` to see available options.
 	-k, --kmer:		Kmer size [14..22] (default = 20).
 
 #### General options:
-	-r, --refernce:	Reference file.
+	-r, --reference:	Reference file.
 	-g, --gtf:	Gene model file.
 	-s, --seq:	Single-end sequence file.
 	-1, --seq1:	1st paired-end sequence file.
@@ -102,7 +102,7 @@ To annotate `output.circ_report` with the corresponding gene, transcript, and ex
 ### Converting GTF file
 If you use UCSC GTF files please use the following script to convert them to Ensembl GTF style and use the converted GTF when running CircMiner.
 
-    $ python2.7 scripts/convertGTF.py INPUT_GTF OUTPUT_GTF
+    $ python scripts/convertGTF.py INPUT_GTF OUTPUT_GTF
 
 ## Output Files
 When a successful run finishes, the structure of output directory (e.g. outdir) will be as follows:

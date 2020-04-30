@@ -289,7 +289,7 @@ void printHELP(void) {
     fprintf(stdout, "\t-k, --kmer:\t\tKmer size [%d..%d] (default = %d).\n", WINDOW_SIZE, WINDOW_SIZE + maxCheckSumLen, kmer);
 
     fprintf(stdout, "\nGeneral options:\n");
-    fprintf(stdout, "\t-r, --refernce:\tReference file.\n");
+    fprintf(stdout, "\t-r, --reference:\tReference file.\n");
     fprintf(stdout, "\t-g, --gtf:\tGene model file.\n");
     fprintf(stdout, "\t-s, --seq:\tSingle-end sequence file.\n");
     fprintf(stdout, "\t-1, --seq1:\t1st paired-end sequence file.\n");
