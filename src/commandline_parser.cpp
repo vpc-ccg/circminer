@@ -68,7 +68,7 @@ int parse_command(int argc, char *argv[]) {
                     {"kmer",              required_argument, 0, 'k'},
                     {"rlen",              required_argument, 0, 'l'},
                     {"output",            required_argument, 0, 'o'},
-                    {"verbose",           required_argument, 0, 'd'},
+                    {"verbosity",         required_argument, 0, 'd'},
                     {"thread",            required_argument, 0, 't'},
                     {"scan-lev",          required_argument, 0, 'a'},
                     {"max-ed",            required_argument, 0, 'e'},
@@ -290,10 +290,10 @@ void printHELP(void) {
 
     fprintf(stdout, "\nGeneral options:\n");
     fprintf(stdout, "\t-r, --reference:\tReference file.\n");
-    fprintf(stdout, "\t-g, --gtf:\tGene model file.\n");
-    fprintf(stdout, "\t-s, --seq:\tSingle-end sequence file.\n");
-    fprintf(stdout, "\t-1, --seq1:\t1st paired-end sequence file.\n");
-    fprintf(stdout, "\t-2, --seq2:\t2nd paired-end sequence file.\n");
+    fprintf(stdout, "\t-g, --gtf:\t\tGene model file.\n");
+    fprintf(stdout, "\t-s, --seq:\t\tSingle-end sequence file.\n");
+    fprintf(stdout, "\t-1, --seq1:\t\t1st paired-end sequence file.\n");
+    fprintf(stdout, "\t-2, --seq2:\t\t2nd paired-end sequence file.\n");
 
     fprintf(stdout, "\nAdvanced options:\n");
     fprintf(stdout, "\t-l, --rlen:\t\tMax read length (default = 300).\n");
@@ -311,7 +311,7 @@ void printHELP(void) {
     fprintf(stdout, "\t-t, --thread:\t\tNumber of threads (default = 1).\n");
     fprintf(stdout, "\t-A, --sam:\t\tEnables SAM output for aligned reads. Cannot be set along with --pam.\n");
     fprintf(stdout, "\t-P, --pam:\t\tEnables custom pam output for aligned reads. Cannot be set along with --sam.\n");
-    fprintf(stdout, "\t-d, --verbose:\t\tVerbose mode: 0 to 1. Higher values output more information (default = 0).\n");
+    fprintf(stdout, "\t-d, --verbosity:\tVerbosity mode: 0 or 1. Higher values output more information (default = 0).\n");
     fprintf(stdout, "\t-a, --scan-lev:\t\tTranscriptome/Genome scan level: 0 to 2. (default = 0)\n\t\t\t\t"
                     "0: Report the first mapping.\n\t\t\t\t"
                     "1: Continue processing the read unless it is perfectly mapped to cDNA.\n\t\t\t\t"

@@ -47,10 +47,10 @@ Run `circminer -h` to see available options.
 
 #### General options:
 	-r, --reference:	Reference file.
-	-g, --gtf:	Gene model file.
-	-s, --seq:	Single-end sequence file.
-	-1, --seq1:	1st paired-end sequence file.
-	-2, --seq2:	2nd paired-end sequence file.
+	-g, --gtf:	    Gene model file.
+	-s, --seq:	    Single-end sequence file.
+	-1, --seq1:	    1st paired-end sequence file.
+	-2, --seq2:	    2nd paired-end sequence file.
 
 #### Advanced options:
 	-l, --rlen:		Max read length (default = 300).
@@ -65,7 +65,7 @@ Run `circminer -h` to see available options.
 	-t, --thread:		Number of threads (default = 1).
 	-A, --sam:		Enables SAM output for aligned reads. Cannot be set along with --pam.
 	-P, --pam:		Enables custom pam output for aligned reads. Cannot be set along with --sam.
-	-d, --verbose:		Verbose mode: 0 to 1. Higher values output more information (default = 0).
+	-d, --verbosity:	Verbosity mode: 0 or 1. Higher values output more information (default = 0).
 	-a, --scan-lev:		Transcriptome/Genome scan level: 0 to 2. (default = 0)
 				0: Report the first mapping.
 				1: Continue processing the read unless it is perfectly mapped to cDNA.
