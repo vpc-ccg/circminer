@@ -25,7 +25,7 @@ def process_trans(lines, out_gtf):
     rec_type = ll[2]
     # transcript record is already there
     if rec_type == 'transcript':
-        print >>out_gtf, lines[0]
+        out_gtf.write('{}\n'.format(lines[0]))
         del lines[0]
         return
 
@@ -33,7 +33,7 @@ def process_trans(lines, out_gtf):
 
     gid = get_gid(ll)
     tid = get_tid(ll)
-    print >>out_gtf, '{}\t{}\ttranscript\t{}\t{}\t.\t{}\t.\tgene_id {} transcript_id {}'.format(ll[0], ll[1], min_st, max_en, ll[6], gid, tid)
+    out_gtf.write('{}\t{}\ttranscript\t{}\t{}\t.\t{}\t.\tgene_id {} transcript_id {}\n'.format(ll[0], ll[1], min_st, max_en, ll[6], gid, tid))
 
 def process_gene(lines, out_gtf):
     if len(lines) <= 0:
@@ -47,7 +47,7 @@ def process_gene(lines, out_gtf):
     rec_type = ll[2]
     # gene record is not there
     if rec_type != 'gene':
-        print >>out_gtf, '{}\t{}\tgene\t{}\t{}\t.\t{}\t.\tgene_id {}'.format(ll[0], ll[1], min_st, max_en, ll[6], gid)
+        out_gtf.write('{}\t{}\tgene\t{}\t{}\t.\t{}\t.\tgene_id {}\n'.format(ll[0], ll[1], min_st, max_en, ll[6], gid))
 
     myl = []
     pre_tid = ''
@@ -66,10 +66,10 @@ def process_gene(lines, out_gtf):
                 strand = myl[0].split()[6]
                 if strand == '+':
                     for e in myl:
-                        print >>out_gtf, e
+                        out_gtf.write('{}\n'.format(e))
                 else:
                     for e in reversed(myl):
-                        print >>out_gtf, e
+                        out_gtf.write('{}\n'.format(e))
 
             myl = []
             myl.append(l)
@@ -82,13 +82,13 @@ def process_gene(lines, out_gtf):
         strand = myl[0].split()[6]
         if strand == '+':
             for e in myl:
-                print >>out_gtf, e
+                out_gtf.write('{}\n'.format(e))
         else:
             for e in reversed(myl):
-                print >>out_gtf, e
+                out_gtf.write('{}\n'.format(e))
 
 def usage():
-    print('Usage: python2.7 {} INPUT_GTF OUTPUT_GTF'.format(sys.argv[0]))
+    print('Usage: python {} INPUT_GTF OUTPUT_GTF'.format(sys.argv[0]))
 
 def main():
     args = sys.argv[1:]
