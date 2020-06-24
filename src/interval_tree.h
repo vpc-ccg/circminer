@@ -26,6 +26,7 @@ public:
     FlatIntervalTree(void);
     ~FlatIntervalTree(void);
 
+    bool add_dummy_interval(const IntervalInfo<T> &temp);
     void build(map <T, string> &sorted_list);
 
     IntervalInfo<T> *find(uint32_t pos);

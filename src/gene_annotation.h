@@ -49,6 +49,7 @@ private:
 
     char *line;
     int len;
+    uint32_t contig_cnt;
     size_t max_line_size;
 
     vector <map <UniqSeg, string>> merged_exons;

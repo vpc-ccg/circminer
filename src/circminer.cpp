@@ -24,7 +24,7 @@ using namespace std;
 
 char versionNumberMajor[10] = "0";
 char versionNumberMinor[10] = "4";
-char versionNumberPatch[10] = "2";
+char versionNumberPatch[10] = "3";
 
 pthread_mutex_t write_lock;
 pthread_mutex_t pmap_lock;

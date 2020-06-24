@@ -7,6 +7,7 @@
 
 #include "gene_annotation.h"
 #include "common.h"
+#include "genome.h"
 
 #define MAXGTFLINESIZE 10000
 #define MAXGTFATTR 50
@@ -39,6 +40,7 @@ void GTFParser::init(char *filename, const vector <ContigLen> &contig_len) {
 
     max_line_size = MAXGTFLINESIZE;
     line = (char *) malloc(max_line_size);
+    contig_cnt = genome_packer.get_packed_contig_cnt(contig_len);
 
     set_contig_shift(contig_len);
 
@@ -344,9 +346,9 @@ bool GTFParser::load_gtf(void) {
     }
     //////
 
-    exons_int_map.resize(merged_exons.size());
-    trans2seg.resize(merged_exons.size());
-    trans_start_ind.resize(merged_exons.size());
+    exons_int_map.resize(contig_cnt);
+    trans2seg.resize(contig_cnt);
+    trans_start_ind.resize(contig_cnt);
 
     for (unsigned int con = 0; con < merged_exons.size(); con++) {
         exons_int_map[con].build(merged_exons[con]);
@@ -357,11 +359,30 @@ bool GTFParser::load_gtf(void) {
         exons_int_map[con].build_trans2seg_table(transcript_ids[con].size(), trans2seg[con], trans_start_ind[con]);
     }
 
-    genes_int_map.resize(merged_genes.size());
+    genes_int_map.resize(contig_cnt);
     for (unsigned int con = 0; con < merged_genes.size(); con++) {
         genes_int_map[con].build(merged_genes[con]);
         //genes_int_map[con].print();
     }
+
+    UniqSeg temp_seg(MAXUB, MAXUB, 0, 0);
+    IntervalInfo <UniqSeg> temp_exon(temp_seg); 
+
+    GeneInfo temp_ginfo = {.start = MAXUB, .end = MAXUB, .gene_id = 0};
+    IntervalInfo <GeneInfo> temp_gene(temp_ginfo);
+
+    bool any_empty = false;
+    for (unsigned int con = 0; con < contig_cnt; con++) {
+        bool is_empty;
+        is_empty = exons_int_map[con].add_dummy_interval(temp_exon);
+        is_empty = genes_int_map[con].add_dummy_interval(temp_gene);
+        if (is_empty) {
+            any_empty = true;
+        }
+    }
+
+    if (any_empty)
+        Logger::instance().info("{GTFParser} WARNING: Gene annotation file does not contain any records of some contigs.\n");
 
     for (unsigned int i = 0; i < near_border_bs.size(); i++) {
         Logger::instance().debug("{GTFParser} Contig #%u: Near exon boundaries: %zu\n", i + 1,

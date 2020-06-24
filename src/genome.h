@@ -38,6 +38,7 @@ public:
     void load_index_info(vector <ContigLen> &contig_len);
 
     string get_index_fname(void);
+    uint32_t get_packed_contig_cnt(const vector <ContigLen> &contig_len);
 };
 
 extern GenomePacker genome_packer;

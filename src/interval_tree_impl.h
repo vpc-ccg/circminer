@@ -5,12 +5,22 @@
 
 template<class T>
 FlatIntervalTree<T>::FlatIntervalTree(void) {
-
+    disjoint_intervals.clear();
 }
 
 template<class T>
 FlatIntervalTree<T>::~FlatIntervalTree(void) {
 
+}
+
+// add a dummy interval with zero endpoints if and only if disjoint_intervals is empty
+template<class T>
+bool FlatIntervalTree<T>::add_dummy_interval(const IntervalInfo<T> &temp) {
+    if (disjoint_intervals.size() == 0) {
+        disjoint_intervals.push_back(temp);
+        return true;
+    }
+    return false;
 }
 
 // disjoint_intervals[ind] will be ready to be filled after the execution of the function

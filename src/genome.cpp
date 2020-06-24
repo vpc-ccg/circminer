@@ -170,3 +170,6 @@ string GenomePacker::get_index_fname(void) {
     return index_fname;
 }
 
+uint32_t GenomePacker::get_packed_contig_cnt(const vector <ContigLen> &contig_len) {
+    return contig_len[contig_len.size()-1].contig_id;
+}
