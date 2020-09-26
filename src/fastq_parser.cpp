@@ -154,6 +154,26 @@ bool FASTQParser::read_block(void) {
     return true;
 }
 
+Record *FASTQParser::get_next_read(int thread_id) {
+    if (has_next()) {
+        read_line(&current_record[thread_id].rname);
+        extract_map_info(current_record[thread_id].rname, thread_id);
+
+        current_record[thread_id].seq_len = read_line(&current_record[thread_id].seq);
+
+        read_line(&current_record[thread_id].comment);
+        assert(current_record[thread_id].comment[0] == '+');
+        current_record[thread_id].comment[1] = '\0';
+
+        read_line(&current_record[thread_id].qual);
+
+        set_reverse_comp(thread_id);
+        return current_record + thread_id;
+    } else {
+        return NULL;
+    }
+}
+
 void FASTQParser::set_comp(void) {
     comp[uint8_t('A')] = 'T';
     comp[uint8_t('C')] = 'G';
