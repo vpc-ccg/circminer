@@ -56,6 +56,7 @@ public:
 
     void set_mate(FASTQParser *mq);
 
+    Record *get_next_read(int thread_id);
     inline Record *get_next(void);
     inline Record *get_next(int rid);
     inline int get_next_rec_id(void);
