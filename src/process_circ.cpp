@@ -138,7 +138,7 @@ void ProcessCirc::sort_fq_internal(char *fqname) {
     vector <RecordStr> all_records;
     Record *current_record;
 
-    while ((current_record = fq_parser.get_next()) != NULL) {
+    while ((current_record = fq_parser.get_next_read(0)) != NULL) {
         all_records.push_back(RecordStr(current_record));
     }
 
@@ -274,12 +274,12 @@ void ProcessCirc::do_process(void) {
     //while ( (current_record1 = fq_parser1.get_next()) != NULL ) { // go line by line on fastq file
     while (true) {
 
-        current_record1 = fq_parser1.get_next();
+        current_record1 = fq_parser1.get_next_read(0);
 
         if (current_record1 == NULL)
             break;
         if (is_pe)
-            current_record2 = fq_parser2.get_next();
+            current_record2 = fq_parser2.get_next_read(0);
 
         line++;
         vafprintf(2, stderr, "Line: %d\n", line);
