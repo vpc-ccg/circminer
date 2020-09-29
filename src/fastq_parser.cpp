@@ -15,7 +15,7 @@ FASTQParser::FASTQParser(char *filename) {
 
 FASTQParser::~FASTQParser(void) {
     free(zbuffer);
-    for (int i = 0; i < MAX_THREADS_COUNT; ++i) {
+    for (int i = 0; i < threadCount; ++i) {
         free(current_record[i].rname);
         free(current_record[i].seq);
         free(current_record[i].rcseq);
@@ -38,9 +38,9 @@ void FASTQParser::init(void) {
     set_comp();
 
     zbuffer = (char *) malloc(BUFFSIZE);
-    // current_record = (Record*) malloc(MAX_THREADS_COUNT * sizeof(Record));
-    current_record = new Record[MAX_THREADS_COUNT];
-    for (int i = 0; i < MAX_THREADS_COUNT; ++i) {
+
+    current_record = new Record[threadCount];
+    for (int i = 0; i < threadCount; ++i) {
         current_record[i].rname = (char *) malloc(max_line_size);
         current_record[i].seq = (char *) malloc(max_line_size);
         current_record[i].rcseq = (char *) malloc(max_line_size);

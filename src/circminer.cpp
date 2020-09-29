@@ -24,11 +24,10 @@ using namespace std;
 
 char versionNumberMajor[10] = "0";
 char versionNumberMinor[10] = "4";
-char versionNumberPatch[10] = "3";
+char versionNumberPatch[10] = "4";
 
 pthread_mutex_t write_lock;
 pthread_mutex_t pmap_lock;
-pthread_mutex_t read_lock;
 pthread_mutex_t buffer_lock;
 
 GTFParser gtf_parser;
@@ -106,10 +105,6 @@ int mapping(int &last_round_num) {
         fq_file2 = fastqFilename[1];
     }
 
-    if (pthread_mutex_init(&read_lock, NULL) != 0) {
-        Logger::instance().error("Mutex init has failed\n");
-        return 1;
-    }
     if (pthread_mutex_init(&buffer_lock, NULL) != 0) {
         Logger::instance().error("Mutex init has failed\n");
         return 1;

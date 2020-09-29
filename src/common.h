@@ -123,7 +123,6 @@ extern char versionNumberPatch[10];
 
 extern pthread_mutex_t write_lock;
 extern pthread_mutex_t pmap_lock;
-extern pthread_mutex_t read_lock;
 extern pthread_mutex_t buffer_lock;
 
 //---------- Structures ----------//
