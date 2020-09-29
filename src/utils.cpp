@@ -841,13 +841,16 @@ bool is_left_chain(chain_t a, chain_t b) {
         while (i < a.chain_len and j < b.chain_len) {
             uint32_t bj_beg = b.frags[j].rpos;
             uint32_t ai_end = a.frags[i].rpos + a.frags[i].len - 1;
-            if (ai_end < bj_beg)
+            if (ai_end < bj_beg) {
                 ++i;
-
+                continue;
+            }
             uint32_t ai_beg = a.frags[i].rpos;
             uint32_t bj_end = b.frags[j].rpos + b.frags[j].len - 1;
-            if (bj_end < ai_beg)
+            if (bj_end < ai_beg) {
                 ++j;
+                continue;
+            }
 
             uint32_t common_bp = maxM(ai_beg, bj_beg);
             int32_t a_ov_qpos = a.frags[i].qpos + (common_bp - a.frags[i].rpos);
