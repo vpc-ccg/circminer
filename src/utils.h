@@ -56,7 +56,7 @@ string get_consensus(const vector <string> &vseq);
 
 void reverse_str(char *s, int n, char *revs);
 
-bool is_left_chain(chain_t a, chain_t b);
+bool is_left_chain(chain_t a, chain_t b, int read_length);
 
 void remove_side_introns(MatchedMate &mm, int rlen);
 
