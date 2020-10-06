@@ -15,7 +15,7 @@ FASTQParser::FASTQParser(char *filename) {
 
 FASTQParser::~FASTQParser(void) {
     free(zbuffer);
-    for (int i = 0; i < BLOCKSIZE; ++i) {
+    for (int i = 0; i < threadCount; ++i) {
         free(current_record[i].rname);
         free(current_record[i].seq);
         free(current_record[i].rcseq);
@@ -38,9 +38,9 @@ void FASTQParser::init(void) {
     set_comp();
 
     zbuffer = (char *) malloc(BUFFSIZE);
-    // current_record = (Record*) malloc(BLOCKSIZE * sizeof(Record));
-    current_record = new Record[BLOCKSIZE];
-    for (int i = 0; i < BLOCKSIZE; ++i) {
+
+    current_record = new Record[threadCount];
+    for (int i = 0; i < threadCount; ++i) {
         current_record[i].rname = (char *) malloc(max_line_size);
         current_record[i].seq = (char *) malloc(max_line_size);
         current_record[i].rcseq = (char *) malloc(max_line_size);
@@ -68,9 +68,6 @@ void FASTQParser::reset(char *filename) {
 
     buff_pos = 0;
     buff_size = 0;
-
-    curr_read = 0;
-    filled_size = 0;
 }
 
 void FASTQParser::finalize(void) {
@@ -123,35 +120,24 @@ uint32_t FASTQParser::read_line(char **seq) {
     }
 }
 
-bool FASTQParser::read_block(void) {
-    curr_read = 0;
-    filled_size = 0;
-    for (int i = 0; i < BLOCKSIZE; ++i) {
-        if (has_next()) {
-            //int rname_len = getline(&current_record[i].rname, &max_line_size, input);
-            read_line(&current_record[i].rname);
-            extract_map_info(current_record[i].rname, i);
+Record *FASTQParser::get_next_read(int thread_id) {
+    if (has_next()) {
+        read_line(&current_record[thread_id].rname);
+        extract_map_info(current_record[thread_id].rname, thread_id);
 
-            //getline(&current_record[i].seq, &max_line_size, input);
-            current_record[i].seq_len = read_line(&current_record[i].seq);
+        current_record[thread_id].seq_len = read_line(&current_record[thread_id].seq);
 
-            //getline(&current_record[i].comment, &max_line_size, input);
-            read_line(&current_record[i].comment);
-            assert(current_record[i].comment[0] == '+');
-            // ignore comment
-            current_record[i].comment[1] = '\0';
+        read_line(&current_record[thread_id].comment);
+        assert(current_record[thread_id].comment[0] == '+');
+        current_record[thread_id].comment[1] = '\0';
 
-            //getline(&current_record[i].qual, &max_line_size, input);
-            read_line(&current_record[i].qual);
+        read_line(&current_record[thread_id].qual);
 
-            set_reverse_comp(i);
-            ++filled_size;
-        } else {
-            return filled_size > 0;
-        }
+        set_reverse_comp(thread_id);
+        return current_record + thread_id;
+    } else {
+        return NULL;
     }
-
-    return true;
 }
 
 void FASTQParser::set_comp(void) {

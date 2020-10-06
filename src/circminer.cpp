@@ -24,11 +24,11 @@ using namespace std;
 
 char versionNumberMajor[10] = "0";
 char versionNumberMinor[10] = "4";
-char versionNumberPatch[10] = "3";
+char versionNumberPatch[10] = "4";
 
 pthread_mutex_t write_lock;
 pthread_mutex_t pmap_lock;
-pthread_mutex_t read_lock;
+pthread_mutex_t buffer_lock;
 
 GTFParser gtf_parser;
 FilterRead filter_read;
@@ -103,6 +103,19 @@ int mapping(int &last_round_num) {
     bool is_pe = pairedEnd;
     if (is_pe) {
         fq_file2 = fastqFilename[1];
+    }
+
+    if (pthread_mutex_init(&buffer_lock, NULL) != 0) {
+        Logger::instance().error("Mutex init has failed\n");
+        return 1;
+    }
+    if (pthread_mutex_init(&pmap_lock, NULL) != 0) {
+        Logger::instance().error("Mutex init has failed\n");
+        return 1;
+    }
+    if (pthread_mutex_init(&write_lock, NULL) != 0) {
+        Logger::instance().error("Mutex init has failed\n");
+        return 1;
     }
 
     /**********************/
@@ -353,13 +366,18 @@ void *map_reads(void *args) {
     Record *current_record2;
     int state;
     int is_last = filter_read.get_last_round();
-    while ((rid = fq_parser1.get_next_rec_id()) >= 0) { // go line by line on fastq file
-        current_record1 = fq_parser1.get_next(rid);
-        if (pairedEnd) {
-            current_record2 = fq_parser2.get_next(rid);
-            if (current_record1 == NULL or current_record2 == NULL)    // no new line
-                break;
+    while (true) { // go line by line on fastq file
+        mutex_lock(&buffer_lock);
 
+        current_record1 = fq_parser1.get_next_read(fa->id);
+        if (pairedEnd) {
+            current_record2 = fq_parser2.get_next_read(fa->id);
+        }
+        mutex_unlock(&buffer_lock);
+
+        if (current_record1 == NULL)
+            break;
+        if (pairedEnd) {
             state = filter_read.process_read(fa->id, current_record1, current_record2, fa->kmer_size, fa->fl, fa->bl,
                                              *(fa->fbc_r1), *(fa->bbc_r1), *(fa->fbc_r2), *(fa->bbc_r2));
             bool skip = (scanLevel == 0 and state == CONCRD) or
