@@ -9,7 +9,6 @@
 
 #include "common.h"
 
-#define MAX_THREADS_COUNT 1024
 #define FQCOMMENTCNT 23
 #define BUFFSIZE 10000000
 
