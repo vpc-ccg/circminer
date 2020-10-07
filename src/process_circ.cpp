@@ -134,7 +134,9 @@ void ProcessCirc::sort_fq_internal(char *fqname) {
     sprintf(sorted_file, "%s.srt", fqname);
     sprintf(wmode, "%c", 'w');
 
-    FASTQParser fq_parser(fqname);
+    FASTQParser fq_parser;
+    fq_parser.init();
+    fq_parser.reset(fqname);
     vector <RecordStr> all_records;
     Record *current_record;
 
@@ -259,10 +261,13 @@ void ProcessCirc::do_process(void) {
 
     bool is_pe = pairedEnd;
 
-    FASTQParser fq_parser1(fq_file1);
+    FASTQParser fq_parser1;
+    fq_parser1.init();
+    fq_parser1.reset(fq_file1);
     Record *current_record1 = NULL;
 
     FASTQParser fq_parser2;
+    fq_parser2.init();
     Record *current_record2 = NULL;
     if (is_pe) {
         fq_parser2.reset(fq_file2);

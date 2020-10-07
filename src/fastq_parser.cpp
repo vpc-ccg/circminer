@@ -5,11 +5,9 @@
 #include "fastq_parser.h"
 
 FASTQParser::FASTQParser(void) {
-    init();
 }
 
 FASTQParser::FASTQParser(char *filename) {
-    init();
     reset(filename);
 }
 

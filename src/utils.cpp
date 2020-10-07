@@ -837,6 +837,11 @@ bool is_left_chain(chain_t a, chain_t b) {
 // 		fprintf(stderr, "NOV\n");
         return a_beg < b_beg;
     } else {
+//        for (int i = 0; i < a.chain_len; i++)
+//            cout << "a " << a.frags[i].rpos << " " << a.frags[i].qpos << " " << a.frags[i].len << endl;
+//        for (int i = 0; i < b.chain_len; i++)
+//            cout << "b " << b.frags[i].rpos << " " << b.frags[i].qpos << " " << b.frags[i].len << endl;
+
         uint32_t i = 0, j = 0;
         while (i < a.chain_len and j < b.chain_len) {
             uint32_t bj_beg = b.frags[j].rpos;
