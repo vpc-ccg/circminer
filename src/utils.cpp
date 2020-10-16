@@ -824,7 +824,7 @@ void reverse_str(char *s, int n, char *revs) {
 }
 
 // is a on the left side?
-bool is_left_chain(chain_t a, chain_t b) {
+bool is_left_chain(chain_t a, chain_t b, int read_length) {
     uint32_t a_beg = a.frags[0].rpos;
     uint32_t b_beg = b.frags[0].rpos;
     uint32_t a_end = a.frags[a.chain_len - 1].rpos + a.frags[a.chain_len - 1].len - 1;
@@ -838,27 +838,48 @@ bool is_left_chain(chain_t a, chain_t b) {
         return a_beg < b_beg;
     } else {
         uint32_t i = 0, j = 0;
+        int best_distance = INF;
+        int best_i = -1;
+        int best_j = -1;
         while (i < a.chain_len and j < b.chain_len) {
             uint32_t bj_beg = b.frags[j].rpos;
             uint32_t ai_end = a.frags[i].rpos + a.frags[i].len - 1;
             if (ai_end < bj_beg) {
+                int distance = bj_beg - ai_end;
+                if (distance < best_distance) {
+                    best_distance = distance;
+                    best_i = i;
+                    best_j = j;
+                }
                 ++i;
                 continue;
             }
             uint32_t ai_beg = a.frags[i].rpos;
             uint32_t bj_end = b.frags[j].rpos + b.frags[j].len - 1;
             if (bj_end < ai_beg) {
+                int distance = ai_beg - bj_end;
+                if (distance < best_distance) {
+                    best_distance = distance;
+                    best_i = i;
+                    best_j = j;
+                }
                 ++j;
                 continue;
             }
+            best_i = i;
+            best_j = j;
+            break;
+        }
 
-            uint32_t common_bp = maxM(ai_beg, bj_beg);
-            int32_t a_ov_qpos = a.frags[i].qpos + (common_bp - a.frags[i].rpos);
-            int32_t b_ov_qpos = b.frags[j].qpos + (common_bp - b.frags[j].rpos);
+
+        uint32_t common_bp = maxM(a.frags[best_i].rpos, b.frags[best_j].rpos);
+        int32_t a_ov_qpos = a.frags[best_i].qpos + (common_bp - a.frags[best_i].rpos);
+        int32_t b_ov_qpos = b.frags[best_j].qpos + (common_bp - b.frags[best_j].rpos);
 
 // 			fprintf(stderr, "OV -> Decision made\n");
+        if (a_ov_qpos < read_length and b_ov_qpos < read_length)
             return a_ov_qpos >= b_ov_qpos;
-        }
+
 // 		fprintf(stderr, "OV -> Ambiguous\n");
 
         return a_beg < b_beg;
