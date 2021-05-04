@@ -57,8 +57,7 @@ int main(int argc, char **argv) {
     genome_packer.init(referenceFilename);
 
     fq_parser1.init();
-    if (pairedEnd)
-        fq_parser2.init();
+    fq_parser2.init();
 
     /****************************************************
      * INDEXING
